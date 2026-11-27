@@ -11,12 +11,16 @@
         <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
           <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
         <step><cmd>Start recording the tab.</cmd>
-          <info><data name="doc-detective" value='step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}}'/></info></step>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}}'/></info></step>
         <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
         <step><cmd>Type "Hello, Doc Detective".</cmd></step>
         <step><cmd>Wait a moment, then stop the recording.</cmd>
           <info><data name="doc-detective" value='step {"wait":1000}'/>
-            <data name="doc-detective" value='step {"stopRecord":"walkthrough"}'/></info></step>
+            <data name="doc-detective" value='step {"stopRecord":{"name":"walkthrough"}}'/></info></step>
+        <step><cmd>Record a few seconds more with the default settings.</cmd>
+          <info><data name="doc-detective" value='step {"record":true}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
       </steps>
       <data name="doc-detective" value="test end"/>
     </taskbody>
@@ -29,11 +33,23 @@
         <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
           <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
         <step><cmd>Start a screen recording.</cmd>
-          <info><data name="doc-detective" value='step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}}'/></info></step>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}}'/></info></step>
         <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
         <step><cmd>Type "Recorded on screen".</cmd></step>
         <step><cmd>Wait a moment, then stop the recording.</cmd>
           <info><data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":"screen"}'/></info></step>
+        <step><cmd>Record only the browser window.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+        <step><cmd>Record only the page, and compare each step with the last run.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+        <step><cmd>Record the screen again with the default ffmpeg settings.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
             <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
         <step><cmd>Record a short clip of the result.</cmd>
           <info><data name="doc-detective" value='step {"record":".dd-output/capture-quick.gif"}'/></info></step>

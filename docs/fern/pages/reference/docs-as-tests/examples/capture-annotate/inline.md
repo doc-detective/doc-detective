@@ -1,4 +1,4 @@
-<!-- test {"testId":"capture-annotate","detectSteps":false,"autoScreenshot":false,"annotationDefaults":{"fontSize":14,"callout":{"background":"#0F172A","color":"#FDE047"},"transition":{"enter":"fade","exit":"fade","durationMs":250}}} -->
+<!-- test {"testId":"capture-annotate","detectSteps":false,"autoScreenshot":false,"annotationDefaults":{"fontSize":14,"background":"#1E293B","opacity":0.9,"radius":6,"padding":4,"maxWidth":240,"intensity":16,"callout":{"background":"#0F172A","color":"#FDE047"},"transition":{"enter":"fade","exit":"fade","durationMs":250}}} -->
 
 # Point out the controls on a toolbar
 

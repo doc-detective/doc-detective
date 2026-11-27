@@ -12,7 +12,7 @@ Record the browser tab
 
 #. Start recording the tab.
 
-   .. step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}}
+   .. step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}}
 
 #. Click **Type here:**.
 
@@ -26,7 +26,15 @@ Record the browser tab
 
    .. step {"wait":1000}
 
-   .. step {"stopRecord":"walkthrough"}
+   .. step {"stopRecord":{"name":"walkthrough"}}
+
+#. Record a few seconds more with the default settings.
+
+   .. step {"record":true}
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":true}
 
 .. test end
 
@@ -41,7 +49,7 @@ Record the screen
 
 #. Start a screen recording.
 
-   .. step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}}
+   .. step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}}
 
 #. Click **Type here:**.
 
@@ -52,6 +60,30 @@ Record the screen
    .. step {"type":"Recorded on screen"}
 
 #. Wait a moment, then stop the recording.
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":"screen"}
+
+#. Record only the browser window.
+
+   .. step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}}
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":true}
+
+#. Record only the page, and compare each step with the last run.
+
+   .. step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}}
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":true}
+
+#. Record the screen again with the default ffmpeg settings.
+
+   .. step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}}
 
    .. step {"wait":1000}
 

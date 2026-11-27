@@ -41,7 +41,16 @@ In AsciiDoc, the image inside a list item uses the inline `image:` macro. Detect
 | `crop` with `elementText` and per-side `padding` | Saves only the **Submit by ID** button. `maxVariation` of `0.2` with `overwrite` set to `aboveVariation` replaces the reference only when more than 20% of the pixels change. |
 | `crop` with `selector` and a single `padding` | Saves the inputs section, then draws `annotations` on the image. `overwrite` set to `true` replaces the image on every run. |
 
-The annotations cover every annotation type. Two `badge` annotations number the fields, one targeting a selector string and one targeting `elementTestId` with its own `timeout`. A `callout` with a `position` and a `style` labels the username field, and an `outline` targets an `elementAttribute`. A `blur` hides the password field, an `arrow` points at a fixed point, and a `text` box sits in a named region.
+The annotations cover every annotation type, and each type's target as a selector string:
+
+| Annotation | Target and placement |
+|---|---|
+| `badge` | A selector string, nudged left with a `position` `offset`, and an `elementTestId` object with its own `timeout`. |
+| `callout` | A selector string, placed to the `right` with a named `position`. Its `style` sets `maxWidth`, `fontSize`, `background`, and `padding`. |
+| `outline` | A selector string, and an `elementAttribute` object whose `style` sets `color`, `radius`, and `opacity`. |
+| `blur` | A selector string. Its `style` sets the blur `intensity`. |
+| `arrow` | A selector string with a `position` point (`x` and `y`), and a target that's only a point in the image. |
+| `text` | A selector string with the named `position` `bottom`, and a target that's only a named region. |
 
 `annotationDefaults` on the test sets the color for every annotation type and the badge colors, and an annotation's own `style` wins over it. The example's detected run also sets `annotationDefaults` and `overwriteScreenshots` in its [config](/reference/schemas/config), in `examples/capture-screenshots/doc-detective.json`. A test's theme wins over the config's, and `overwriteScreenshots` replaces every step's `overwrite`.
 
@@ -63,7 +72,7 @@ This procedure uses [`annotate`](/docs/actions/annotate) to `add`, `update`, and
 | `banner` | A `text` box in the top-right region that clears itself after a `duration` of 3000 milliseconds. |
 | `redact` | A `blur` with `all`, so it hides every match, and the `none` transition, so the hidden text never shows. |
 
-`clear` set to `true` removes every annotation that's left. The test's `annotationDefaults` sets the font size, the `callout` colors, and a default `transition`. It sets `autoScreenshot` to `false`, so the run saves only the screenshot the procedure asks for.
+`clear` set to `true` removes every annotation that's left. The test's `annotationDefaults` sets the font size, a `background`, `opacity`, `radius`, `padding`, `maxWidth`, and blur `intensity` for every type, the `callout` colors, and a default `transition`. The standalone specs set `annotationDefaults` on the spec instead, where it applies to every test in the file. A test's theme wins over the spec's. It sets `autoScreenshot` to `false`, so the run saves only the screenshot the procedure asks for.
 
 `track`, `transition`, and `duration` change how annotations behave in a recording. A screenshot shows each annotation at the moment the screenshot is taken.
 
@@ -73,7 +82,7 @@ The link becomes a `goTo` step and a `checkLink` step. No default rule produces 
 
 ## Record a walkthrough
 
-This procedure uses [`record`](/docs/actions/record) as a path and as an object with `path`, `directory`, `name`, `engine`, `overwrite`, [`checkpoints`](/reference/schemas/recording-checkpoints-detailed), and [`verify`](/reference/schemas/recording-verify-guards). It stops recordings with [`stopRecord`](/docs/actions/stoprecord) by name and with `true`, after a [`wait`](/docs/actions/wait) so each video has something in it.
+This procedure uses [`record`](/docs/actions/record) as `true`, as a path, and as an object with `path`, `directory`, `name`, `surface`, `engine`, `overwrite`, [`checkpoints`](/reference/schemas/recording-checkpoints-detailed), and [`verify`](/reference/schemas/recording-verify-guards). It stops recordings with [`stopRecord`](/docs/actions/stoprecord) by name, with a `name` object, and with `true`, after a [`wait`](/docs/actions/wait) so each video has something in it.
 
 <Markdown src="examples/capture-recording/_variants.mdx" />
 
@@ -86,22 +95,50 @@ Recording the screen needs a display, so each test sets `runOn`:
 | Record the browser tab | Headed Chrome on Windows and macOS, and headless Chrome on Linux | `SKIPPED` |
 | Record the screen | Headed Chrome on Windows and macOS | `SKIPPED` |
 
-The `browser` engine records the Chrome tab in a headed or a headless browser. The `ffmpeg` engine records the screen, so it needs a headed browser. Here its `target` is the browser `viewport` at 15 frames a second.
+The `browser` engine records the Chrome tab in a headed or a headless browser. The `ffmpeg` engine records the screen, so it needs a headed browser.
 
 ### Recording forms in this example
 
 | Step | What it does |
 |---|---|
-| `record` with `name`, `engine` `browser`, `checkpoints`, and `verify` | Records the tab to `capture-walkthrough.webm`. `checkpoints` saves a screenshot after each step and compares it with the last run's. `verify` fails the stop step if the video is shorter than half a second, longer than two minutes, or black. |
-| `"stopRecord": "walkthrough"` | Stops the recording named `walkthrough`. |
-| `record` with an `engine` object | Records the screen to `capture-screen.mp4` with `ffmpeg`. |
+| `record` with `name`, `surface`, `engine` `browser`, `checkpoints`, and `verify` | Records the Chrome tab to `capture-walkthrough.webm`. `checkpoints` saves a screenshot after each step and compares it with the last run's. `verify` fails the stop step if the video is shorter than half a second, longer than two minutes, or black. With `resolution` set to `true`, it also fails if the video isn't the tab's size. |
+| `"stopRecord": { "name": "walkthrough" }` | Stops the recording named `walkthrough`. |
+| `"record": true` | Records to `<stepId>.mp4` in `outputDir`, with the engine Doc Detective picks for the context. |
+| `record` with `name` and an `engine` object, `target` `display` | Records the whole screen to `capture-screen.mp4` with `ffmpeg` at 15 frames a second. |
+| `"stopRecord": "screen"` | Stops the recording named `screen`. |
+| `engine` object with `target` `window` | Records only the active window. |
+| `engine` object with `target` `viewport`, and `"checkpoints": true` | Records only the browser's content area. It compares a screenshot after each step with the last run's, with the default settings. |
+| `"engine": "ffmpeg"` | Records with `ffmpeg` and its default `target`, the whole screen. |
 | `"record": ".dd-output/capture-quick.gif"` | Records a GIF. With no `overwrite`, it skips the recording when the file already exists. |
 | `"stopRecord": true` | Stops the most recent recording. |
 
-Both tests set `autoRecord` to `false`, so the run records only what the procedure asks for. The standalone specs set it once on the spec.
+Every test sets `autoRecord` to `false`, so the run records only what the procedure asks for. The standalone specs set it once on the spec.
 
-The detected, inline, and standalone variants write the same files. The first run of the GIF step writes `capture-quick.gif`, and later runs skip that step, which doesn't fail the test.
+The detected, inline, and standalone variants write the same files. The first run of the GIF step writes `capture-quick.gif`, and later runs skip that step, which doesn't fail the test. `"record": true` also skips when its file exists.
 
 ### What detection finds
 
 The link becomes a `goTo` step and a `checkLink` step. **Type here:** after "Click" becomes a `click` step and a `find` step, and the quoted text after "Type" becomes a `type` step. No default rule produces `record`, `wait`, or `stopRecord`, so those are statements in every detected variant.
+
+## Check pages for visual changes
+
+This procedure compares new [`screenshot`](/docs/actions/screenshot) images with reference images. It uses `threshold`, `maxDiffPixels`, and `mask` to ignore what changes on every visit, `crop` as a selector string, `surface`, `style`, `stable`, `animations`, and `fullPage`. It also compares against a reference image at a URL, and takes a screenshot with `true`.
+
+<Markdown src="examples/capture-visual-checks/_variants.mdx" />
+
+### Screenshot options in this example
+
+| Step | What it does |
+|---|---|
+| `mask` with a selector string and a `selector` object | Paints `#clock` and every `.stamp` element the same color in both images before comparing, so the times that change on every visit don't count. `threshold` sets how different a pixel's color must be to count as changed, and `maxDiffPixels` caps the changed pixels alongside `maxVariation`. |
+| `"crop": "#panel"` | Saves only the element that matches the selector or display text. |
+| `surface`, `style`, `stable`, and `animations` | Takes the screenshot in the `chrome` browser surface with the cookie banner hidden by CSS. It waits until two images in a row match, and stops animations while it takes the screenshot. |
+| `"fullPage": true` | Saves the whole page, including the parts you scroll to, not only the viewport. |
+| `path` set to a URL | Compares the chart on the page with `find-image-chart.png` on the test server. Doc Detective never writes to a URL reference, so the new image goes to the run folder. |
+| `"screenshot": true` | Saves the viewport to `<stepId>.png` in `outputDir`. |
+
+The test runs in headless Chrome on Windows, macOS, and Linux. The first run of the masked step has no reference to compare with, so it saves one. Later runs compare with it.
+
+### What detection finds
+
+Each link becomes a `goTo` step and a `checkLink` step. No default rule produces these screenshot options, so the screenshots are statements in every detected variant.

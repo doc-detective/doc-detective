@@ -121,7 +121,7 @@ Take screenshots of a sign-in form
 3. Find the **Submit by ID** button at the top of the form.
    <!-- step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}} -->
 4. Fill in the sign-in fields in the order the numbers show.
-   <!-- step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} -->
+   <!-- step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} -->
 
 <!-- test end -->
 ```
@@ -141,7 +141,7 @@ Take screenshots of a sign-in form
 3. Find the **Submit by ID** button at the top of the form.
    {/* step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}} */}
 4. Fill in the sign-in fields in the order the numbers show.
-   {/* step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} */}
+   {/* step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} */}
 
 {/* test end */}
 ```
@@ -165,7 +165,7 @@ image:.dd-output/capture-form.png[The sample form,role=screenshot]
 // (step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}})
 . Fill in the sign-in fields in the order the numbers show.
 +
-// (step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}})
+// (step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}})
 
 // (test end)
 ```
@@ -188,7 +188,7 @@ image:.dd-output/capture-form.png[The sample form,role=screenshot]
   <li>Find the <strong>Submit by ID</strong> button at the top of the form.
     <!-- step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}} --></li>
   <li>Fill in the sign-in fields in the order the numbers show.
-    <!-- step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} --></li>
+    <!-- step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} --></li>
 </ol>
 <!-- test end -->
 </body>
@@ -220,7 +220,7 @@ Take screenshots of a sign-in form
 
 #. Fill in the sign-in fields in the order the numbers show.
 
-   .. step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}}
+   .. step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}}
 
 .. test end
 ```
@@ -243,7 +243,7 @@ Take screenshots of a sign-in form
       <step><cmd>Find the <b>Submit by ID</b> button at the top of the form.</cmd>
         <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}}'/></info></step>
       <step><cmd>Fill in the sign-in fields in the order the numbers show.</cmd>
-        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}}'/></info></step>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}}'/></info></step>
     </steps>
     <data name="doc-detective" value="test end"/>
   </taskbody>
@@ -270,7 +270,7 @@ Take screenshots of a sign-in form
 3. Find the **Submit by ID** button at the top of the form.
    <!-- step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}} -->
 4. Fill in the sign-in fields in the order the numbers show.
-   <!-- step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} -->
+   <!-- step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} -->
 
 <!-- test end -->
 ```
@@ -291,7 +291,7 @@ Take screenshots of a sign-in form
 3. Find the **Submit by ID** button at the top of the form.
    {/* step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}} */}
 4. Fill in the sign-in fields in the order the numbers show.
-   {/* step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} */}
+   {/* step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} */}
 
 {/* test end */}
 ```
@@ -317,7 +317,7 @@ image:.dd-output/capture-form.png[The sample form,role=screenshot]
 // (step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}})
 . Fill in the sign-in fields in the order the numbers show.
 +
-// (step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}})
+// (step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}})
 
 // (test end)
 ```
@@ -341,7 +341,7 @@ image:.dd-output/capture-form.png[The sample form,role=screenshot]
   <li>Find the <strong>Submit by ID</strong> button at the top of the form.
     <!-- step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}} --></li>
   <li>Fill in the sign-in fields in the order the numbers show.
-    <!-- step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} --></li>
+    <!-- step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}} --></li>
 </ol>
 <!-- test end -->
 </body>
@@ -375,7 +375,7 @@ Take screenshots of a sign-in form
 
 #. Fill in the sign-in fields in the order the numbers show.
 
-   .. step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}}
+   .. step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}}
 
 .. test end
 ```
@@ -399,7 +399,7 @@ Take screenshots of a sign-in form
       <step><cmd>Find the <b>Submit by ID</b> button at the top of the form.</cmd>
         <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}}'/></info></step>
       <step><cmd>Fill in the sign-in fields in the order the numbers show.</cmd>
-        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}}'/></info></step>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1","position":{"offset":{"x":-6,"y":0}}},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":"#username-input","label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14,"background":"#0F172A","padding":6}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4,"opacity":0.8}},{"outline":"#inputs-section h2"},{"blur":"[data-testid=password-field]","style":{"intensity":12}},{"arrow":"#inputs-section h2","position":{"x":420,"y":30}},{"arrow":{"position":{"x":40,"y":20}}},{"text":"#username-input","label":"Required","position":"bottom"},{"text":{"position":"bottom-right"},"label":"Sample data"}]}}'/></info></step>
     </steps>
     <data name="doc-detective" value="test end"/>
   </taskbody>
@@ -464,7 +464,13 @@ Take screenshots of a sign-in form
             "annotations": [
               {
                 "badge": "#username-input",
-                "label": "1"
+                "label": "1",
+                "position": {
+                  "offset": {
+                    "x": -6,
+                    "y": 0
+                  }
+                }
               },
               {
                 "badge": {
@@ -474,14 +480,14 @@ Take screenshots of a sign-in form
                 "label": "2"
               },
               {
-                "callout": {
-                  "selector": "#username-input"
-                },
+                "callout": "#username-input",
                 "label": "Your account name",
                 "position": "right",
                 "style": {
                   "maxWidth": 200,
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "background": "#0F172A",
+                  "padding": 6
                 }
               },
               {
@@ -492,14 +498,24 @@ Take screenshots of a sign-in form
                 },
                 "style": {
                   "color": "#7C3AED",
-                  "radius": 4
+                  "radius": 4,
+                  "opacity": 0.8
                 }
               },
               {
-                "blur": {
-                  "elementAttribute": {
-                    "type": "password"
-                  }
+                "outline": "#inputs-section h2"
+              },
+              {
+                "blur": "[data-testid=password-field]",
+                "style": {
+                  "intensity": 12
+                }
+              },
+              {
+                "arrow": "#inputs-section h2",
+                "position": {
+                  "x": 420,
+                  "y": 30
                 }
               },
               {
@@ -509,6 +525,11 @@ Take screenshots of a sign-in form
                     "y": 20
                   }
                 }
+              },
+              {
+                "text": "#username-input",
+                "label": "Required",
+                "position": "bottom"
               },
               {
                 "text": {
@@ -564,30 +585,44 @@ tests:
           annotations:
             - badge: "#username-input"
               label: "1"
+              position:
+                offset:
+                  x: -6
+                  y: 0
             - badge:
                 elementTestId: password-field
                 timeout: 10000
               label: "2"
-            - callout:
-                selector: "#username-input"
+            - callout: "#username-input"
               label: Your account name
               position: right
               style:
                 maxWidth: 200
                 fontSize: 14
+                background: "#0F172A"
+                padding: 6
             - outline:
                 elementAttribute:
                   data-validation: email-validator
               style:
                 color: "#7C3AED"
                 radius: 4
-            - blur:
-                elementAttribute:
-                  type: password
+                opacity: 0.8
+            - outline: "#inputs-section h2"
+            - blur: "[data-testid=password-field]"
+              style:
+                intensity: 12
+            - arrow: "#inputs-section h2"
+              position:
+                x: 420
+                y: 30
             - arrow:
                 position:
                   x: 40
                   y: 20
+            - text: "#username-input"
+              label: Required
+              position: bottom
             - text:
                 position: bottom-right
               label: Sample data

@@ -48,7 +48,13 @@
             "annotations": [
               {
                 "badge": "#username-input",
-                "label": "1"
+                "label": "1",
+                "position": {
+                  "offset": {
+                    "x": -6,
+                    "y": 0
+                  }
+                }
               },
               {
                 "badge": {
@@ -58,14 +64,14 @@
                 "label": "2"
               },
               {
-                "callout": {
-                  "selector": "#username-input"
-                },
+                "callout": "#username-input",
                 "label": "Your account name",
                 "position": "right",
                 "style": {
                   "maxWidth": 200,
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "background": "#0F172A",
+                  "padding": 6
                 }
               },
               {
@@ -76,14 +82,24 @@
                 },
                 "style": {
                   "color": "#7C3AED",
-                  "radius": 4
+                  "radius": 4,
+                  "opacity": 0.8
                 }
               },
               {
-                "blur": {
-                  "elementAttribute": {
-                    "type": "password"
-                  }
+                "outline": "#inputs-section h2"
+              },
+              {
+                "blur": "[data-testid=password-field]",
+                "style": {
+                  "intensity": 12
+                }
+              },
+              {
+                "arrow": "#inputs-section h2",
+                "position": {
+                  "x": 420,
+                  "y": 30
                 }
               },
               {
@@ -93,6 +109,11 @@
                     "y": 20
                   }
                 }
+              },
+              {
+                "text": "#username-input",
+                "label": "Required",
+                "position": "bottom"
               },
               {
                 "text": {

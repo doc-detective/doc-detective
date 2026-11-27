@@ -15,6 +15,7 @@
 3. Click **Type here:**.
 4. Type "Hello, Doc Detective".
 5. Wait a moment, then stop the recording.
+6. Record a few seconds more with the default settings.
 
 ## Record the screen
 
@@ -23,8 +24,11 @@
 3. Click **Type here:**.
 4. Type "Recorded on screen".
 5. Wait a moment, then stop the recording.
-6. Record a short clip of the result.
-7. Wait a second, then stop the clip.
+6. Record only the browser window.
+7. Record only the page, and compare each step with the last run.
+8. Record the screen again with the default ffmpeg settings.
+9. Record a short clip of the result.
+10. Wait a second, then stop the clip.
 ```
 
       </Tab>
@@ -40,6 +44,7 @@
 3. Click **Type here:**.
 4. Type "Hello, Doc Detective".
 5. Wait a moment, then stop the recording.
+6. Record a few seconds more with the default settings.
 
 ## Record the screen
 
@@ -48,8 +53,11 @@
 3. Click **Type here:**.
 4. Type "Recorded on screen".
 5. Wait a moment, then stop the recording.
-6. Record a short clip of the result.
-7. Wait a second, then stop the clip.
+6. Record only the browser window.
+7. Record only the page, and compare each step with the last run.
+8. Record the screen again with the default ffmpeg settings.
+9. Record a short clip of the result.
+10. Wait a second, then stop the clip.
 ```
 
       </Tab>
@@ -65,6 +73,7 @@
 . Click *Type here:*.
 . Type "Hello, Doc Detective".
 . Wait a moment, then stop the recording.
+. Record a few seconds more with the default settings.
 
 == Record the screen
 
@@ -73,6 +82,9 @@
 . Click *Type here:*.
 . Type "Recorded on screen".
 . Wait a moment, then stop the recording.
+. Record only the browser window.
+. Record only the page, and compare each step with the last run.
+. Record the screen again with the default ffmpeg settings.
 . Record a short clip of the result.
 . Wait a second, then stop the clip.
 ```
@@ -93,6 +105,7 @@
   <li>Click <strong>Type here:</strong>.</li>
   <li>Type "Hello, Doc Detective".</li>
   <li>Wait a moment, then stop the recording.</li>
+  <li>Record a few seconds more with the default settings.</li>
 </ol>
 <h2>Record the screen</h2>
 <ol>
@@ -101,6 +114,9 @@
   <li>Click <strong>Type here:</strong>.</li>
   <li>Type "Recorded on screen".</li>
   <li>Wait a moment, then stop the recording.</li>
+  <li>Record only the browser window.</li>
+  <li>Record only the page, and compare each step with the last run.</li>
+  <li>Record the screen again with the default ffmpeg settings.</li>
   <li>Record a short clip of the result.</li>
   <li>Wait a second, then stop the clip.</li>
 </ol>
@@ -128,6 +144,8 @@ Record the browser tab
 
 #. Wait a moment, then stop the recording.
 
+#. Record a few seconds more with the default settings.
+
 Record the screen
 -----------------
 
@@ -140,6 +158,12 @@ Record the screen
 #. Type "Recorded on screen".
 
 #. Wait a moment, then stop the recording.
+
+#. Record only the browser window.
+
+#. Record only the page, and compare each step with the last run.
+
+#. Record the screen again with the default ffmpeg settings.
 
 #. Record a short clip of the result.
 
@@ -164,6 +188,7 @@ Record the screen
         <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
         <step><cmd>Type "Hello, Doc Detective".</cmd></step>
         <step><cmd>Wait a moment, then stop the recording.</cmd></step>
+        <step><cmd>Record a few seconds more with the default settings.</cmd></step>
       </steps>
     </taskbody>
   </task>
@@ -176,6 +201,9 @@ Record the screen
         <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
         <step><cmd>Type "Recorded on screen".</cmd></step>
         <step><cmd>Wait a moment, then stop the recording.</cmd></step>
+        <step><cmd>Record only the browser window.</cmd></step>
+        <step><cmd>Record only the page, and compare each step with the last run.</cmd></step>
+        <step><cmd>Record the screen again with the default ffmpeg settings.</cmd></step>
         <step><cmd>Record a short clip of the result.</cmd></step>
         <step><cmd>Wait a second, then stop the clip.</cmd></step>
       </steps>
@@ -201,12 +229,16 @@ Record the screen
 1. Go to [the type echo page](http://localhost:8092/type-echo.html).
    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} -->
 2. Start recording the tab.
-   <!-- step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}} -->
+   <!-- step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}} -->
 3. Click **Type here:**.
 4. Type "Hello, Doc Detective".
 5. Wait a moment, then stop the recording.
    <!-- step {"wait":1000} -->
-   <!-- step {"stopRecord":"walkthrough"} -->
+   <!-- step {"stopRecord":{"name":"walkthrough"}} -->
+6. Record a few seconds more with the default settings.
+   <!-- step {"record":true} -->
+   <!-- step {"wait":1000} -->
+   <!-- step {"stopRecord":true} -->
 
 <!-- test end -->
 
@@ -217,15 +249,27 @@ Record the screen
 1. Go to [the type echo page](http://localhost:8092/type-echo.html).
    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} -->
 2. Start a screen recording.
-   <!-- step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}} -->
+   <!-- step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}} -->
 3. Click **Type here:**.
 4. Type "Recorded on screen".
 5. Wait a moment, then stop the recording.
    <!-- step {"wait":1000} -->
+   <!-- step {"stopRecord":"screen"} -->
+6. Record only the browser window.
+   <!-- step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}} -->
+   <!-- step {"wait":1000} -->
    <!-- step {"stopRecord":true} -->
-6. Record a short clip of the result.
+7. Record only the page, and compare each step with the last run.
+   <!-- step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}} -->
+   <!-- step {"wait":1000} -->
+   <!-- step {"stopRecord":true} -->
+8. Record the screen again with the default ffmpeg settings.
+   <!-- step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}} -->
+   <!-- step {"wait":1000} -->
+   <!-- step {"stopRecord":true} -->
+9. Record a short clip of the result.
    <!-- step {"record":".dd-output/capture-quick.gif"} -->
-7. Wait a second, then stop the clip.
+10. Wait a second, then stop the clip.
    <!-- step {"wait":1000} -->
    <!-- step {"stopRecord":true} -->
 
@@ -245,12 +289,16 @@ Record the screen
 1. Go to [the type echo page](http://localhost:8092/type-echo.html).
    {/* step {"goTo":"http://localhost:8092/type-echo.html"} */}
 2. Start recording the tab.
-   {/* step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}} */}
+   {/* step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}} */}
 3. Click **Type here:**.
 4. Type "Hello, Doc Detective".
 5. Wait a moment, then stop the recording.
    {/* step {"wait":1000} */}
-   {/* step {"stopRecord":"walkthrough"} */}
+   {/* step {"stopRecord":{"name":"walkthrough"}} */}
+6. Record a few seconds more with the default settings.
+   {/* step {"record":true} */}
+   {/* step {"wait":1000} */}
+   {/* step {"stopRecord":true} */}
 
 {/* test end */}
 
@@ -261,15 +309,27 @@ Record the screen
 1. Go to [the type echo page](http://localhost:8092/type-echo.html).
    {/* step {"goTo":"http://localhost:8092/type-echo.html"} */}
 2. Start a screen recording.
-   {/* step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}} */}
+   {/* step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}} */}
 3. Click **Type here:**.
 4. Type "Recorded on screen".
 5. Wait a moment, then stop the recording.
    {/* step {"wait":1000} */}
+   {/* step {"stopRecord":"screen"} */}
+6. Record only the browser window.
+   {/* step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}} */}
+   {/* step {"wait":1000} */}
    {/* step {"stopRecord":true} */}
-6. Record a short clip of the result.
+7. Record only the page, and compare each step with the last run.
+   {/* step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}} */}
+   {/* step {"wait":1000} */}
+   {/* step {"stopRecord":true} */}
+8. Record the screen again with the default ffmpeg settings.
+   {/* step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}} */}
+   {/* step {"wait":1000} */}
+   {/* step {"stopRecord":true} */}
+9. Record a short clip of the result.
    {/* step {"record":".dd-output/capture-quick.gif"} */}
-7. Wait a second, then stop the clip.
+10. Wait a second, then stop the clip.
    {/* step {"wait":1000} */}
    {/* step {"stopRecord":true} */}
 
@@ -291,14 +351,21 @@ Record the screen
 // (step {"goTo":"http://localhost:8092/type-echo.html"})
 . Start recording the tab.
 +
-// (step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}})
+// (step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}})
 . Click *Type here:*.
 . Type "Hello, Doc Detective".
 . Wait a moment, then stop the recording.
 +
 // (step {"wait":1000})
 +
-// (step {"stopRecord":"walkthrough"})
+// (step {"stopRecord":{"name":"walkthrough"}})
+. Record a few seconds more with the default settings.
++
+// (step {"record":true})
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":true})
 
 // (test end)
 
@@ -311,10 +378,31 @@ Record the screen
 // (step {"goTo":"http://localhost:8092/type-echo.html"})
 . Start a screen recording.
 +
-// (step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}})
+// (step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}})
 . Click *Type here:*.
 . Type "Recorded on screen".
 . Wait a moment, then stop the recording.
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":"screen"})
+. Record only the browser window.
++
+// (step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}})
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":true})
+. Record only the page, and compare each step with the last run.
++
+// (step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}})
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":true})
+. Record the screen again with the default ffmpeg settings.
++
+// (step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}})
 +
 // (step {"wait":1000})
 +
@@ -346,12 +434,16 @@ Record the screen
   <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
     <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
   <li>Start recording the tab.
-    <!-- step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}} --></li>
+    <!-- step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}} --></li>
   <li>Click <strong>Type here:</strong>.</li>
   <li>Type "Hello, Doc Detective".</li>
   <li>Wait a moment, then stop the recording.
     <!-- step {"wait":1000} -->
-    <!-- step {"stopRecord":"walkthrough"} --></li>
+    <!-- step {"stopRecord":{"name":"walkthrough"}} --></li>
+  <li>Record a few seconds more with the default settings.
+    <!-- step {"record":true} -->
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":true} --></li>
 </ol>
 <!-- test end -->
 <!-- test {"testId":"capture-record-screen","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["windows","mac"],"browsers":{"name":"chrome","headless":false}}]} -->
@@ -360,10 +452,22 @@ Record the screen
   <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
     <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
   <li>Start a screen recording.
-    <!-- step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}} --></li>
+    <!-- step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}} --></li>
   <li>Click <strong>Type here:</strong>.</li>
   <li>Type "Recorded on screen".</li>
   <li>Wait a moment, then stop the recording.
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":"screen"} --></li>
+  <li>Record only the browser window.
+    <!-- step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}} -->
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":true} --></li>
+  <li>Record only the page, and compare each step with the last run.
+    <!-- step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}} -->
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":true} --></li>
+  <li>Record the screen again with the default ffmpeg settings.
+    <!-- step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}} -->
     <!-- step {"wait":1000} -->
     <!-- step {"stopRecord":true} --></li>
   <li>Record a short clip of the result.
@@ -395,7 +499,7 @@ Record the browser tab
 
 #. Start recording the tab.
 
-   .. step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}}
+   .. step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}}
 
 #. Click **Type here:**.
 
@@ -405,7 +509,15 @@ Record the browser tab
 
    .. step {"wait":1000}
 
-   .. step {"stopRecord":"walkthrough"}
+   .. step {"stopRecord":{"name":"walkthrough"}}
+
+#. Record a few seconds more with the default settings.
+
+   .. step {"record":true}
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":true}
 
 .. test end
 
@@ -420,13 +532,37 @@ Record the screen
 
 #. Start a screen recording.
 
-   .. step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}}
+   .. step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}}
 
 #. Click **Type here:**.
 
 #. Type "Recorded on screen".
 
 #. Wait a moment, then stop the recording.
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":"screen"}
+
+#. Record only the browser window.
+
+   .. step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}}
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":true}
+
+#. Record only the page, and compare each step with the last run.
+
+   .. step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}}
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":true}
+
+#. Record the screen again with the default ffmpeg settings.
+
+   .. step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}}
 
    .. step {"wait":1000}
 
@@ -462,12 +598,16 @@ Record the screen
         <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
           <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
         <step><cmd>Start recording the tab.</cmd>
-          <info><data name="doc-detective" value='step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}}'/></info></step>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}}'/></info></step>
         <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
         <step><cmd>Type "Hello, Doc Detective".</cmd></step>
         <step><cmd>Wait a moment, then stop the recording.</cmd>
           <info><data name="doc-detective" value='step {"wait":1000}'/>
-            <data name="doc-detective" value='step {"stopRecord":"walkthrough"}'/></info></step>
+            <data name="doc-detective" value='step {"stopRecord":{"name":"walkthrough"}}'/></info></step>
+        <step><cmd>Record a few seconds more with the default settings.</cmd>
+          <info><data name="doc-detective" value='step {"record":true}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
       </steps>
       <data name="doc-detective" value="test end"/>
     </taskbody>
@@ -480,11 +620,23 @@ Record the screen
         <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
           <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
         <step><cmd>Start a screen recording.</cmd>
-          <info><data name="doc-detective" value='step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}}'/></info></step>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}}'/></info></step>
         <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
         <step><cmd>Type "Recorded on screen".</cmd></step>
         <step><cmd>Wait a moment, then stop the recording.</cmd>
           <info><data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":"screen"}'/></info></step>
+        <step><cmd>Record only the browser window.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+        <step><cmd>Record only the page, and compare each step with the last run.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+        <step><cmd>Record the screen again with the default ffmpeg settings.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
             <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
         <step><cmd>Record a short clip of the result.</cmd>
           <info><data name="doc-detective" value='step {"record":".dd-output/capture-quick.gif"}'/></info></step>
@@ -515,14 +667,18 @@ Record the screen
 1. Go to [the type echo page](http://localhost:8092/type-echo.html).
    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} -->
 2. Start recording the tab.
-   <!-- step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}} -->
+   <!-- step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}} -->
 3. Click **Type here:**.
    <!-- step {"click":"Type here:"} -->
 4. Type "Hello, Doc Detective".
    <!-- step {"type":"Hello, Doc Detective"} -->
 5. Wait a moment, then stop the recording.
    <!-- step {"wait":1000} -->
-   <!-- step {"stopRecord":"walkthrough"} -->
+   <!-- step {"stopRecord":{"name":"walkthrough"}} -->
+6. Record a few seconds more with the default settings.
+   <!-- step {"record":true} -->
+   <!-- step {"wait":1000} -->
+   <!-- step {"stopRecord":true} -->
 
 <!-- test end -->
 
@@ -533,17 +689,29 @@ Record the screen
 1. Go to [the type echo page](http://localhost:8092/type-echo.html).
    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} -->
 2. Start a screen recording.
-   <!-- step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}} -->
+   <!-- step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}} -->
 3. Click **Type here:**.
    <!-- step {"click":"Type here:"} -->
 4. Type "Recorded on screen".
    <!-- step {"type":"Recorded on screen"} -->
 5. Wait a moment, then stop the recording.
    <!-- step {"wait":1000} -->
+   <!-- step {"stopRecord":"screen"} -->
+6. Record only the browser window.
+   <!-- step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}} -->
+   <!-- step {"wait":1000} -->
    <!-- step {"stopRecord":true} -->
-6. Record a short clip of the result.
+7. Record only the page, and compare each step with the last run.
+   <!-- step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}} -->
+   <!-- step {"wait":1000} -->
+   <!-- step {"stopRecord":true} -->
+8. Record the screen again with the default ffmpeg settings.
+   <!-- step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}} -->
+   <!-- step {"wait":1000} -->
+   <!-- step {"stopRecord":true} -->
+9. Record a short clip of the result.
    <!-- step {"record":".dd-output/capture-quick.gif"} -->
-7. Wait a second, then stop the clip.
+10. Wait a second, then stop the clip.
    <!-- step {"wait":1000} -->
    <!-- step {"stopRecord":true} -->
 
@@ -563,14 +731,18 @@ Record the screen
 1. Go to [the type echo page](http://localhost:8092/type-echo.html).
    {/* step {"goTo":"http://localhost:8092/type-echo.html"} */}
 2. Start recording the tab.
-   {/* step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}} */}
+   {/* step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}} */}
 3. Click **Type here:**.
    {/* step {"click":"Type here:"} */}
 4. Type "Hello, Doc Detective".
    {/* step {"type":"Hello, Doc Detective"} */}
 5. Wait a moment, then stop the recording.
    {/* step {"wait":1000} */}
-   {/* step {"stopRecord":"walkthrough"} */}
+   {/* step {"stopRecord":{"name":"walkthrough"}} */}
+6. Record a few seconds more with the default settings.
+   {/* step {"record":true} */}
+   {/* step {"wait":1000} */}
+   {/* step {"stopRecord":true} */}
 
 {/* test end */}
 
@@ -581,17 +753,29 @@ Record the screen
 1. Go to [the type echo page](http://localhost:8092/type-echo.html).
    {/* step {"goTo":"http://localhost:8092/type-echo.html"} */}
 2. Start a screen recording.
-   {/* step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}} */}
+   {/* step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}} */}
 3. Click **Type here:**.
    {/* step {"click":"Type here:"} */}
 4. Type "Recorded on screen".
    {/* step {"type":"Recorded on screen"} */}
 5. Wait a moment, then stop the recording.
    {/* step {"wait":1000} */}
+   {/* step {"stopRecord":"screen"} */}
+6. Record only the browser window.
+   {/* step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}} */}
+   {/* step {"wait":1000} */}
    {/* step {"stopRecord":true} */}
-6. Record a short clip of the result.
+7. Record only the page, and compare each step with the last run.
+   {/* step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}} */}
+   {/* step {"wait":1000} */}
+   {/* step {"stopRecord":true} */}
+8. Record the screen again with the default ffmpeg settings.
+   {/* step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}} */}
+   {/* step {"wait":1000} */}
+   {/* step {"stopRecord":true} */}
+9. Record a short clip of the result.
    {/* step {"record":".dd-output/capture-quick.gif"} */}
-7. Wait a second, then stop the clip.
+10. Wait a second, then stop the clip.
    {/* step {"wait":1000} */}
    {/* step {"stopRecord":true} */}
 
@@ -613,7 +797,7 @@ Record the screen
 // (step {"goTo":"http://localhost:8092/type-echo.html"})
 . Start recording the tab.
 +
-// (step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}})
+// (step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}})
 . Click *Type here:*.
 +
 // (step {"click":"Type here:"})
@@ -624,7 +808,14 @@ Record the screen
 +
 // (step {"wait":1000})
 +
-// (step {"stopRecord":"walkthrough"})
+// (step {"stopRecord":{"name":"walkthrough"}})
+. Record a few seconds more with the default settings.
++
+// (step {"record":true})
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":true})
 
 // (test end)
 
@@ -637,7 +828,7 @@ Record the screen
 // (step {"goTo":"http://localhost:8092/type-echo.html"})
 . Start a screen recording.
 +
-// (step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}})
+// (step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}})
 . Click *Type here:*.
 +
 // (step {"click":"Type here:"})
@@ -645,6 +836,27 @@ Record the screen
 +
 // (step {"type":"Recorded on screen"})
 . Wait a moment, then stop the recording.
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":"screen"})
+. Record only the browser window.
++
+// (step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}})
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":true})
+. Record only the page, and compare each step with the last run.
++
+// (step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}})
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":true})
+. Record the screen again with the default ffmpeg settings.
++
+// (step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}})
 +
 // (step {"wait":1000})
 +
@@ -676,14 +888,18 @@ Record the screen
   <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
     <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
   <li>Start recording the tab.
-    <!-- step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}} --></li>
+    <!-- step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}} --></li>
   <li>Click <strong>Type here:</strong>.
     <!-- step {"click":"Type here:"} --></li>
   <li>Type "Hello, Doc Detective".
     <!-- step {"type":"Hello, Doc Detective"} --></li>
   <li>Wait a moment, then stop the recording.
     <!-- step {"wait":1000} -->
-    <!-- step {"stopRecord":"walkthrough"} --></li>
+    <!-- step {"stopRecord":{"name":"walkthrough"}} --></li>
+  <li>Record a few seconds more with the default settings.
+    <!-- step {"record":true} -->
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":true} --></li>
 </ol>
 <!-- test end -->
 <!-- test {"testId":"capture-record-screen","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["windows","mac"],"browsers":{"name":"chrome","headless":false}}]} -->
@@ -692,12 +908,24 @@ Record the screen
   <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
     <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
   <li>Start a screen recording.
-    <!-- step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}} --></li>
+    <!-- step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}} --></li>
   <li>Click <strong>Type here:</strong>.
     <!-- step {"click":"Type here:"} --></li>
   <li>Type "Recorded on screen".
     <!-- step {"type":"Recorded on screen"} --></li>
   <li>Wait a moment, then stop the recording.
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":"screen"} --></li>
+  <li>Record only the browser window.
+    <!-- step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}} -->
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":true} --></li>
+  <li>Record only the page, and compare each step with the last run.
+    <!-- step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}} -->
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":true} --></li>
+  <li>Record the screen again with the default ffmpeg settings.
+    <!-- step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}} -->
     <!-- step {"wait":1000} -->
     <!-- step {"stopRecord":true} --></li>
   <li>Record a short clip of the result.
@@ -729,7 +957,7 @@ Record the browser tab
 
 #. Start recording the tab.
 
-   .. step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}}
+   .. step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}}
 
 #. Click **Type here:**.
 
@@ -743,7 +971,15 @@ Record the browser tab
 
    .. step {"wait":1000}
 
-   .. step {"stopRecord":"walkthrough"}
+   .. step {"stopRecord":{"name":"walkthrough"}}
+
+#. Record a few seconds more with the default settings.
+
+   .. step {"record":true}
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":true}
 
 .. test end
 
@@ -758,7 +994,7 @@ Record the screen
 
 #. Start a screen recording.
 
-   .. step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}}
+   .. step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}}
 
 #. Click **Type here:**.
 
@@ -769,6 +1005,30 @@ Record the screen
    .. step {"type":"Recorded on screen"}
 
 #. Wait a moment, then stop the recording.
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":"screen"}
+
+#. Record only the browser window.
+
+   .. step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}}
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":true}
+
+#. Record only the page, and compare each step with the last run.
+
+   .. step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}}
+
+   .. step {"wait":1000}
+
+   .. step {"stopRecord":true}
+
+#. Record the screen again with the default ffmpeg settings.
+
+   .. step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}}
 
    .. step {"wait":1000}
 
@@ -804,14 +1064,18 @@ Record the screen
         <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
           <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
         <step><cmd>Start recording the tab.</cmd>
-          <info><data name="doc-detective" value='step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}}'/></info></step>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"surface":{"browser":"chrome"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true,"resolution":true}}}'/></info></step>
         <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd>
           <info><data name="doc-detective" value='step {"click":"Type here:"}'/></info></step>
         <step><cmd>Type "Hello, Doc Detective".</cmd>
           <info><data name="doc-detective" value='step {"type":"Hello, Doc Detective"}'/></info></step>
         <step><cmd>Wait a moment, then stop the recording.</cmd>
           <info><data name="doc-detective" value='step {"wait":1000}'/>
-            <data name="doc-detective" value='step {"stopRecord":"walkthrough"}'/></info></step>
+            <data name="doc-detective" value='step {"stopRecord":{"name":"walkthrough"}}'/></info></step>
+        <step><cmd>Record a few seconds more with the default settings.</cmd>
+          <info><data name="doc-detective" value='step {"record":true}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
       </steps>
       <data name="doc-detective" value="test end"/>
     </taskbody>
@@ -824,13 +1088,25 @@ Record the screen
         <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
           <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
         <step><cmd>Start a screen recording.</cmd>
-          <info><data name="doc-detective" value='step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}}'/></info></step>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-screen.mp4","directory":".dd-output","name":"screen","engine":{"name":"ffmpeg","target":"display","fps":15},"overwrite":"true"}}'/></info></step>
         <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd>
           <info><data name="doc-detective" value='step {"click":"Type here:"}'/></info></step>
         <step><cmd>Type "Recorded on screen".</cmd>
           <info><data name="doc-detective" value='step {"type":"Recorded on screen"}'/></info></step>
         <step><cmd>Wait a moment, then stop the recording.</cmd>
           <info><data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":"screen"}'/></info></step>
+        <step><cmd>Record only the browser window.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-window.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"window"},"overwrite":"true"}}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+        <step><cmd>Record only the page, and compare each step with the last run.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-viewport.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport"},"overwrite":"true","checkpoints":true}}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+        <step><cmd>Record the screen again with the default ffmpeg settings.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-ffmpeg.mp4","directory":".dd-output","engine":"ffmpeg","overwrite":"true"}}'/>
+            <data name="doc-detective" value='step {"wait":1000}'/>
             <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
         <step><cmd>Record a short clip of the result.</cmd>
           <info><data name="doc-detective" value='step {"record":".dd-output/capture-quick.gif"}'/></info></step>
@@ -894,10 +1170,14 @@ Record the screen
               "maxVariation": 0.5,
               "directory": ".dd-output/walkthrough-checkpoints"
             },
+            "surface": {
+              "browser": "chrome"
+            },
             "verify": {
               "minDuration": 0.5,
               "maxDuration": 120,
-              "notBlack": true
+              "notBlack": true,
+              "resolution": true
             }
           }
         },
@@ -911,7 +1191,18 @@ Record the screen
           "wait": 1000
         },
         {
-          "stopRecord": "walkthrough"
+          "stopRecord": {
+            "name": "walkthrough"
+          }
+        },
+        {
+          "record": true
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "stopRecord": true
         }
       ]
     },
@@ -937,9 +1228,10 @@ Record the screen
           "record": {
             "path": "capture-screen.mp4",
             "directory": ".dd-output",
+            "name": "screen",
             "engine": {
               "name": "ffmpeg",
-              "target": "viewport",
+              "target": "display",
               "fps": 15
             },
             "overwrite": "true"
@@ -950,6 +1242,55 @@ Record the screen
         },
         {
           "type": "Recorded on screen"
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "stopRecord": "screen"
+        },
+        {
+          "record": {
+            "path": "capture-window.mp4",
+            "directory": ".dd-output",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "window"
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "record": {
+            "path": "capture-viewport.mp4",
+            "directory": ".dd-output",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "viewport"
+            },
+            "overwrite": "true",
+            "checkpoints": true
+          }
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "record": {
+            "path": "capture-ffmpeg.mp4",
+            "directory": ".dd-output",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
         },
         {
           "wait": 1000
@@ -1003,14 +1344,21 @@ tests:
           checkpoints:
             maxVariation: 0.5
             directory: .dd-output/walkthrough-checkpoints
+          surface:
+            browser: chrome
           verify:
             minDuration: 0.5
             maxDuration: 120
             notBlack: true
+            resolution: true
       - click: "Type here:"
       - type: Hello, Doc Detective
       - wait: 1000
-      - stopRecord: walkthrough
+      - stopRecord:
+          name: walkthrough
+      - record: true
+      - wait: 1000
+      - stopRecord: true
   - testId: capture-record-screen
     runOn:
       - platforms:
@@ -1024,13 +1372,40 @@ tests:
       - record:
           path: capture-screen.mp4
           directory: .dd-output
+          name: screen
           engine:
             name: ffmpeg
-            target: viewport
+            target: display
             fps: 15
           overwrite: "true"
       - click: "Type here:"
       - type: Recorded on screen
+      - wait: 1000
+      - stopRecord: screen
+      - record:
+          path: capture-window.mp4
+          directory: .dd-output
+          engine:
+            name: ffmpeg
+            target: window
+          overwrite: "true"
+      - wait: 1000
+      - stopRecord: true
+      - record:
+          path: capture-viewport.mp4
+          directory: .dd-output
+          engine:
+            name: ffmpeg
+            target: viewport
+          overwrite: "true"
+          checkpoints: true
+      - wait: 1000
+      - stopRecord: true
+      - record:
+          path: capture-ffmpeg.mp4
+          directory: .dd-output
+          engine: ffmpeg
+          overwrite: "true"
       - wait: 1000
       - stopRecord: true
       - record: .dd-output/capture-quick.gif

@@ -14,6 +14,8 @@ Record the browser tab
 
 #. Wait a moment, then stop the recording.
 
+#. Record a few seconds more with the default settings.
+
 Record the screen
 -----------------
 
@@ -26,6 +28,12 @@ Record the screen
 #. Type "Recorded on screen".
 
 #. Wait a moment, then stop the recording.
+
+#. Record only the browser window.
+
+#. Record only the page, and compare each step with the last run.
+
+#. Record the screen again with the default ffmpeg settings.
 
 #. Record a short clip of the result.
 

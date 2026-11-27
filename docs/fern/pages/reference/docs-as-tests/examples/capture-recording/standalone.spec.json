@@ -40,10 +40,14 @@
               "maxVariation": 0.5,
               "directory": ".dd-output/walkthrough-checkpoints"
             },
+            "surface": {
+              "browser": "chrome"
+            },
             "verify": {
               "minDuration": 0.5,
               "maxDuration": 120,
-              "notBlack": true
+              "notBlack": true,
+              "resolution": true
             }
           }
         },
@@ -57,7 +61,18 @@
           "wait": 1000
         },
         {
-          "stopRecord": "walkthrough"
+          "stopRecord": {
+            "name": "walkthrough"
+          }
+        },
+        {
+          "record": true
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "stopRecord": true
         }
       ]
     },
@@ -83,9 +98,10 @@
           "record": {
             "path": "capture-screen.mp4",
             "directory": ".dd-output",
+            "name": "screen",
             "engine": {
               "name": "ffmpeg",
-              "target": "viewport",
+              "target": "display",
               "fps": 15
             },
             "overwrite": "true"
@@ -96,6 +112,55 @@
         },
         {
           "type": "Recorded on screen"
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "stopRecord": "screen"
+        },
+        {
+          "record": {
+            "path": "capture-window.mp4",
+            "directory": ".dd-output",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "window"
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "record": {
+            "path": "capture-viewport.mp4",
+            "directory": ".dd-output",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "viewport"
+            },
+            "overwrite": "true",
+            "checkpoints": true
+          }
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "record": {
+            "path": "capture-ffmpeg.mp4",
+            "directory": ".dd-output",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
         },
         {
           "wait": 1000
