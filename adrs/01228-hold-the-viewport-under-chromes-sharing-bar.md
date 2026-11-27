@@ -12,7 +12,7 @@ Amends [ADR 01176](01176-record-headless-chrome-by-tab-capture-and-use-chrome-by
 ## Context and Problem Statement
 
 The `browser` recording engine captures a Chrome tab with `getDisplayMedia`. While a tab is captured, Chrome shows its
-sharing bar on that tab, headed or headless, and the bar shortens the page by about 58 px. ADR 01176 accepted that:
+sharing bar on that tab, headed or headless. The bar shortens the page by about 58 px. ADR 01176 accepted that:
 an 800x600 viewport recorded as 800x542, and a 1024x768 viewport as 1024x710. Screenshots taken outside a recording
 were 800x600, and ones taken during it were 800x543. So `verify.resolution: { width, height }` couldn't assert the
 viewport an author configured, and a page under recording rendered at a size nobody asked for.
@@ -61,7 +61,7 @@ Chosen option: **A**, because it's the only one that gives the configured size w
 ### Confirmation
 
 - `test/recording-sharing-bar.test.js`: the helper grows the window by the bar's height and returns the size to
-  restore, and does nothing when no bar appears or no viewport is known.
+  restore. It does nothing when no bar appears or no viewport is known.
 - Fixture `test/core-artifacts/recording/headless-chrome.spec.json`: `headless-chrome-auto-engine` and
   `headless-chrome-browser-engine` assert a 1024x640 video with `verify.resolution`. `headless-chrome-viewport-held`
   asserts an 800x600 video, and 800x600 screenshots during and after the recording.
