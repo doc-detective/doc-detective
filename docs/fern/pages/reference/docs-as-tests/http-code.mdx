@@ -50,7 +50,7 @@ The `invoices.json` file next to the test files holds the stubbed response body.
 
 ### Notes
 
-- Only Chrome can stub requests, so the test's [`runOn`](/reference/schemas/test) runs it on headless Chrome on Windows, macOS, and Linux. In another browser, `mockRequest` is skipped.
+- Only Chrome can stub requests, so the test's [`runOn`](/reference/schemas/test) runs it on headless Chrome on macOS and Linux. On a Windows CI runner, page loads with request stubs can stop responding, so the example leaves Windows out. In another browser, `mockRequest` is skipped.
 - The `GET` stub's `url` is a glob, so it also matches the query string. The `POST` stub's `url` is the whole URL, so it matches only that address.
 - A stub's `response.body` can be an object or array, sent as JSON, or a string, sent as is. The `POST` stub sends an object, the notices stub an array, and the status stub a string.
 - `surface` picks the browser tab a script runs in, by engine name such as `chrome`, or as an object such as `{"browser": "chrome"}`. Without it, the script runs in the active tab.

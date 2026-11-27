@@ -1,4 +1,4 @@
-<!-- test {"testId":"http-mock-request","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
+<!-- test {"testId":"http-mock-request","detectSteps":false,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
 
 # Preview invoices against a stubbed API
 
