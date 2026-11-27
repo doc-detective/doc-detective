@@ -6,7 +6,7 @@ decision-makers: hawkeyexl
 
 # Load `matrix` values from a JSON file or a sitemap
 
-Builds on [ADR 01227](01227-matrix-on-runon-contexts.md), which added `runOn[].matrix` with inline values.
+Builds on [ADR 01232](01232-matrix-on-runon-contexts.md), which added `runOn[].matrix` with inline values.
 
 ## Context and Problem Statement
 
