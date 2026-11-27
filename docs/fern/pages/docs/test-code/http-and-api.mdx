@@ -221,11 +221,11 @@ Each request that returned an acceptable status code and matched its response ex
 
 **Solution:** Move those fields to `response.required` to assert they exist without pinning their values, and keep `response.body` for the stable fields. To also check their type or format, describe them in `response.schema`.
 
-### An OpenAPI response check fails after an upgrade with a `format` error
+### An OpenAPI schema check fails after an upgrade with a `format` error
 
-**Cause:** Doc Detective now enforces `format` in response schemas. Earlier versions ignored it, so a value such as a non-UUID `id` under `format: uuid` passed.
+**Cause:** Doc Detective now enforces `format` in OpenAPI request and response schemas. Earlier versions ignored it, so a value such as a non-UUID `id` under `format: uuid` passed.
 
-**Solution:** Fix the API or the OpenAPI description so they agree. To check a different shape for one step, set `response.schema` on that step. It's used instead of the OpenAPI response schema.
+**Solution:** Fix the API, the request body, or the OpenAPI description so they agree. To check a different response shape for one step, set `response.schema` on that step. It's used instead of the OpenAPI response schema.
 
 ## What's next
 

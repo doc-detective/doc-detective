@@ -64,7 +64,9 @@ Chosen option 1.
 * The result is the existing assertion `$$outputs.responseSchemaValid == true`. The description
   names the source: "the response schema" or "the OpenAPI schema".
 * **Formats are enforced** through `ajv-formats` for both sources. This includes `uuid`, `email`,
-  `date-time`, `uri`, and the other `ajv-formats` formats.
+  `date-time`, `uri`, and the other `ajv-formats` formats. The OpenAPI request-body check
+  (`validateAgainstSchema: request` or `both`) enforces them too, so `format` means the same thing
+  in every schema Doc Detective checks.
 * A schema that isn't valid JSON Schema, such as `"minimum": "x"`, FAILs the step with
   ``Couldn't check the response against the <source> schema because the schema isn't valid JSON
   Schema: <AJV error>.`` It doesn't crash the run.
@@ -77,7 +79,8 @@ Chosen option 1.
   file.
 * Good, because there's no new syntax to learn and nothing new to maintain in the runner.
 * **Bad, for some existing OpenAPI users:** a response schema with a `format` that the API doesn't
-  honor used to pass silently and now FAILs. That's a correction, but it can turn a green run red
+  honor used to pass silently and now FAILs. The same goes for a request body that doesn't match a
+  `format` in the request schema: the step now FAILs before sending the request. That's a correction, but it can turn a green run red
   after an upgrade. The failure message includes the AJV error, which names the format.
 * Neutral, because when both schemas apply, the runner skips the OpenAPI response schema. Authors who want
   both checked can copy what they need into `response.schema`.

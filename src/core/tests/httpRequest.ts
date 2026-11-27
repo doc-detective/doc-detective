@@ -273,6 +273,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       allowUnionTypes: true,
       coerceTypes: false,
     });
+    addFormats(ajv);
     const validateFn = ajv.compile(operation.schemas.request);
     const valid = validateFn(step.httpRequest.request.body);
     if (valid) {

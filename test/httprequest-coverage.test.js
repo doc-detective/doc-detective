@@ -1693,6 +1693,32 @@ describe("httpRequest coverage (stubbed axios)", function () {
         assert.equal(result.status, "FAIL");
         assert.match(result.description, /didn't match the OpenAPI schema/);
       });
+
+      it("enforces formats in the OpenAPI request schema too", async function () {
+        const def = sampleDefinition();
+        def.paths["/users"].post.requestBody.content["application/json"].schema = {
+          type: "object",
+          properties: { email: { type: "string", format: "email" } },
+        };
+        stubResponse({ status: 201, data: { id: 7 } });
+        const p = writeDefinition(def);
+        const result = await httpRequest({
+          config,
+          step: {
+            httpRequest: {
+              openApi: {
+                descriptionPath: p,
+                operationId: "createUser",
+                validateAgainstSchema: "request",
+                statusCode: 201,
+              },
+              request: { body: { email: "not-an-email" } },
+            },
+          },
+        });
+        assert.equal(result.status, "FAIL");
+        assert.match(result.description, /Request body didn't match the OpenAPI schema/);
+      });
     });
 
     it("merges openApi.headers into request headers", async function () {
