@@ -1083,6 +1083,93 @@ import { schemas } from "../dist/index.js";
         }
       });
 
+      // ADR 01223: page emulation keys on the context `browser` object.
+      describe("browser page emulation", function () {
+        const ctx = (browser) => ({
+          platforms: "linux",
+          browsers: { name: "chrome", ...browser },
+        });
+
+        it("accepts every emulation key at once", function () {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: ctx({
+              colorScheme: "dark",
+              locale: "de-DE",
+              timezone: "Europe/Berlin",
+              deviceScaleFactor: 2,
+              reducedMotion: "reduce",
+              clock: "2026-12-03T09:00:00Z",
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        for (const [key, value] of [
+          ["colorScheme", "light"],
+          ["locale", "en"],
+          ["locale", "zh-Hant-TW"],
+          ["timezone", "UTC"],
+          ["timezone", "America/Argentina/Buenos_Aires"],
+          ["deviceScaleFactor", 0.5],
+          ["deviceScaleFactor", 4],
+          ["reducedMotion", "no-preference"],
+          ["clock", "2026-12-03T09:00:00.000+01:00"],
+        ]) {
+          it(`accepts ${key}: ${JSON.stringify(value)}`, function () {
+            const result = validate({
+              schemaKey: "context_v3",
+              object: ctx({ [key]: value }),
+            });
+            expect(result.valid, result.errors).to.be.true;
+            // The validated object keeps the value as written, with its
+            // type: a numeric `deviceScaleFactor`, an offset `clock`.
+            expect(result.object.browsers[key]).to.deep.equal(value);
+          });
+        }
+
+        it("keeps every value when validating with defaults", function () {
+          const browser = {
+            colorScheme: "dark",
+            locale: "de-DE",
+            timezone: "Europe/Berlin",
+            deviceScaleFactor: 1.5,
+            reducedMotion: "reduce",
+            clock: "2026-12-03T09:00:00.000+01:00",
+          };
+          const result = validate({
+            schemaKey: "context_v3",
+            object: ctx(browser),
+            addDefaults: true,
+          });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.browsers).to.include(browser);
+          expect(result.object.browsers.deviceScaleFactor).to.be.a("number");
+        });
+
+        for (const [key, value] of [
+          ["colorScheme", "sepia"],
+          ["locale", "de_DE"],
+          ["locale", ""],
+          ["timezone", "Europe Berlin"],
+          ["timezone", ""],
+          ["deviceScaleFactor", 0.4],
+          ["deviceScaleFactor", 5],
+          ["reducedMotion", "none"],
+          ["clock", "tomorrow"],
+          ["clock", "2026-12-03"],
+        ]) {
+          it(`rejects ${key}: ${JSON.stringify(value)}`, function () {
+            const result = validate({
+              schemaKey: "context_v3",
+              object: ctx({ [key]: value }),
+            });
+            expect(result.valid).to.be.false;
+            expect(result.errors).to.include(key);
+          });
+        }
+      });
+
       it("should default browserFallback to 'auto' when addDefaults=true", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -1103,6 +1190,24 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("browserFallback");
+      });
+
+      it("should validate a config_v3 object with each overwriteScreenshots mode, and leave it unset by default", function () {
+        for (const overwriteScreenshots of ["true", "false", "aboveVariation"]) {
+          const result = validate({ schemaKey: "config_v3", object: { overwriteScreenshots } });
+          expect(result.valid, `overwriteScreenshots: ${overwriteScreenshots}`).to.be.true;
+          expect(result.object.overwriteScreenshots).to.equal(overwriteScreenshots);
+        }
+        const defaults = validate({ schemaKey: "config_v3", object: { input: "." }, addDefaults: true });
+        expect(defaults.object.overwriteScreenshots).to.equal(undefined);
+      });
+
+      it("should reject a config_v3 object whose overwriteScreenshots is not a known mode", function () {
+        for (const overwriteScreenshots of ["maybe", "always"]) {
+          const result = validate({ schemaKey: "config_v3", object: { overwriteScreenshots } });
+          expect(result.valid, `overwriteScreenshots: ${overwriteScreenshots}`).to.be.false;
+          expect(result.errors).to.include("overwriteScreenshots");
+        }
       });
 
       it("should add default values when addDefaults=true", function () {
@@ -1266,6 +1371,96 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors.length).to.be.greaterThan(0);
+      });
+    });
+
+    // ADR 01225: mockRequest answers matching browser requests with a fixed response.
+    describe("mockRequest step", function () {
+      const check = (mockRequest) => validate({ schemaKey: "step_v3", object: { mockRequest } });
+
+      it("accepts a url with a JSON body", function () {
+        const result = check({ url: "**/api/invoices*", response: { body: { next: "2026-12-03" } } });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a string body, a method, a status code, and headers", function () {
+        const result = check({
+          url: "https://api.example.com/user",
+          method: "GET",
+          response: { statusCode: 404, headers: { "content-type": "text/plain" }, body: "gone" },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a bodyPath and a url with no response", function () {
+        expect(check({ url: "**/user", response: { bodyPath: "fixtures/user.json" } }).valid).to.be.true;
+        expect(check({ url: "**/ping" }).valid).to.be.true;
+      });
+
+      it("adds no statusCode default; the runner applies 200", function () {
+        const result = check({ url: "**/ping", response: { body: "ok" } });
+        expect(result.object.mockRequest.response).to.not.have.property("statusCode");
+      });
+
+      it("rejects a missing url", function () {
+        expect(check({ response: { body: "x" } }).valid).to.be.false;
+      });
+
+      it("rejects an unknown method", function () {
+        expect(check({ url: "**/x", method: "FETCH" }).valid).to.be.false;
+      });
+
+      it("rejects a status code out of range", function () {
+        expect(check({ url: "**/x", response: { statusCode: 99 } }).valid).to.be.false;
+        expect(check({ url: "**/x", response: { statusCode: 600 } }).valid).to.be.false;
+      });
+
+      it("rejects unknown keys", function () {
+        const top = check({ url: "**/x", bogus: true });
+        expect(top.valid).to.be.false;
+        expect(top.errors).to.include("/mockRequest must NOT have additional properties");
+        const inResponse = check({ url: "**/x", response: { bogus: true } });
+        expect(inResponse.valid).to.be.false;
+        expect(inResponse.errors).to.include("/mockRequest/response must NOT have additional properties");
+      });
+
+      it("rejects setting both body and bodyPath", function () {
+        const result = check({ url: "**/x", response: { body: "a", bodyPath: "a.json" } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("set `body` or `bodyPath`, not both.");
+      });
+    });
+
+    // ADR 01231: checkFile waits for a finished file or download.
+    describe("checkFile step", function () {
+      const check = (checkFile) => validate({ schemaKey: "step_v3", object: { checkFile } });
+
+      it("normalizes the string shorthand to path, with the 30000 ms timeout", function () {
+        const result = check("out/report.txt");
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.checkFile).to.deep.equal({ path: "out/report.txt", timeout: 30000 });
+      });
+
+      it("accepts path with content, and download with content and timeout", function () {
+        expect(check({ path: "out/*.log", content: "/build \\d+ passed/" }).valid).to.be.true;
+        const result = check({ download: "invoice-*.pdf", content: "Invoice", timeout: 60000 });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.checkFile.timeout).to.equal(60000);
+      });
+
+      it("rejects both path and download, and neither", function () {
+        const both = check({ path: "a.txt", download: "*.csv" });
+        expect(both.valid).to.be.false;
+        expect(both.errors).to.include("set `path` or `download`, not both.");
+        expect(check({ content: "x" }).valid).to.be.false;
+      });
+
+      it("rejects empty strings, a zero timeout, and unknown keys", function () {
+        expect(check("").valid).to.be.false;
+        expect(check({ path: "" }).valid).to.be.false;
+        expect(check({ download: "" }).valid).to.be.false;
+        expect(check({ path: "a", timeout: 0 }).valid).to.be.false;
+        expect(check({ path: "a", bogus: true }).valid).to.be.false;
       });
     });
 
@@ -1657,6 +1852,52 @@ import { schemas } from "../dist/index.js";
       }
     });
 
+    describe("saveState and loadState", function () {
+      for (const action of ["saveState", "loadState"]) {
+        it(`${action} accepts a .json path string and the object form`, function () {
+          for (const value of [
+            "auth.json",
+            "../.auth/auth.json",
+            { path: "auth.json" },
+            { path: "auth.json", directory: "../.auth" },
+          ]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected valid: ${JSON.stringify(value)}: ${result.errors}`).to.be.true;
+          }
+        });
+
+        it(`${action} rejects a path that isn't .json, an empty directory, and unknown keys`, function () {
+          for (const value of [
+            "auth.txt",
+            ".json",
+            "",
+            { path: "auth.txt" },
+            { directory: "x" },
+            { path: "auth.json", directory: "" },
+            { path: "auth.json", name: "x" },
+          ]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${JSON.stringify(value)}`).to.be.false;
+          }
+        });
+      }
+
+      it("saveState expands the string form and defaults overwrite to false", function () {
+        const result = validate({ schemaKey: "step_v3", object: { saveState: "auth.json" } });
+        expect(result.object.saveState).to.deep.equal({ path: "auth.json", overwrite: false });
+      });
+
+      it("saveState accepts overwrite, and loadState rejects it", function () {
+        expect(validate({ schemaKey: "step_v3", object: { saveState: { path: "a.json", overwrite: true } } }).valid).to.be.true;
+        expect(validate({ schemaKey: "step_v3", object: { loadState: { path: "a.json", overwrite: true } } }).valid).to.be.false;
+      });
+
+      it("loadState expands the string form", function () {
+        const result = validate({ schemaKey: "step_v3", object: { loadState: "auth.json" } });
+        expect(result.object.loadState).to.deep.equal({ path: "auth.json" });
+      });
+    });
+
     describe("annotations", function () {
       const TYPES = ["outline", "arrow", "badge", "callout", "blur", "text"];
 
@@ -1864,6 +2105,150 @@ import { schemas } from "../dist/index.js";
 
         expect(result.valid).to.be.false;
       });
+
+      // ADR 01218: masks take a string or an element target, never a position.
+      it("should validate a screenshot mask of strings and element targets", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: {
+              path: "a.png",
+              mask: ["#next-invoice", { elementText: "Last login" }, { selector: ".clock", timeout: 2000 }],
+            },
+          },
+        });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+        expect(result.object.screenshot.mask).to.have.lengthOf(3);
+      });
+
+      for (const [label, mask] of [
+        ["an empty array", []],
+        ["an empty string", [""]],
+        ["a position target", [{ position: { x: 0, y: 0 } }]],
+        ["an element object with no finding field", [{ timeout: 100 }]],
+        ["an unknown key", [{ selector: ".a", color: "red" }]],
+      ]) {
+        it(`should reject a screenshot mask with ${label}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { screenshot: { path: "a.png", mask } },
+          });
+
+          expect(result.valid).to.be.false;
+        });
+      }
+
+      // ADR 01220: per-pixel color tolerance and an absolute changed-pixel cap.
+      it("should validate screenshot threshold and maxDiffPixels, defaulting threshold to 0.1", function () {
+        const withKeys = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png", threshold: 0.2, maxDiffPixels: 150 } },
+        });
+        expect(withKeys.valid, JSON.stringify(withKeys.errors)).to.be.true;
+        expect(withKeys.object.screenshot.maxDiffPixels).to.equal(150);
+
+        const defaulted = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png" } },
+        });
+        expect(defaulted.object.screenshot.threshold).to.equal(0.1);
+        expect(defaulted.object.screenshot).to.not.have.property("maxDiffPixels");
+      });
+
+      for (const [label, extra] of [
+        ["a threshold above 1", { threshold: 1.5 }],
+        ["a negative threshold", { threshold: -0.1 }],
+        ["a negative maxDiffPixels", { maxDiffPixels: -1 }],
+        ["a fractional maxDiffPixels", { maxDiffPixels: 1.5 }],
+      ]) {
+        it(`should reject a screenshot with ${label}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { screenshot: { path: "a.png", ...extra } },
+          });
+
+          expect(result.valid).to.be.false;
+        });
+      }
+
+      // ADR 01221: capture-only CSS and settle-before-capture.
+      it("should validate a screenshot with style and stable", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png", style: ".banner { display: none; }", stable: true } },
+        });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+        expect(result.object.screenshot.style).to.equal(".banner { display: none; }");
+        expect(result.object.screenshot.stable).to.equal(true);
+      });
+
+      // No schema default: an effective step without `stable` stays unchanged.
+      it("should leave screenshot stable unset when omitted", function () {
+        const result = validate({ schemaKey: "step_v3", object: { screenshot: { path: "a.png" } } });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+        expect(result.object.screenshot).to.not.have.property("stable");
+      });
+
+      // ADR 01224: whole-page capture and frozen animations.
+      it("should validate a screenshot with fullPage and animations", function () {
+        for (const animations of ["allow", "disabled"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { screenshot: { path: "a.png", fullPage: true, animations } },
+          });
+          expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+          expect(result.object.screenshot.fullPage).to.equal(true);
+          expect(result.object.screenshot.animations).to.equal(animations);
+        }
+      });
+
+      // No schema defaults: an effective step without them stays unchanged.
+      it("should leave screenshot fullPage and animations unset when omitted", function () {
+        const result = validate({ schemaKey: "step_v3", object: { screenshot: { path: "a.png" } } });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+        expect(result.object.screenshot).to.not.have.property("fullPage");
+        expect(result.object.screenshot).to.not.have.property("animations");
+      });
+
+      it("should reject crop with fullPage, naming both keys", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png", crop: "#header", fullPage: true } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.contain("set `crop` or `fullPage`, not both");
+      });
+
+      it("should allow crop with fullPage false", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png", crop: "#header", fullPage: false } },
+        });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+      });
+
+      for (const [label, screenshot] of [
+        ["an empty style", { style: "" }],
+        ["a non-string style", { style: { display: "none" } }],
+        ["a non-boolean stable", { stable: "sometimes" }],
+        ["a non-boolean fullPage", { fullPage: "yes" }],
+        ["an unknown animations value", { animations: "paused" }],
+      ]) {
+        it(`should reject a screenshot with ${label}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { screenshot: { path: "a.png", ...screenshot } },
+          });
+
+          expect(result.valid).to.be.false;
+        });
+      }
 
       it("should validate annotationDefaults at the config level", function () {
         const result = validate({
@@ -5736,6 +6121,35 @@ import { schemas } from "../dist/index.js";
         });
         expect(browserCrop.valid).to.be.true;
         expect(browserCrop.errors).to.equal("");
+      });
+
+      // ADR 01221: `style` injects CSS into a web page, so app captures reject it;
+      // `stable` only compares PNGs, so they keep it.
+      it("should reject style on an app-surface screenshot and allow stable", function () {
+        const styled = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "app.png", surface: { app: "notepad" }, style: "a { color: red; }" } },
+        });
+        expect(styled.valid).to.be.false;
+
+        // ADR 01224: a whole page is a browser document.
+        const fullPage = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "app.png", surface: { app: "notepad" }, fullPage: true } },
+        });
+        expect(fullPage.valid).to.be.false;
+
+        const animations = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "app.png", surface: { app: "notepad" }, animations: "disabled" } },
+        });
+        expect(animations.valid).to.be.false;
+
+        const stable = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "app.png", surface: { app: "notepad" }, stable: true } },
+        });
+        expect(stable.valid, JSON.stringify(stable.errors)).to.be.true;
       });
 
       it("should validate app surfaces on find/click/screenshot", function () {

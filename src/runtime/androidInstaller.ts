@@ -577,11 +577,16 @@ export async function ensureJava(deps: {
  * is printed and the caller exits non-zero, matching Doc Detective's
  * prompt-averse CLI style. Java (JRE 17+) is required for sdkmanager/avdmanager
  * and checked up front.
+ *
+ * `toolsOnly` stops after platform-tools and the emulator: no system image, no
+ * AVD, nothing recorded. The Android preflight uses it to repair an SDK that
+ * has its images but no emulator package (ADR 01215).
  */
 export async function installAndroid({
   yes = false,
   force = false,
   dryRun = false,
+  toolsOnly = false,
   osVersion,
   deviceType,
   ctx = {},
@@ -590,6 +595,7 @@ export async function installAndroid({
   yes?: boolean;
   force?: boolean;
   dryRun?: boolean;
+  toolsOnly?: boolean;
   osVersion?: string;
   deviceType?: string;
   ctx?: CacheDirContext;
@@ -731,6 +737,7 @@ export async function installAndroid({
     await runSdkInstallWithRetry(run, sdkmanager, [sdkArg, pkg], {}, retryDeps);
     reports.push({ kind: "android", assetId: pkg, action: "installed" });
   }
+  if (toolsOnly) return reports;
 
   // 4. Resolve the system image: an installed match first, else query what's
   //    available (`sdkmanager --list`) and install it.

@@ -88,6 +88,39 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("Page emulation a browser can't do SKIPs the context before any browser starts (ADR 01223)", async () => {
+    const platform = { win32: "windows", darwin: "mac" }[process.platform] ?? "linux";
+    const spec = {
+      tests: [
+        {
+          testId: "firefox-clock",
+          runOn: [
+            {
+              platforms: platform,
+              browsers: { name: "firefox", clock: "2026-12-03T09:00:00Z" },
+            },
+          ],
+          steps: [{ goTo: "http://localhost:8092" }],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "emulation-skip-"));
+    const tempFilePath = path.join(tempDir, "emulation-skip.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "error" });
+      const contexts = result.specs[0].tests[0].contexts;
+      assert.equal(contexts.length, 1);
+      assert.equal(contexts[0].result, "SKIPPED");
+      assert.equal(
+        contexts[0].resultDescription,
+        "Skipped: `firefox` can't set `clock`."
+      );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("An unmet context `requires` gate SKIPs the context with the unmet-requirements reason (and a met gate runs)", async () => {
     // Two tests: one gated on a command that cannot exist (context must land
     // SKIPPED with a reason naming the missing command — never FAIL), and one
@@ -651,6 +684,52 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("DOC_DETECTIVE_NO_IOS_AUTOINSTALL never skips an ios context or warns on its own (ADR 01214)", async function () {
+    // The Android variable SKIPs the context and names itself in the reason.
+    // The iOS one only turns off the first-use WebDriverAgent build, so the
+    // context resolves exactly as it would without it. On a non-mac host that
+    // is the toolchain SKIP, with no warning. On macOS the context opens a
+    // real simulator session, which the mobile-web-ios fixture leg covers.
+    // The build decisions themselves are unit-tested in ios-installer.test.js.
+    if (process.platform === "darwin") this.skip();
+    const prevNoInstall = process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL;
+    const iosTest = {
+      tests: [
+        {
+          testId: "ios-no-autoinstall",
+          runOn: [{ platforms: "ios" }],
+          steps: [{ startSurface: { app: "com.apple.Preferences" } }],
+        },
+        {
+          testId: "ios-web-no-autoinstall",
+          runOn: [{ platforms: "ios", browsers: "safari" }],
+          steps: [{ goTo: "https://example.com" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-ios-no-autoinstall-test.json");
+    try {
+      // Inside the try, so a failed write can't leave the variable set.
+      process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL = "1";
+      fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const contexts = result.specs[0].tests.flatMap((test) => test.contexts);
+      assert.equal(contexts.length, 2, "one context per test");
+      for (const ctx of contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /macOS|Xcode|simctl/);
+        assert.doesNotMatch(ctx.resultDescription, /DOC_DETECTIVE_NO_IOS_AUTOINSTALL/);
+        assert.equal(ctx.warnings, undefined);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      if (prevNoInstall === undefined)
+        delete process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL;
+      else process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL = prevNoInstall;
+      fs.rmSync(tempFilePath, { force: true });
+    }
+  });
+
   it("Shorthand find returns without waiting out the timeout on a hit, and FAILs after the full timeout on a miss (ADR 01130)", async () => {
     // The not-found permutation of interactions/find-shorthand.spec.json: it
     // FAILs by design, so the PASS/SKIPPED fixture gate can't carry it.
@@ -693,6 +772,48 @@ describe("Run tests successfully", function () {
         miss.durationMs >= 5000,
         `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
       );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("saveState's string form won't replace a file, and loadState before goTo FAILs (sessions/state.spec.json's expected FAILs)", async () => {
+    // These FAIL by design, so the PASS/SKIPPED fixture gate can't carry them.
+    // A fresh outputDir lets the string-form save run first and then hit its
+    // own file.
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "state-fails-"));
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/cookies/set/dd_state_fail/1" },
+            { saveState: "auth.json" },
+            { saveState: "auth.json" },
+          ],
+        },
+        { steps: [{ loadState: "seeded.json" }] },
+      ],
+    };
+    fs.writeFileSync(
+      path.join(tempDir, "seeded.json"),
+      JSON.stringify({ cookies: [{ name: "sid", value: "1", domain: "localhost", path: "/" }], origins: [] })
+    );
+    const tempFilePath = path.join(tempDir, "state-fails.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, outputDir: tempDir, logLevel: "debug", ...NO_AUTO_CAPTURE });
+      const ran = (test) => test.contexts.find((c) => c.steps && c.steps.length);
+      const file = path.join(tempDir, "auth.json");
+
+      const [, saved, again] = ran(result.specs[0].tests[0]).steps;
+      assert.equal(saved.result, "PASS", saved.resultDescription);
+      assert.equal(saved.outputs.path, file);
+      assert.equal(again.result, "FAIL");
+      assert.equal(again.resultDescription, `Couldn't save state: \`${file}\` exists. Set \`overwrite\` to \`true\` to replace it.`);
+
+      const [load] = ran(result.specs[0].tests[1]).steps;
+      assert.equal(load.result, "FAIL");
+      assert.equal(load.resultDescription, "Couldn't load state: no site is open. Use `goTo` first.");
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

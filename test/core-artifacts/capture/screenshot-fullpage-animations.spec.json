@@ -1,0 +1,433 @@
+{
+  "specId": "screenshot-fullpage-animations",
+  "description": "`screenshot.fullPage` and `screenshot.animations` (ADR 01224) through the real runner. Chrome captures the document over BiDi, Firefox uses geckodriver's whole-page command, and Safari on a page larger than the screen is SKIPPED. `crop` with `fullPage`, app-surface rejection, BiDi, and mask offsets are pinned in test/screenshot-fullpage.test.js and src/common/test/validate.test.js.",
+  "tests": [
+    {
+      "testId": "fullpage-chrome",
+      "description": "`fullPage` in headless Chrome: the saved image is taller than the viewport, and the viewport and scroll are the same afterward.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-tall.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "runBrowserScript": "window.scrollTo(0, 500); return window.innerHeight + ':' + window.scrollY;",
+          "variables": {
+            "BEFORE": "$$result"
+          }
+        },
+        {
+          "stepId": "fullpage-chrome-capture",
+          "screenshot": {
+            "path": "fullpage-chrome.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "fullPage": true
+          },
+          "variables": {
+            "PAGE_HEIGHT": "$$height"
+          }
+        },
+        {
+          "runBrowserScript": "return window.innerHeight + ':' + window.scrollY;",
+          "variables": {
+            "AFTER": "$$result"
+          }
+        },
+        {
+          "description": "The image is taller than the viewport, and the viewport and scroll are back.",
+          "runShell": "node -e \"const e = { b: process.env.BEFORE, a: process.env.AFTER, h: process.env.PAGE_HEIGHT }; const viewport = Number(e.b.split(':')[0]); if (!(Number(e.h) > viewport && e.a === e.b)) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "fullpage-firefox",
+      "description": "`fullPage` in headless Firefox: the saved image is taller than the viewport, and the viewport and scroll are the same afterward.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-tall.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "runBrowserScript": "window.scrollTo(0, 500); return window.innerHeight + ':' + window.scrollY;",
+          "variables": {
+            "BEFORE": "$$result"
+          }
+        },
+        {
+          "stepId": "fullpage-firefox-capture",
+          "screenshot": {
+            "path": "fullpage-firefox.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "fullPage": true
+          },
+          "variables": {
+            "PAGE_HEIGHT": "$$height"
+          }
+        },
+        {
+          "runBrowserScript": "return window.innerHeight + ':' + window.scrollY;",
+          "variables": {
+            "AFTER": "$$result"
+          }
+        },
+        {
+          "description": "The image is taller than the viewport, and the viewport and scroll are back.",
+          "runShell": "node -e \"const e = { b: process.env.BEFORE, a: process.env.AFTER, h: process.env.PAGE_HEIGHT }; const viewport = Number(e.b.split(':')[0]); if (!(Number(e.h) > viewport && e.a === e.b)) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "fullpage-safari-taller-than-screen",
+      "description": "Headed Safari can't grow its window past the screen, so a 20,000-pixel page is SKIPPED because `safari` can't capture a page larger than the screen.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": {
+            "name": "safari"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-tall.html?h=20000",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "fullpage-safari.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "fullPage": true
+          }
+        }
+      ]
+    },
+    {
+      "testId": "animations-disabled-chrome",
+      "description": "`animations: disabled` in headless Chrome: two captures of a looping animation and a blinking caret, 350 ms apart, are identical, and the animation runs again afterward.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-loop.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "loop-chrome.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "animations": "disabled"
+          }
+        },
+        {
+          "wait": 350
+        },
+        {
+          "stepId": "animations-disabled-chrome-compare",
+          "screenshot": {
+            "path": "loop-chrome.png",
+            "directory": "static/images",
+            "maxVariation": 0,
+            "overwrite": "aboveVariation",
+            "animations": "disabled"
+          },
+          "variables": {
+            "LOOP_VARIATION": "$$variation"
+          }
+        },
+        {
+          "description": "The second capture matches the first.",
+          "runShell": "node -e \"const v = process.env.LOOP_VARIATION; if (v === '' || Number(v) !== 0) { console.error(v); process.exit(1) }\""
+        },
+        {
+          "description": "The capture style is gone and the endless animation runs again.",
+          "runBrowserScript": {
+            "script": "return document.querySelectorAll('style[data-dd-animations]').length + ':' + document.getElementById('spinner').getAnimations()[0].playState;",
+            "output": "/^0:running$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "animations-disabled-firefox",
+      "description": "`animations: disabled` in headless Firefox: two captures of a looping animation and a blinking caret, 350 ms apart, are identical, and the animation runs again afterward.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-loop.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "loop-firefox.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "animations": "disabled"
+          }
+        },
+        {
+          "wait": 350
+        },
+        {
+          "stepId": "animations-disabled-firefox-compare",
+          "screenshot": {
+            "path": "loop-firefox.png",
+            "directory": "static/images",
+            "maxVariation": 0,
+            "overwrite": "aboveVariation",
+            "animations": "disabled"
+          },
+          "variables": {
+            "LOOP_VARIATION": "$$variation"
+          }
+        },
+        {
+          "description": "The second capture matches the first.",
+          "runShell": "node -e \"const v = process.env.LOOP_VARIATION; if (v === '' || Number(v) !== 0) { console.error(v); process.exit(1) }\""
+        },
+        {
+          "description": "The capture style is gone and the endless animation runs again.",
+          "runBrowserScript": {
+            "script": "return document.querySelectorAll('style[data-dd-animations]').length + ':' + document.getElementById('spinner').getAnimations()[0].playState;",
+            "output": "/^0:running$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "fullpage-animations-disabled-chrome",
+      "description": "`fullPage` with `animations: disabled` in headless Chrome: two whole-page captures of a tall page with a looping animation, 350 ms apart, are identical and taller than the viewport, and the viewport, scroll, and animation are back afterward.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-loop.html?h=2400",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "runBrowserScript": "window.scrollTo(0, 500); return window.innerHeight + ':' + window.scrollY;",
+          "variables": {
+            "BEFORE": "$$result"
+          }
+        },
+        {
+          "screenshot": {
+            "path": "fullpage-loop-chrome.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "fullPage": true,
+            "animations": "disabled"
+          }
+        },
+        {
+          "wait": 350
+        },
+        {
+          "stepId": "fullpage-animations-disabled-chrome-compare",
+          "screenshot": {
+            "path": "fullpage-loop-chrome.png",
+            "directory": "static/images",
+            "maxVariation": 0,
+            "overwrite": "aboveVariation",
+            "fullPage": true,
+            "animations": "disabled"
+          },
+          "variables": {
+            "PAGE_HEIGHT": "$$height",
+            "LOOP_VARIATION": "$$variation"
+          }
+        },
+        {
+          "runBrowserScript": "return window.innerHeight + ':' + window.scrollY;",
+          "variables": {
+            "AFTER": "$$result"
+          }
+        },
+        {
+          "description": "The second capture matches the first, the image is taller than the viewport, and the viewport and scroll are back.",
+          "runShell": "node -e \"const e = { b: process.env.BEFORE, a: process.env.AFTER, h: process.env.PAGE_HEIGHT, v: process.env.LOOP_VARIATION }; const viewport = Number(e.b.split(':')[0]); if (e.v === '' || Number(e.v) !== 0 || !(Number(e.h) > viewport && e.a === e.b)) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        },
+        {
+          "description": "The capture style is gone and the endless animation runs again.",
+          "runBrowserScript": {
+            "script": "return document.querySelectorAll('style[data-dd-animations]').length + ':' + document.getElementById('spinner').getAnimations()[0].playState;",
+            "output": "/^0:running$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "fullpage-animations-disabled-firefox",
+      "description": "`fullPage` with `animations: disabled` in headless Firefox: two whole-page captures of a tall page with a looping animation, 350 ms apart, are identical and taller than the viewport, and the viewport, scroll, and animation are back afterward.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-loop.html?h=2400",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "runBrowserScript": "window.scrollTo(0, 500); return window.innerHeight + ':' + window.scrollY;",
+          "variables": {
+            "BEFORE": "$$result"
+          }
+        },
+        {
+          "screenshot": {
+            "path": "fullpage-loop-firefox.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "fullPage": true,
+            "animations": "disabled"
+          }
+        },
+        {
+          "wait": 350
+        },
+        {
+          "stepId": "fullpage-animations-disabled-firefox-compare",
+          "screenshot": {
+            "path": "fullpage-loop-firefox.png",
+            "directory": "static/images",
+            "maxVariation": 0,
+            "overwrite": "aboveVariation",
+            "fullPage": true,
+            "animations": "disabled"
+          },
+          "variables": {
+            "PAGE_HEIGHT": "$$height",
+            "LOOP_VARIATION": "$$variation"
+          }
+        },
+        {
+          "runBrowserScript": "return window.innerHeight + ':' + window.scrollY;",
+          "variables": {
+            "AFTER": "$$result"
+          }
+        },
+        {
+          "description": "The second capture matches the first, the image is taller than the viewport, and the viewport and scroll are back.",
+          "runShell": "node -e \"const e = { b: process.env.BEFORE, a: process.env.AFTER, h: process.env.PAGE_HEIGHT, v: process.env.LOOP_VARIATION }; const viewport = Number(e.b.split(':')[0]); if (e.v === '' || Number(e.v) !== 0 || !(Number(e.h) > viewport && e.a === e.b)) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        },
+        {
+          "description": "The capture style is gone and the endless animation runs again.",
+          "runBrowserScript": {
+            "script": "return document.querySelectorAll('style[data-dd-animations]').length + ':' + document.getElementById('spinner').getAnimations()[0].playState;",
+            "output": "/^0:running$/"
+          }
+        }
+      ]
+    }
+  ]
+}

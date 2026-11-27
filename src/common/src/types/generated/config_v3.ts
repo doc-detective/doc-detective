@@ -853,6 +853,10 @@ export interface Config {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
+   * Sets `overwrite` for every `screenshot` step in the run, including automatic screenshots that compare against a reference. It replaces each step's own `overwrite`. `true` replaces every reference with the new capture. `false` never replaces a reference. `aboveVariation` replaces a reference only when the capture differs from it by more than `maxVariation`, or `maxDiffPixels` when set. Unset, each step uses its own `overwrite`. Equivalent to `--overwrite-screenshots` on the CLI.
+   */
+  overwriteScreenshots?: "true" | "false" | "aboveVariation";
+  /**
    * How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. That route's `retry.limit` sets its count, and the step's `attempts` result field reports how many times it ran. Capped at `10` to prevent a runaway retry storm from a misconfiguration.
    */
   retries?: number;
@@ -919,6 +923,30 @@ export interface Browser {
   headless?: boolean;
   window?: BrowserWindow;
   viewport?: BrowserViewport;
+  /**
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   */
+  colorScheme?: "light" | "dark";
+  /**
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   */
+  locale?: string;
+  /**
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  timezone?: string;
+  /**
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   */
+  reducedMotion?: "reduce" | "no-preference";
+  /**
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  clock?: string;
 }
 /**
  * Browser dimensions.
@@ -968,6 +996,30 @@ export interface Browser1 {
   headless?: boolean;
   window?: BrowserWindow1;
   viewport?: BrowserViewport1;
+  /**
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   */
+  colorScheme?: "light" | "dark";
+  /**
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   */
+  locale?: string;
+  /**
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  timezone?: string;
+  /**
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   */
+  reducedMotion?: "reduce" | "no-preference";
+  /**
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  clock?: string;
 }
 /**
  * Browser dimensions.

@@ -1,3 +1,97 @@
+## [5.7.0](https://github.com/doc-detective/doc-detective/compare/v5.6.3...v5.7.0) (2026-11-26)
+
+### Features
+
+* add a mockRequest step that answers browser requests ([c4fd8ec](https://github.com/doc-detective/doc-detective/commit/c4fd8ec6991d3ba159da9a18e3ad90a9410063ab))
+* add saveState and loadState actions for reusing a sign-in ([1f46609](https://github.com/doc-detective/doc-detective/commit/1f46609298d88fe03169f1fccae8b07e6b27fef0))
+* add totp() expression for one-time codes ([df1ff46](https://github.com/doc-detective/doc-detective/commit/df1ff46b14d8368d818e26d5e8c64e5bdd320e7e))
+* **bidi:** enable the BiDi socket for every Chrome session ([a845930](https://github.com/doc-detective/doc-detective/commit/a845930dcdc8766f52f6b5e3cc1fd0a0eab4747e))
+* **bidi:** run Chrome element commands over BiDi ([5fbd192](https://github.com/doc-detective/doc-detective/commit/5fbd1924ec63d2d7cbeebed9214fd14594c01365))
+* **contexts:** emulate color scheme, locale, timezone, pixel density, motion and clock ([db1904a](https://github.com/doc-detective/doc-detective/commit/db1904a7c658422477e6df8fb72df48b47f17861))
+
+### Bug Fixes
+
+* **bidi:** correct the BIDI_BROWSERS comment and test mixed-case names ([ce6f7bd](https://github.com/doc-detective/doc-detective/commit/ce6f7bd0c8447cb2a9a4e00fe50a2c02cf0a3368))
+* **bidi:** keep driver state out of webdriverio's BiDi clone ([8661904](https://github.com/doc-detective/doc-detective/commit/8661904fe1c09fe11084da1a83802144a3966cd1))
+* **cookie:** publish cookie files atomically with owner-only permissions ([62ee260](https://github.com/doc-detective/doc-detective/commit/62ee2603f7a78bff1efde651560c62a6f32c19e9))
+* **cookies:** keep httpOnly and sameSite in cookie files, restyle messages ([8eba591](https://github.com/doc-detective/doc-detective/commit/8eba591a5a7afca4c6449842fac5d9c33f505b0f))
+* **emulation:** drop opposing motion flags and merge blink settings under driverOptions ([9fd356a](https://github.com/doc-detective/doc-detective/commit/9fd356a7cc6b4174ac0e9b59efc9c60d04e98754))
+* **emulation:** fail an unparseable clock and build the open error from one helper ([269fdf3](https://github.com/doc-detective/doc-detective/commit/269fdf3e486758acb48461fe6a591ae9505596ff))
+* **emulation:** keep emulation through driverOptions, Date subclasses and the open page ([6c65230](https://github.com/doc-detective/doc-detective/commit/6c6523062fccac28b4f53697436313422bf82610))
+* **emulation:** skip timezone in Firefox on every platform ([b63623a](https://github.com/doc-detective/doc-detective/commit/b63623a501befdaed58dd9ff152aae35ce6951a0))
+* **expressions:** keep function names whole and reject partial base32 groups ([d1f5dcf](https://github.com/doc-detective/doc-detective/commit/d1f5dcfb2f032cba090c03013cf3d2fc9203dabf))
+* **mock:** check for BiDi before reading bodyPath ([c5e808b](https://github.com/doc-detective/doc-detective/commit/c5e808b7765bbd55cb64a58262b7cc7c5e114a76))
+* **mock:** name the cause when the browser refuses an intercept ([5b688ba](https://github.com/doc-detective/doc-detective/commit/5b688bab12ad5ed14a865a5c7eba1be7ecc6243c))
+* **state:** harden saveState and loadState, and keep cookie files curl-readable ([89b6d3f](https://github.com/doc-detective/doc-detective/commit/89b6d3f4f4e5510541a781c7d35f8944bc34793c))
+* **state:** own temp files only after opening them ([4aa52d5](https://github.com/doc-detective/doc-detective/commit/4aa52d554debbf7d8ba0857a5cb13697d633a9bf))
+* **state:** publish state files atomically and guard cookie restore ([b07cac1](https://github.com/doc-detective/doc-detective/commit/b07cac1231ad7628a6b12ae3b81d4c9561619b89))
+
+## [5.6.3](https://github.com/doc-detective/doc-detective/compare/v5.6.2...v5.6.3) (2026-11-20)
+
+### Bug Fixes
+
+* **ios:** hard-code the xcodebuild command at the spawn site ([0b3812d](https://github.com/doc-detective/doc-detective/commit/0b3812de1223fad5a85739f3e413e8e07555ed23))
+* **ios:** open no iOS session once an interrupt has stopped the builds ([3e491d3](https://github.com/doc-detective/doc-detective/commit/3e491d39a6577fc8a8bd66ad41778ba371382435))
+* **ios:** open no session after an interrupted WebDriverAgent build ([08d510e](https://github.com/doc-detective/doc-detective/commit/08d510e37d1ad8d23b790638e4963f706a3ed599))
+* **ios:** report a stopped build even when the lock release throws ([acb8940](https://github.com/doc-detective/doc-detective/commit/acb89407377b87143668135523338c3be02dbdbb))
+* **ios:** start no WebDriverAgent build after an interrupt ([c222cb8](https://github.com/doc-detective/doc-detective/commit/c222cb80e8dff1f2a1e5697777dbaa9ee7577ecc))
+* **ios:** stop xcodebuild when a WebDriverAgent build is interrupted ([8b9cafa](https://github.com/doc-detective/doc-detective/commit/8b9cafaea7fe0362ae9d5152e18507efaeb3c505)), closes [#1005](https://github.com/doc-detective/doc-detective/issues/1005)
+
+## [5.6.2](https://github.com/doc-detective/doc-detective/compare/v5.6.1...v5.6.2) (2026-11-20)
+
+### Bug Fixes
+
+* **recording:** keep the restored cursor inside the viewport ([2a54478](https://github.com/doc-detective/doc-detective/commit/2a54478e920d1d9fd24b4adc761eebff2196eeb0))
+
+## [5.6.1](https://github.com/doc-detective/doc-detective/compare/v5.6.0...v5.6.1) (2026-11-20)
+
+### Bug Fixes
+
+* **android:** install a missing emulator package on first use ([23fe202](https://github.com/doc-detective/doc-detective/commit/23fe2026d491abc9476acba6083c823476ca44d4)), closes [#1006](https://github.com/doc-detective/doc-detective/issues/1006)
+* **android:** repair a missing emulator with SDK tools only ([6f50752](https://github.com/doc-detective/doc-detective/commit/6f50752dba4b646cc700b3e7b41e0dc44778c6ee))
+* **ios:** stop promising a 10-minute WebDriverAgent build ([c89fd73](https://github.com/doc-detective/doc-detective/commit/c89fd73d64e6978bc68b350f8595120b1bea9eba)), closes [#1008](https://github.com/doc-detective/doc-detective/issues/1008)
+* **recording:** keep the live recording handle off the step result ([75fd9b2](https://github.com/doc-detective/doc-detective/commit/75fd9b24208cda85e936cbcf2d128caefb305332)), closes [#1007](https://github.com/doc-detective/doc-detective/issues/1007)
+
+# [5.6.0](https://github.com/doc-detective/doc-detective/compare/v5.5.0...v5.6.0) (2026-11-19)
+
+
+### Bug Fixes
+
+* **ios:** harden the first-use WebDriverAgent build ([d5d312c](https://github.com/doc-detective/doc-detective/commit/d5d312c6b3de123b7f45b28979744490aec313e9))
+* **ios:** report a record failure only from the record update ([ca9e4a9](https://github.com/doc-detective/doc-detective/commit/ca9e4a999e7b503d7ab2815cd06de15d95314cd1))
+* keep preflight warnings when a context retries ([27d0bfd](https://github.com/doc-detective/doc-detective/commit/27d0bfdcd7142d3acf85acaa07b27a380855302a))
+
+
+### Features
+
+* **ios:** build WebDriverAgent on first use ([6a3b266](https://github.com/doc-detective/doc-detective/commit/6a3b266215d175a1a9f7f649c678e90c2a27ddb5))
+
+# [5.5.0](https://github.com/doc-detective/doc-detective/compare/v5.4.0...v5.5.0) (2026-11-18)
+
+
+### Bug Fixes
+
+* **detect:** address include review findings ([8736261](https://github.com/doc-detective/doc-detective/commit/8736261d440bb0edd45c7df4cc35560c0f48fbcb))
+* **detect:** close fences only on spaces and tabs ([4b42ef9](https://github.com/doc-detective/doc-detective/commit/4b42ef948ceba66a80bc6f4bc9f22ced2aa35eb8))
+* **detect:** keep lifecycle files in their phase and skip components in code ([d11085f](https://github.com/doc-detective/doc-detective/commit/d11085f93b5a38382e74959e818731f9db88e7a3))
+* **detect:** keep MDX comment offsets exact and guard partial realpath ([f5ab422](https://github.com/doc-detective/doc-detective/commit/f5ab422077517d8df74dc314bb6d5c0955879449))
+* **detect:** read AsciiDoc lines=N.. as running to the last line ([fe9ed79](https://github.com/doc-detective/doc-detective/commit/fe9ed796116d6c5a824679f03b0f8cd6d7bb4f77))
+* **detect:** read MDX imports from the whole included file ([d09c5ad](https://github.com/doc-detective/doc-detective/commit/d09c5ad3fc502e4fb80c6a7ff13a8b46cb1309f5))
+* **detect:** skip rST includes in code, literal blocks, and comments ([a984b82](https://github.com/doc-detective/doc-detective/commit/a984b82d754e0730824545063172d34cc2efc385))
+* **detect:** warn on an empty rST line option ([d5c3925](https://github.com/doc-detective/doc-detective/commit/d5c39259ffaf7bdaddde9dd2d8d0b0a63dc54f34))
+* **detect:** warn on an rST line option that isn't a whole number ([3279799](https://github.com/doc-detective/doc-detective/commit/327979963c803216caf6652baf2fdfd00efb56f7))
+* **detect:** warn when an include's line range selects nothing ([df29cf1](https://github.com/doc-detective/doc-detective/commit/df29cf1f5c635964870d3e293267631129c6c383))
+
+
+### Features
+
+* **detect:** resolve includes during detection ([6f53ca9](https://github.com/doc-detective/doc-detective/commit/6f53ca9260e4b83bdc9aaa96bbe4c327a3013778))
+
+
+### Performance Improvements
+
+* **detect:** resolve an includer's realpath only after the set lookup ([92ab6ca](https://github.com/doc-detective/doc-detective/commit/92ab6ca2a9d370b3534429853b66018402b31b62))
+
 # [5.4.0](https://github.com/doc-detective/doc-detective/compare/v5.3.1...v5.4.0) (2026-11-17)
 
 

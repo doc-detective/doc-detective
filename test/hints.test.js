@@ -2111,6 +2111,9 @@ describe("hints/hints (registry)", function () {
   it("prebuildWebDriverAgent: fires when an iOS context ran without managed WDA products", function () {
     const h = findHint("prebuildWebDriverAgent");
     expect(h.priority).to.equal(50);
+    // The build's time depends on the host, so the hint names no figure (#1008).
+    expect(h.markdown).to.include("which can take several minutes.");
+    expect(h.markdown).to.not.match(/\d+ minutes/);
     expect(
       h.when(fakeCtx({ ranIosContexts: true, hasManagedWdaProducts: false }))
     ).to.equal(true);
@@ -2616,6 +2619,18 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
+    // Already using loadState -> skip.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          usedStepTypes: new Set(["loadVariables", "type", "click", "loadState"]),
+        })
+      )
+    ).to.equal(false);
+    // It suggests the whole login, in a step that validates.
+    expect(h.markdown).to.include('{ "saveState": "auth.json" }');
+    expect(h.markdown).to.include('{ "loadState": "auth.json" }');
     // No browser -> skip (not a login-driven flow).
     expect(
       h.when(

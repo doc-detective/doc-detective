@@ -1,0 +1,258 @@
+{
+  "specId": "state",
+  "description": "saveState and loadState (browser state, in Playwright's storageState format) against the 8092 test server's /cookies routes: the object form with directory and overwrite, and the string form under outputDir, in headless Firefox and Chrome. Each test saves, clears, loads, and checks in one browser, so its steps run in order. The expected FAILs (an existing file without overwrite, and a load before goTo) are asserted in test/core-core.test.js.",
+  "tests": [
+    {
+      "testId": "state-object-form-firefox",
+      "description": "The object form with `directory` and `overwrite`: save, clear, load, and check, in firefox.",
+      "runOn": [
+        {
+          "browsers": [
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Set the cookie `dd_obj_firefox`.",
+          "goTo": "http://localhost:8092/cookies/set/dd_obj_firefox/1"
+        },
+        {
+          "description": "Set the localStorage entry `dd_obj_firefox`.",
+          "runBrowserScript": "localStorage.setItem('dd_obj_firefox', '1')"
+        },
+        {
+          "description": "Save with the object form. A relative directory resolves against this spec file, and overwrite keeps reruns green.",
+          "saveState": {
+            "path": "dd_obj_firefox.json",
+            "directory": "../../../.tmp/fixture-state",
+            "overwrite": true
+          },
+          "variables": {
+            "DD_STATE_COOKIES": "$$cookies",
+            "DD_STATE_STORAGE": "$$localStorage"
+          }
+        },
+        {
+          "description": "saveState reported at least one cookie and exactly one localStorage entry.",
+          "runShell": "node -e \"if (!(Number(process.env.DD_STATE_COOKIES) >= 1) || process.env.DD_STATE_STORAGE !== '1') { console.error(JSON.stringify(process.env.DD_STATE_COOKIES), JSON.stringify(process.env.DD_STATE_STORAGE)); process.exit(1) }\""
+        },
+        {
+          "description": "Clear the cookie and localStorage, and check both are gone.",
+          "runBrowserScript": {
+            "script": "document.cookie = 'dd_obj_firefox=; Max-Age=0; path=/'; localStorage.clear(); return (document.cookie.includes('dd_obj_firefox=') || localStorage.length) ? 'present' : 'cleared';",
+            "output": "cleared"
+          }
+        },
+        {
+          "description": "Load with the object form.",
+          "loadState": {
+            "path": "dd_obj_firefox.json",
+            "directory": "../../../.tmp/fixture-state"
+          }
+        },
+        {
+          "description": "Open the page again so the browser sends the loaded cookie.",
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "description": "The server got the cookie back.",
+          "find": "/dd_obj_firefox=1/"
+        },
+        {
+          "description": "localStorage holds the loaded entry.",
+          "runBrowserScript": {
+            "script": "return localStorage.getItem('dd_obj_firefox')",
+            "output": "1"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "state-object-form-chrome",
+      "description": "The object form with `directory` and `overwrite`: save, clear, load, and check, in chrome.",
+      "runOn": [
+        {
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Set the cookie `dd_obj_chrome`.",
+          "goTo": "http://localhost:8092/cookies/set/dd_obj_chrome/1"
+        },
+        {
+          "description": "Set the localStorage entry `dd_obj_chrome`.",
+          "runBrowserScript": "localStorage.setItem('dd_obj_chrome', '1')"
+        },
+        {
+          "description": "Save with the object form. A relative directory resolves against this spec file, and overwrite keeps reruns green.",
+          "saveState": {
+            "path": "dd_obj_chrome.json",
+            "directory": "../../../.tmp/fixture-state",
+            "overwrite": true
+          },
+          "variables": {
+            "DD_STATE_COOKIES": "$$cookies",
+            "DD_STATE_STORAGE": "$$localStorage"
+          }
+        },
+        {
+          "description": "saveState reported at least one cookie and exactly one localStorage entry.",
+          "runShell": "node -e \"if (!(Number(process.env.DD_STATE_COOKIES) >= 1) || process.env.DD_STATE_STORAGE !== '1') { console.error(JSON.stringify(process.env.DD_STATE_COOKIES), JSON.stringify(process.env.DD_STATE_STORAGE)); process.exit(1) }\""
+        },
+        {
+          "description": "Clear the cookie and localStorage, and check both are gone.",
+          "runBrowserScript": {
+            "script": "document.cookie = 'dd_obj_chrome=; Max-Age=0; path=/'; localStorage.clear(); return (document.cookie.includes('dd_obj_chrome=') || localStorage.length) ? 'present' : 'cleared';",
+            "output": "cleared"
+          }
+        },
+        {
+          "description": "Load with the object form.",
+          "loadState": {
+            "path": "dd_obj_chrome.json",
+            "directory": "../../../.tmp/fixture-state"
+          }
+        },
+        {
+          "description": "Open the page again so the browser sends the loaded cookie.",
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "description": "The server got the cookie back.",
+          "find": "/dd_obj_chrome=1/"
+        },
+        {
+          "description": "localStorage holds the loaded entry.",
+          "runBrowserScript": {
+            "script": "return localStorage.getItem('dd_obj_chrome')",
+            "output": "1"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "state-string-form-firefox",
+      "description": "A `path` with no `directory` and the string form both use `outputDir`, in firefox. The save sets `overwrite` so reruns stay green; the string-form save, which doesn't overwrite, is asserted in test/core-core.test.js against a fresh outputDir.",
+      "runOn": [
+        {
+          "browsers": [
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Set the cookie `dd_str_firefox`.",
+          "goTo": "http://localhost:8092/cookies/set/dd_str_firefox/2"
+        },
+        {
+          "description": "Set the localStorage entry `dd_str_firefox`.",
+          "runBrowserScript": "localStorage.setItem('dd_str_firefox', '2')"
+        },
+        {
+          "description": "Save under outputDir.",
+          "saveState": {
+            "path": "dd_str_firefox.json",
+            "overwrite": true
+          }
+        },
+        {
+          "description": "Clear the cookie and localStorage, and check both are gone.",
+          "runBrowserScript": {
+            "script": "document.cookie = 'dd_str_firefox=; Max-Age=0; path=/'; localStorage.clear(); return (document.cookie.includes('dd_str_firefox=') || localStorage.length) ? 'present' : 'cleared';",
+            "output": "cleared"
+          }
+        },
+        {
+          "description": "Load with the string form, from outputDir.",
+          "loadState": "dd_str_firefox.json"
+        },
+        {
+          "description": "Open the page again so the browser sends the loaded cookie.",
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "description": "The server got the cookie back.",
+          "find": "/dd_str_firefox=2/"
+        },
+        {
+          "description": "localStorage holds the loaded entry.",
+          "runBrowserScript": {
+            "script": "return localStorage.getItem('dd_str_firefox')",
+            "output": "2"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "state-string-form-chrome",
+      "description": "A `path` with no `directory` and the string form both use `outputDir`, in chrome. The save sets `overwrite` so reruns stay green; the string-form save, which doesn't overwrite, is asserted in test/core-core.test.js against a fresh outputDir.",
+      "runOn": [
+        {
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Set the cookie `dd_str_chrome`.",
+          "goTo": "http://localhost:8092/cookies/set/dd_str_chrome/2"
+        },
+        {
+          "description": "Set the localStorage entry `dd_str_chrome`.",
+          "runBrowserScript": "localStorage.setItem('dd_str_chrome', '2')"
+        },
+        {
+          "description": "Save under outputDir.",
+          "saveState": {
+            "path": "dd_str_chrome.json",
+            "overwrite": true
+          }
+        },
+        {
+          "description": "Clear the cookie and localStorage, and check both are gone.",
+          "runBrowserScript": {
+            "script": "document.cookie = 'dd_str_chrome=; Max-Age=0; path=/'; localStorage.clear(); return (document.cookie.includes('dd_str_chrome=') || localStorage.length) ? 'present' : 'cleared';",
+            "output": "cleared"
+          }
+        },
+        {
+          "description": "Load with the string form, from outputDir.",
+          "loadState": "dd_str_chrome.json"
+        },
+        {
+          "description": "Open the page again so the browser sends the loaded cookie.",
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "description": "The server got the cookie back.",
+          "find": "/dd_str_chrome=2/"
+        },
+        {
+          "description": "localStorage holds the loaded entry.",
+          "runBrowserScript": {
+            "script": "return localStorage.getItem('dd_str_chrome')",
+            "output": "2"
+          }
+        }
+      ]
+    }
+  ]
+}

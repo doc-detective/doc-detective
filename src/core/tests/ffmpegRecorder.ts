@@ -425,6 +425,9 @@ function recordingProcessToken(): string {
 function browserCaptureTitle(contextId: string): string {
   return `RECORD_ME_${recordingProcessToken()}_${safeContextId(contextId)}`;
 }
+// Where a browser-engine recording stages its .webm before transcoding. The
+// recorder copies the video out over WebDriver (ADR 01176), so no browser
+// downloads here; browser downloads go to the context's run folder (ADR 01231).
 function browserDownloadDir(contextId: string): string {
   return path.join(
     os.tmpdir(),

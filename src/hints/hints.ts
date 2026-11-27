@@ -285,7 +285,7 @@ export const HINTS: Hint[] = [
     id: "prebuildWebDriverAgent",
     priority: 50,
     markdown: [
-      "This run drove an iOS simulator. The first iOS session on a cold environment compiles WebDriverAgent with `xcodebuild` — around 10 minutes. Prebuild it once and every later run (and every parallel job sharing the cache) skips that cost:",
+      "This run drove an iOS simulator. The first iOS session on a cold environment compiles WebDriverAgent with `xcodebuild`, which can take several minutes. Prebuild it once and every later run (and every parallel job sharing the cache) skips that cost:",
       "",
       "```bash",
       "doc-detective install ios --yes",
@@ -652,16 +652,17 @@ export const HINTS: Hint[] = [
     id: "useLoadCookieSaveCookie",
     priority: 20,
     markdown: [
-      "Tests that log in over and over slow your suite down. Capture the session once with `saveCookie` and reuse it with `loadCookie`:",
+      "Tests that log in over and over slow your suite down. Save the signed-in state once with `saveState`, then load it with `loadState` after a `goTo` to the same site:",
       "",
       "```json",
-      "{ \"saveCookie\": { \"path\": \"./cookies.json\" } }",
-      "{ \"loadCookie\": { \"path\": \"./cookies.json\" } }",
+      "{ \"saveState\": \"auth.json\" }",
+      "{ \"loadState\": \"auth.json\" }",
       "```",
     ].join("\n"),
     when: (ctx) =>
       ctx.usedBrowserContexts.size > 0 &&
       !ctx.usedStepTypes.has("loadCookie") &&
+      !ctx.usedStepTypes.has("loadState") &&
       ctx.usedStepTypes.has("loadVariables") &&
       ctx.usedStepTypes.has("type") &&
       ctx.usedStepTypes.has("click"),

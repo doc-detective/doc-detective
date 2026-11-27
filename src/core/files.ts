@@ -135,6 +135,9 @@ function parseFileContent(
   }
 }
 
+// Actions whose file `path` joins `outputDir` when it has no `directory`.
+const STATE_FILE_ACTIONS = new Set(["saveCookie", "loadCookie", "saveState", "loadState"]);
+
 /**
  * Convert recognized relative path properties in a config or spec object to absolute paths.
  *
@@ -177,7 +180,6 @@ async function resolvePaths({
     "apiKeyFile",
     "apiTokenFile",
     "mediaDirectory",
-    "downloadDirectory",
     "descriptionPath",
     "path",
   ];
@@ -216,7 +218,7 @@ async function resolvePaths({
   // `path`/`directory` handling above; only the bare-string form needs this
   // separate list. Scoped to `isStep` so a coincidentally-named field nested
   // inside request/response data (not a step) is never mistaken for one.
-  const stepShorthandPathProperties = ["screenshot", "record"];
+  const stepShorthandPathProperties = ["screenshot", "record", "checkFile"];
 
   function resolve(baseType: string, relativePath: string, filePath: string) {
     // If the path is an http:// or https:// URL, or a heretto: URI, return it
@@ -325,13 +327,13 @@ async function resolvePaths({
       ((objectType === "spec" && !specNoResolve.includes(property)) ||
         objectType === "config")
     ) {
-      // A cookie file `path` without `directory` belongs under outputDir, which
-      // the cookie handlers join at run time (ADR 01174). The recursive call
-      // below resolves every `path` against the spec, so save this one first
-      // and put it back afterward, undoing that resolution.
+      // A cookie or state file `path` without `directory` belongs under
+      // outputDir, which the handlers join at run time (ADR 01174). The
+      // recursive call below resolves every `path` against the spec, so save
+      // this one first and put it back afterward, undoing that resolution.
       const cookie = object[property];
       const cookiePath =
-        isStep && (property === "saveCookie" || property === "loadCookie") && cookie?.path && !cookie.directory
+        isStep && STATE_FILE_ACTIONS.has(property) && cookie?.path && !cookie.directory
           ? cookie.path
           : undefined;
       object[property] = await resolvePaths({
@@ -342,6 +344,12 @@ async function resolvePaths({
         objectType: objectType,
       });
       if (cookiePath !== undefined) object[property].path = cookiePath;
+      // A mock's `bodyPath` sits in `response`, which isn't resolved, so
+      // resolve it here, against the spec (ADR 01225).
+      const mockResponse = isStep && property === "mockRequest" ? object[property].response : undefined;
+      if (typeof mockResponse?.bodyPath === "string") {
+        mockResponse.bodyPath = resolve(relativePathBase, mockResponse.bodyPath, filePath);
+      }
     } else if (typeof object[property] === "string") {
       if (
         object[property].startsWith("https://") ||
@@ -350,10 +358,12 @@ async function resolvePaths({
       ) {
         continue;
       }
-      if (
-        pathProperties!.includes(property) ||
-        (isStep && stepShorthandPathProperties.includes(property))
-      ) {
+      // A shorthand that starts with an environment variable resolves after
+      // substitution, at run time; joining `$VAR` into a spec path first would
+      // break an absolute value.
+      const shorthand = isStep && stepShorthandPathProperties.includes(property);
+      if (shorthand && object[property].startsWith("$")) continue;
+      if (pathProperties!.includes(property) || shorthand) {
         if (property === "path" && object.directory) {
           const directory = path.isAbsolute(object.directory)
             ? object.directory

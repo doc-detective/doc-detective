@@ -17,7 +17,7 @@ Doc Detective drives native apps through a platform-specific automation driver a
 
 Android needs more than a driver: it also needs the Android SDK toolchain and a system image. A run that targets `android` on a capable host installs those lazily on first use, or you can pre-install them with [`doc-detective install android`](/reference/reference/cli/install#install-android). See [Run on an Android emulator](#run-on-an-android-emulator).
 
-iOS app surfaces run only on a macOS host, on an iOS simulator that Doc Detective manages with `simctl`. The simulator tooling ships with Xcode rather than as a download; prepare the host ahead of time with [`doc-detective install ios`](/reference/reference/cli/install#install-ios). See [Run on an iOS simulator](#run-on-an-ios-simulator).
+iOS app surfaces run only on a macOS host, on an iOS simulator that Doc Detective manages with `simctl`. The simulator tooling ships with Xcode rather than as a download; prepare the host ahead of time with [`doc-detective install ios --yes`](/reference/reference/cli/install#install-ios). See [Run on an iOS simulator](#run-on-an-ios-simulator).
 </Note>
 
 ## App descriptors
@@ -39,7 +39,7 @@ iOS app surfaces run only on a macOS host, on an iOS simulator that Doc Detectiv
 - `install`: (Optional, Android and iOS) A path to an app bundle to install on the device before launch. This lets you test an app that isn't already on the device. Use an `.apk` on Android, or an `.app` or `.ipa` on iOS. When you set `install` on iOS, the installable payload also becomes the app to launch, overriding `app`. It's a mobile-only field, so setting it on a desktop app surface fails the step.
 - `activity`: (Optional, Android) The main activity to launch, overriding the package's default launcher activity. Only meaningful on Android; setting it on iOS fails the step, since iOS launches by bundle identifier or installed app payload.
 - `waitUntil`: (Optional) A readiness condition that must hold before Doc Detective considers the surface open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
-- `timeout`: (Optional) The startup ceiling in milliseconds, `1` or more, covering launch and readiness. Defaults to `60000`. On macOS, the first app surface of a run also builds the automation agent (WebDriverAgentMac) with Xcode. That can take several minutes on a cold machine. Doc Detective raises the server startup ceiling to at least 120000 ms for that first build, regardless of `timeout`. iOS behaves the same way. The first surface builds WebDriverAgent for the simulator. Doc Detective floors the agent's ceilings at 120000 ms so a cold build isn't aborted early. On Android, booting a cold emulator (or creating one) can also take longer than the default. Give the first surface a generous `timeout`.
+- `timeout`: (Optional) The startup ceiling in milliseconds, `1` or more, covering launch and readiness. Defaults to `60000`. On macOS, the first app surface of a run also builds the automation agent (WebDriverAgentMac) with Xcode. That can take several minutes on a cold machine. Doc Detective raises the server startup ceiling to at least 120000 ms for that first build, regardless of `timeout`. On iOS, Doc Detective 5.6.0 or later runs the [first-use WebDriverAgent build](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use) before the steps, so it doesn't count toward `timeout`. Before 5.6.0, or if that build fails or is turned off, WebDriverAgent builds during the session instead. Doc Detective then raises its launch and connection ceilings to at least 120000 ms, regardless of `timeout`. On Android, booting a cold emulator (or creating one) can also take longer than the default. Give the first surface a generous `timeout`.
 - `driverOptions`: (Optional) An escape-hatch object merged into the automation session's capabilities after the ones Doc Detective computes. Capabilities are driver- and version-specific and prefixed per driver, for example `{ "appium:noReset": true }`. Use it sparingly.
 
 On Windows and macOS, opening two app surfaces with the same `name` in one context fails. Pass a distinct `name` when you launch more than one app. The mobile platforms are the exception, because apps on one device or simulator share a single session. A later `startSurface` installs the app if you set `install`, then brings it to the foreground. That lets one test drive several apps on the same emulator or simulator.
@@ -52,6 +52,14 @@ On Windows and macOS, opening two app surfaces with the same `name` in one conte
 - `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`). If you set neither `size` nor `viewport`, the session uses the context's size. That's the context's `viewport` setting (applied by resizing the window), its `window` setting, or the 1200×800 default viewport. See [Browsers](/docs/test-docs/platforms-and-browsers#browsers).
 - `viewport`: (Optional) Page-content dimensions, which win over `size`. Doc Detective sizes the viewport by resizing the window, so the ~500px minimum window width applies (in headless mode too). A smaller requested viewport renders at the larger realized size. The step still passes, but Doc Detective logs a `warning` and reports both sizes in the step's `viewport` output as `{ requested, actual }`. Trust the rendered size over the request. To render content at true sub-500px widths, run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions.
 - `driverOptions`: (Optional) Escape-hatch capability passthrough.
+
+A browser session also gets the context's [page emulation](/docs/test-docs/platforms-and-browsers#page-emulation) keys, such as `colorScheme`, `locale`, and `clock`, so every session in the context shows the same variant. A descriptor can't change them. If the descriptor names a browser that can't set one of the keys, the step fails instead of opening a session without it:
+
+```text
+Couldn't open `firefox`: `firefox` can't set `clock`.
+```
+
+To fix it, open a browser that sets every key the context uses. Or move the step to a test whose context doesn't set them.
 
 The browser descriptor deliberately has no `url`, because [`goTo`](goto) stays the navigation step. It has no `waitUntil` either, since a browser session is ready the moment it opens.
 
@@ -249,9 +257,9 @@ Check those prerequisites ahead of a run:
 doc-detective install ios --yes
 ```
 
-See [`install ios`](/reference/reference/cli/install#install-ios) for everything the command does. It verifies the prerequisites, installs the automation driver, and prebuilds WebDriverAgent. That page also covers the guidance it prints when a step can't run. When the host can't run an iOS simulator, the context skips with a pointer back to that command instead of failing. That covers a non-macOS host, or a macOS host without Xcode or an installed runtime. If you skip `install ios`, the driver still installs on demand the first time an `ios` surface starts.
+See [`install ios`](/reference/reference/cli/install#install-ios) for everything the command does. It verifies the prerequisites, installs the automation driver, and prebuilds WebDriverAgent. That page also covers the guidance it prints when a step can't run. When the host can't run an iOS simulator, the context skips with a pointer back to that command instead of failing. That covers a non-macOS host, or a macOS host without Xcode or an installed runtime. If you skip `install ios`, the first `ios` test installs the driver on its own. With Doc Detective 5.6.0 or later, it also builds WebDriverAgent. Earlier versions leave that build to Appium during the session.
 
-On a cold machine, the first `ios` surface of a run builds WebDriverAgent for the simulator. That can take several minutes, so give it a generous `timeout`. Running [`doc-detective install ios`](/reference/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent into the cache, and sessions consume it automatically. That build cost then disappears from the run, and every session starts faster, because it launches the prebuilt WebDriverAgent instead of starting it through Xcode. It's especially worthwhile in CI, where a persisted cache lets every run and every parallel job share one prebuild.
+When no cached WebDriverAgent build matches your Xcode version and driver, Doc Detective 5.6.0 or later builds one before the first `ios` test starts. That can take several minutes. Sessions then use the cached build automatically, and every session starts faster, because it uses the prebuilt WebDriverAgent instead of building it with Xcode. Run [`doc-detective install ios --yes`](/reference/reference/cli/install#install-ios) beforehand to build it outside the test run. In GitHub Actions, the Doc Detective action v2.2.0 or later (`@v2`) caches the build between runs, so every run shares one build. See [WebDriverAgent builds on first use](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use) and [Speed up iOS tests on macOS](/docs/ci/github-action#speed-up-ios-tests-on-macos).
 
 ### Choose the simulator
 
@@ -448,7 +456,7 @@ This example targets the `android` platform and launches the Settings app by its
 
 ### Launch an iOS app on a simulator
 
-This example targets the `ios` platform and launches the Settings app by its bundle ID on the context's default simulator. It waits until the app's content is on screen, takes a screenshot of the window, and closes the surface. Give the first surface a generous `timeout` so a cold simulator boot and WebDriverAgent build fit inside it.
+This example targets the `ios` platform and launches the Settings app by its bundle ID on the context's default simulator. It waits until the app's content is on screen, takes a screenshot of the window, and closes the surface. Give the first surface a generous `timeout` so a cold simulator boot fits inside it. To keep a [first-use WebDriverAgent build](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use) out of the test run in Doc Detective 5.6.0 or later, run `doc-detective install ios --yes` beforehand.
 
 ```json
 {

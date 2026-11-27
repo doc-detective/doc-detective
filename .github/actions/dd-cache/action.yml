@@ -88,12 +88,15 @@ runs:
     # The whole cache dir is cached as one unit: runtime/node_modules MUST
     # travel with runtime/package.json and installed.json, or the next JIT
     # install treats the restored packages as extraneous and npm prunes them
-    # mid-run (see src/runtime/AGENTS.md). The key rotates weekly because
-    # browser channels float and a present-but-outdated browser is warn-only
-    # (never re-downloads) — a cache restored across weeks would pin old
-    # browsers forever. The node component keeps the runtime npm tree isolated
-    # per node line; the second restore-key still accepts any same-week entry
-    # (the installers verify and top up whatever they find).
+    # mid-run (see src/runtime/AGENTS.md). The key rotates weekly. Browser
+    # channels float, and the CLI replaces an outdated cached browser once its
+    # daily channel check is due (ADR 01209). But a saved entry is immutable:
+    # a job that hits the key exactly saves nothing back. So once the entry's
+    # recorded check is a day old, every job that needs a browser checks its
+    # channel again, and downloads a newer build again, until the key changes.
+    # The weekly key bounds that. The node component keeps the runtime npm tree
+    # isolated per node line; the second restore-key still accepts any
+    # same-week entry (the installers verify and top up whatever they find).
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       id: cache
       with:

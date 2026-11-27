@@ -934,6 +934,41 @@ describe("startRecording: guards + browser engine", function () {
     assert.equal(result.status, "FAIL");
   });
 
+  // A context with no browser, app, or device session has nothing to own the
+  // capture, so the automatic recording is SKIPPED before ffmpeg is spawned:
+  // a capture spawned and then killed can linger and hold the screen (macOS).
+  for (const [label, markers] of [
+    ["unset", { __autoRecordDefaulted: true }],
+    ["strict", {}],
+  ]) {
+    it(`skips an automatic recording with no session to own it, before spawning ffmpeg (${label})`, async function () {
+      let resolved = false;
+      const result = await startRecording({
+        config,
+        context: { contextId: "ctx-none" },
+        step: {
+          stepId: "t~autorecord",
+          record: { path: path.join(tmpDir, `no-session-${label}.mp4`), engine: "ffmpeg", overwrite: "true" },
+          __autoRecord: true,
+          ...markers,
+        },
+        driver: undefined,
+        deps: {
+          getFfmpegPath: async () => {
+            resolved = true;
+            throw new Error("ffmpeg resolved");
+          },
+        },
+      });
+      assert.equal(resolved, false);
+      assert.deepEqual(result, {
+        status: "SKIPPED",
+        description:
+          "Skipped: the context has no browser, app, or device session to record. Set `autoRecord: false` to turn off automatic recording.",
+      });
+    });
+  }
+
   // A headless browser draws nothing on an Xvfb display, so an ffmpeg capture
   // of it would be blank (ADR 01176).
   it("ffmpeg engine on a headless browser with a virtual display -> SKIPPED", async function () {

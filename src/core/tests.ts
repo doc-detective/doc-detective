@@ -45,6 +45,7 @@ import {
   createAppiumPool,
   getRunOutputDir,
   runArchivesArtifacts,
+  stepsCheckDownloads,
   sanitizeFilesystemName,
   hasVariable,
   evaluateContextRequirements,
@@ -53,6 +54,13 @@ import {
   classifyContextRetry,
   guardBlankDocumentNavigation,
   applyBrowserSize,
+  BIDI_BROWSERS,
+  hasBidi,
+  emulationCapabilities,
+  keepEmulationCapabilities,
+  unsupportedEmulation,
+  emulationOpenError,
+  applyEmulation,
   isViewportFloored,
   loadAxios,
   sessionVersions,
@@ -75,11 +83,10 @@ import {
   resolveCheckpointsConfig,
   captureRecordingCheckpoints,
 } from "./tests/recordingCheckpoints.js";
-import { startRecording } from "./tests/startRecording.js";
+import { startRecording, NO_SESSION_SKIP } from "./tests/startRecording.js";
 import { stopRecording, defaultedStopSkip } from "./tests/stopRecording.js";
 import {
   browserCaptureTitle,
-  browserDownloadDir,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   jobExclusiveResources,
@@ -101,6 +108,10 @@ import {
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
 import { loadCookie } from "./tests/loadCookie.js";
+import { mockRequest, restoreMocks } from "./tests/mockRequest.js";
+import { checkFile } from "./tests/checkFile.js";
+import { saveState } from "./tests/saveState.js";
+import { loadState } from "./tests/loadState.js";
 import { httpRequest } from "./tests/httpRequest.js";
 import { clickElement } from "./tests/click.js";
 import { runCode } from "./tests/runCode.js";
@@ -153,6 +164,7 @@ import {
   listInstalledSystemImages,
   installAndroid,
 } from "../runtime/androidInstaller.js";
+import { ensureManagedWda, stopWdaBuilds } from "../runtime/iosInstaller.js";
 import {
   buildAcquireDeviceDeps,
   findUia2Helpers,
@@ -291,6 +303,7 @@ export {
   mergeAutoRecording,
   contextResultSources,
   runContext,
+  runStep,
   stopAllRecordings,
   specIsRouted,
   killTree,
@@ -302,6 +315,8 @@ export {
   appiumIsReady,
   APPIUM_READY_POLL_MS,
   driverStart,
+  BIDI_BROWSERS,
+  hasBidi,
 };
 
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
@@ -426,6 +441,8 @@ function buildWarmPlanDeps(): WarmPlanDeps {
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
   let capabilities: any = {};
   let args: string[] = [];
+  // Page emulation launch options (ADR 01223), from the context's browser.
+  const emulation = emulationCapabilities(options.emulation);
 
   // Fail loudly on an unknown or missing browser name instead of silently
   // returning empty capabilities. Empty caps used to surface downstream as the
@@ -454,7 +471,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         "appium:automationName": "Gecko",
         "appium:newCommandTimeout": 600, // 10 minutes
         browserName: "MozillaFirefox",
-        "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+        "wdio:enforceWebDriverClassic": !hasBidi(name), // ADR 01219
+        ...(hasBidi(name)
+          ? { webSocketUrl: true }
+          : {}),
         // Pin the geckodriver Doc Detective manages. appium-geckodriver
         // resolves its binary from this capability or `which geckodriver` and
         // nothing else, so without it the managed install in the browsers cache
@@ -475,6 +495,17 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
             "UEsDBBQAAAAIAKm6lldWzDiRbgAAAKUAAAAlAAAAZmlyZWZveF9wcm9maWxlL2Nocm9tZS91c2VyQ2hyb21lLmNzc3XMQQrCMBBG4X1O8Yu7QqhrPYOHiGbaDpqZMBmJIN7dgu6K28fHC+OAc7oRLuquBVc1IWvQCb6s1bQ3MnSWrB1VWZwyhjHsS2KJv/4KWAeWyeL3E+80ebSU+dGOONQndlyqmifx0wYbz8t//Q4fUEsBAhQDFAAAAAgAqbqWV1bMOJFuAAAApQAAACUAAAAAAAAAAAAAAKSBAAAAAGZpcmVmb3hfcHJvZmlsZS9jaHJvbWUvdXNlckNocm9tZS5jc3NQSwUGAAAAAAEAAQBTAAAAsQAAAAAA",
           prefs: {
             "toolkit.legacyUserProfileCustomizations.stylesheets": true, // Enable userChrome.css and userContent.css
+            // Save downloads, with no prompt, to the context's download
+            // folder (ADR 01231).
+            ...(options.downloadDir
+              ? {
+                  "browser.download.folderList": 2,
+                  "browser.download.dir": options.downloadDir,
+                  "browser.download.useDownloadDir": true,
+                  "browser.download.always_ask_before_handling_new_types": false,
+                }
+              : {}),
+            ...emulation.prefs,
           },
           binary: firefox.path,
         },
@@ -497,7 +528,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:automationName": "Safari",
           "appium:newCommandTimeout": 600, // 10 minutes
           browserName: "Safari",
-          "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+          "wdio:enforceWebDriverClassic": !hasBidi(name), // ADR 01219
+          ...(hasBidi(name)
+            ? { webSocketUrl: true }
+            : {}),
         };
       }
       break;
@@ -539,6 +573,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           // parallel browser contexts start reliably.
           args.push("--disable-dev-shm-usage");
         }
+        args.push(...emulation.args);
         // Set capabilities
         capabilities = {
           platformName: runnerDetails.environment.platform,
@@ -546,20 +581,24 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:newCommandTimeout": 600, // 10 minutes
           "appium:executable": chromium.driver,
           browserName: "chrome",
-          // Classic WebDriver, no BiDi socket. Enabling `webSocketUrl` for
-          // viewport emulation (driver.setViewport) crashed headed recording
-          // contexts with a stack overflow and can't be gated off recording
-          // (viewport+recording is a supported combo) — see ADR 01072 (rejected).
-          "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+          // A browser in BIDI_BROWSERS runs fully on BiDi; any other stays
+          // classic with no socket (ADR 01219).
+          "wdio:enforceWebDriverClassic": !hasBidi(name),
+          ...(hasBidi(name)
+            ? { webSocketUrl: true }
+            : {}),
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
             prefs: {
-              // Per-context download dir keeps concurrent recordings from
-              // colliding on the same .webm filename in a shared temp dir.
-              "download.default_directory": options.downloadDir || os.tmpdir(),
+              // Save downloads, with no prompt, to the context's download
+              // folder (ADR 01231).
+              ...(options.downloadDir
+                ? { "download.default_directory": options.downloadDir }
+                : {}),
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
+              ...emulation.prefs,
             },
             binary: chromium.path,
           },
@@ -983,6 +1022,7 @@ async function androidContextPreflight({
   const toolchain = planAndroidToolchain({
     capable,
     sdkPresent: sdk !== null,
+    emulatorPresent: Boolean(sdk?.emulator),
     requiredOsVersions,
     installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
     abi,
@@ -1010,6 +1050,7 @@ async function androidContextPreflight({
       reports = await installAndroid({
         yes: true,
         osVersion: toolchain.osVersion,
+        toolsOnly: toolchain.toolsOnly,
         ctx: { cacheDir: config.cacheDir },
         deps: { logger: (m: string) => clog("debug", m) },
       });
@@ -1043,6 +1084,7 @@ async function androidContextPreflight({
     const recheck = planAndroidToolchain({
       capable: true,
       sdkPresent: sdk !== null,
+      emulatorPresent: Boolean(sdk?.emulator),
       requiredOsVersions,
       installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
       abi,
@@ -1115,29 +1157,33 @@ async function androidContextPreflight({
 // capability/toolchain probes via appSurfacePreflight, then validation that
 // the context's default simulator can be resolved (booted/created) via
 // simctl. On success return the appium entry/home, the injected simctl effect
-// bundle for the run's acquireSimulator closure, and the device browser (if
-// any) to open a session for.
+// bundle for the run's acquireSimulator closure, the device browser (if
+// any) to open a session for, and any warnings for the context report.
 async function iosContextPreflight({
   config,
   context,
+  clog,
 }: {
   config: any;
   context: any;
+  clog: (level: string, msg: string) => void;
 }): Promise<
   | {
       ok: true;
       appiumEntry: string;
       appiumHome: string;
       simulatorDeps: any;
+      warnings: string[];
       mobileWebBrowserName: string | null;
     }
   | { ok: false; level: "warning" | "info"; reason: string; fail?: boolean }
 > {
+  const hasAppStep = isAppDriverRequired({ test: context });
   const gate = mobileBrowserGate({
     platform: "ios",
     browser: context.browser,
     hasBrowserStep: isBrowserRequired({ test: context }),
-    hasAppStep: isAppDriverRequired({ test: context }),
+    hasAppStep,
   });
   if (gate.action === "skip") {
     return { ok: false, level: gate.level, reason: gate.reason };
@@ -1179,11 +1225,35 @@ async function iosContextPreflight({
       reason: `Skipped: couldn't probe the iOS simulator environment (${error?.message ?? error}). Check Xcode / simctl, or run \`doc-detective install ios --yes\`.`,
     };
   }
+  // First use (ADR 01214): a context about to open a session builds the
+  // managed WebDriverAgent when the cache has none, as the Android preflight
+  // installs its toolchain. App and mobile-web sessions both pass through
+  // here, and both then find the build with locateManagedWda. `config` is the
+  // run's one config object, so the run builds at most once.
+  const warnings =
+    hasAppStep || gate.browserName
+      ? await ensureManagedWda({
+          scope: config,
+          ctx: { cacheDir: config?.cacheDir },
+          warn: (m) => clog("warning", m),
+          deps: { logger: (m: string) => clog("debug", m) },
+        })
+      : [];
+  // The run was interrupted. The interrupt's cleanup has closed the run's
+  // Appium servers, so a session opened now would start one that outlives it.
+  if (!warnings) {
+    return {
+      ok: false,
+      level: "info",
+      reason: "Skipped: the run was interrupted.",
+    };
+  }
   return {
     ok: true,
     appiumEntry: pre.appiumEntry,
     appiumHome: pre.appiumHome,
     simulatorDeps,
+    warnings,
     mobileWebBrowserName: gate.browserName,
   };
   /* c8 ignore stop */
@@ -2147,6 +2217,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // handler awaits the tree-kills before exiting so children don't outlive it.
   const onSignal = createInterruptHandler({
     cleanup: async () => {
+      // A first-use WebDriverAgent build (ADR 01214) runs `xcodebuild` in its
+      // own process group, which a terminal's Ctrl-C doesn't reach.
+      const wdaBuildsStopped = stopWdaBuilds();
       await killAllRegistered();
       await Promise.all(
         [...appiumServers, ...appServerPool.drain()].map((server) =>
@@ -2160,6 +2233,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // best-effort
         }
       }
+      await wdaBuildsStopped;
     },
   });
   process.on("SIGINT", onSignal);
@@ -4096,16 +4170,32 @@ function plannedRecordingEngines({
 
 // A context's `screenshots/` folder in the run folder, which creates the run
 // folder. Auto screenshots and URL-reference captures (ADR 01173) land here.
-function contextScreenshotsDir({ config, spec, test, context }: { config: any; spec: any; test: any; context: any }) {
+function contextScreenshotsDir(ids: { config: any; spec: any; test: any; context: any }) {
+  return contextArtifactDir(ids, "screenshots");
+}
+
+// A context's `downloads/` folder in the run folder (ADR 01231). Resolving it
+// doesn't create the run folder: the browser creates the folder when it saves
+// a file, and a run with a `checkFile` `download` step reserves the run folder
+// up front (runArchivesArtifacts).
+function contextDownloadsDir(ids: { config: any; spec: any; test: any; context: any }) {
+  return contextArtifactDir(ids, "downloads", { create: false });
+}
+
+function contextArtifactDir(
+  { config, spec, test, context }: { config: any; spec: any; test: any; context: any },
+  leaf: string,
+  { create = true }: { create?: boolean } = {}
+) {
   return path.join(
-    getRunOutputDir(config),
+    getRunOutputDir(config, { create }),
     "specs",
     capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
     "tests",
     capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test")),
     "contexts",
     capPathSegment(sanitizeFilesystemName(String(context.contextId ?? ""), "context")),
-    "screenshots"
+    leaf
   );
 }
 
@@ -4472,6 +4562,25 @@ async function runContext({
   let mobileWebBrowserName: string | undefined;
 
   const mobileTarget = isMobileTargetPlatform(context.platform);
+  // Page emulation the browser can't do skips the context rather than run it
+  // unemulated (ADR 01223). Only for a context that runs here and opens a
+  // browser; another platform keeps its platform-mismatch reason.
+  if (
+    (context.platform === platform || mobileTarget) &&
+    Array.isArray(context.steps) &&
+    isBrowserRequired({ test: context })
+  ) {
+    const emulationSkip = unsupportedEmulation(
+      context.browser,
+      mobileTarget || platform
+    );
+    if (emulationSkip) {
+      clog("warning", emulationSkip);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = emulationSkip;
+      return contextReport;
+    }
+  }
   if (mobileTarget) {
     const requirementsSkip = contextRequirementsSkipMessage({ context });
     if (requirementsSkip) {
@@ -4519,7 +4628,7 @@ async function runContext({
       /* c8 ignore stop */
     } else {
       // iOS (phase A4): on ok, prime the app session with the simulator layer.
-      const pre = await iosContextPreflight({ config, context });
+      const pre = await iosContextPreflight({ config, context, clog });
       if (!pre.ok) return gateOutcome(pre);
       /* c8 ignore start */
       // The ok path only runs on a capable macOS host (CI fixture legs).
@@ -4529,6 +4638,9 @@ async function runContext({
       appSession.iosSimulatorRegistry = simulatorRegistry;
       appSession.iosSimulatorDeps = pre.simulatorDeps;
       appSession.appServerPool = appServerPool;
+      // A first-use WebDriverAgent build goes in the report too (ADR 01214).
+      // Contexts that waited on one build share its array, so copy it.
+      if (pre.warnings.length) contextReport.warnings = [...pre.warnings];
       gateBrowserName = pre.mobileWebBrowserName;
       /* c8 ignore stop */
     }
@@ -4687,7 +4799,11 @@ async function runContext({
           explicit: explicitlyRequested,
           policy: fallbackPolicy,
           availableApps,
-        })
+        }).filter(
+          // A fallback engine must set the same page emulation (ADR 01223).
+          (name: string) =>
+            !unsupportedEmulation({ ...context.browser, name }, platform)
+        )
       : [];
 
   // A driver context with no startable engine is skipped with a diagnostic that
@@ -4932,11 +5048,15 @@ async function runContext({
         }
       }
 
-      // Per-context recording identifiers so concurrent Chrome recordings
-      // auto-select their own window and download to their own dir.
+      // Per-context recording title, so concurrent Chrome recordings
+      // auto-select their own window, and the context's download folder
+      // (ADR 01231). A context that checks a download gets the folder up
+      // front; otherwise the browser creates it when it saves a file.
+      const downloadDir = contextDownloadsDir({ config, spec, test, context });
+      if (stepsCheckDownloads(context.steps)) fs.mkdirSync(downloadDir, { recursive: true });
       const recordOptions = {
         captureSourceTitle: browserCaptureTitle(context.contextId),
-        downloadDir: browserDownloadDir(context.contextId),
+        downloadDir,
       };
 
       // Start a session for one engine, headed first then (on failure) headless.
@@ -4963,6 +5083,8 @@ async function runContext({
             options: {
               headless,
               ...recordOptions,
+              // Every session in the context gets its page emulation.
+              emulation: { ...context.browser, name: browserName },
             },
           });
           // Merge the authored escape hatch, minus the capabilities that are
@@ -4974,6 +5096,12 @@ async function runContext({
             applyDriverOptions(caps, overrides.driverOptions, (message) =>
               log(config, "warning", message)
             );
+            // Authored browser options replace the computed ones; put the
+            // context's emulation args and prefs back (ADR 01223).
+            keepEmulationCapabilities(caps, {
+              ...context.browser,
+              name: browserName,
+            });
           }
           return caps;
         };
@@ -5138,6 +5266,14 @@ async function runContext({
       if (driver) {
         browserSessions = createSessionRegistry({
           open: async (engine: string, overrides?: BrowserOpenOverrides) => {
+            // A later session gets the context's page emulation too, so an
+            // engine that can't set a key fails rather than run unemulated.
+            const emulationError = emulationOpenError(
+              engine,
+              context.browser,
+              platform
+            );
+            if (emulationError) throw new Error(emulationError);
             const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
             // A later session takes the context's size unless its
@@ -5159,6 +5295,15 @@ async function runContext({
                 "warning",
                 `Couldn't size the new ${engine} session: ${error?.message ?? error}`
               );
+            }
+            try {
+              await applyEmulation(res.driver, {
+                ...context.browser,
+                name: engine,
+              });
+            } catch (error) {
+              await res.driver.deleteSession().catch(() => {});
+              throw error;
             }
             return res.driver;
           },
@@ -5193,6 +5338,16 @@ async function runContext({
         isViewportFloored(sizing.target, sizing.realized)
       ) {
         contextReport.viewportFloored = true;
+      }
+      // Page emulation that needs BiDi: timezone and clock (ADR 01223). A
+      // rejected command fails the context rather than run unemulated.
+      try {
+        await applyEmulation(driver, context.browser);
+      } catch (error: any) {
+        clog("error", error.message);
+        contextReport.result = "FAIL";
+        contextReport.resultDescription = error.message;
+        return contextReport;
       }
     }
 
@@ -5485,6 +5640,7 @@ async function runContext({
             openApiDefinitions: context.openApi || [],
             annotationTheme,
             screenshotsDir: () => contextScreenshotsDir({ config, spec, test, context }),
+            downloadsDir: () => contextDownloadsDir({ config, spec, test, context }),
           },
           processRegistry: processRegistry,
           appSession: appSession,
@@ -5788,6 +5944,8 @@ async function runContext({
     } catch (error: any) {
       clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
     }
+    // The test is over: restore its request mocks (ADR 01225). Best-effort.
+    for (const d of sessionDrivers(browserSessions, driver)) await restoreMocks(d);
     // Close every session still registered (the default driver registers at
     // start, so the sweep covers it; sessions a closeSurface step already
     // ended are gone from the registry). In a finally so an unexpected throw
@@ -5937,8 +6095,16 @@ async function runContextWithRetries(
 
   let report: any;
   let attempt = 0;
+  // Preflight warnings from the attempts so far. A retry's preflight finds
+  // what an earlier attempt installed or built (the Android toolchain,
+  // WebDriverAgent), so it warns about nothing. The report keeps them.
+  let warnings: string[] = [];
   for (; ; attempt++) {
     report = await timedRunContext(args);
+    if (report && typeof report === "object") {
+      warnings = [...new Set([...warnings, ...(report.warnings ?? [])])];
+      if (warnings.length) report.warnings = warnings;
+    }
     const retryable = report?.result === "FAIL" && report?._sessionDied === true;
     if (!retryable || attempt >= retries) break;
     log(
@@ -6133,7 +6299,13 @@ async function runStep({
   step: any;
   driver: any;
   metaValues?: any;
-  options?: any;
+  // The context's artifact folders, resolved lazily. Without `downloadsDir`,
+  // a `checkFile` `download` step skips (ADR 01231).
+  options?: {
+    screenshotsDir?: () => string;
+    downloadsDir?: () => string;
+    [key: string]: any;
+  };
   processRegistry?: Map<string, any>;
   appSession?: AppSessionState;
   surfaceTracker?: ActiveSurfaceTracker;
@@ -6163,6 +6335,14 @@ async function runStep({
     });
   } else if (typeof step.checkLink !== "undefined") {
     actionResult = await checkLink({ config: config, step: step });
+  } else if (typeof step.checkFile !== "undefined") {
+    actionResult = await checkFile({
+      config,
+      step,
+      driver,
+      context,
+      downloadsDir: options?.downloadsDir,
+    });
   } else if (typeof step.find !== "undefined") {
     actionResult = await findElement({ config: config, step: step, driver, appSession, processRegistry, surfaceTracker });
   } else if (typeof step.stopRecord !== "undefined") {
@@ -6188,6 +6368,18 @@ async function runStep({
       step: step,
       driver: driver,
     });
+  } else if (typeof step.mockRequest !== "undefined") {
+    actionResult = await mockRequest({
+      config,
+      step,
+      driver,
+      browserName: context?.browser?.name,
+      hasBidi,
+    });
+  } else if (typeof step.saveState !== "undefined") {
+    actionResult = await saveState({ config, step, driver });
+  } else if (typeof step.loadState !== "undefined") {
+    actionResult = await loadState({ config, step, driver });
   } else if (typeof step.httpRequest !== "undefined") {
     actionResult = await httpRequest({
       config: config,
@@ -6221,9 +6413,17 @@ async function runStep({
         // best-effort
       }
       delete actionResult.recording;
-      actionResult.status = "FAIL";
-      actionResult.description =
-        "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+      if (step.__autoRecord) {
+        // Backstop for a handle startRecording returns without spawning (a
+        // phantom span): with no session, the automatic recording is SKIPPED
+        // (ADR 01177); an authored `record` still FAILs.
+        actionResult.status = "SKIPPED";
+        actionResult.description = NO_SESSION_SKIP;
+      } else {
+        actionResult.status = "FAIL";
+        actionResult.description =
+          "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+      }
     } else if (actionResult.recording) {
       if (!Array.isArray(recordingHost.state.recordings))
         recordingHost.state.recordings = [];
@@ -6262,6 +6462,11 @@ async function runStep({
         }
       }
       recordingHost.state.recordings.push(handle);
+      // The host owns the live handle now. Take it off the result, which the
+      // step loop logs as JSON and reports: a device handle holds its driver,
+      // and on a mobile-web context that driver is this host, so the two
+      // point at each other (issue #1007). Like `rawElement` below.
+      delete actionResult.recording;
     }
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step, driver, processRegistry });
@@ -6756,7 +6961,16 @@ async function driverStart(
       // stack of active recording handles (LIFO) so several can overlap within
       // one context (e.g. an autoRecord full-context capture plus an explicit
       // record/stopRecord sub-section).
-      driver.state = { url: "", x: null, y: null, recordings: [] };
+      //
+      // Non-enumerable: with a BiDi socket open, webdriverio deep-clones the
+      // live Browser on every `$` (via `_bidiHandler.client`), and this graph
+      // (session registry, recording handles) overflows the stack (ADR 01219).
+      Object.defineProperty(driver, "state", {
+        value: { url: "", x: null, y: null, recordings: [] },
+        writable: true,
+        configurable: true,
+        enumerable: false,
+      });
       return driver;
     } catch (err: any) {
       lastError = err;

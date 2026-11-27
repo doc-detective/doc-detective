@@ -87,6 +87,7 @@ describe("useEffectiveStep", function () {
         path: path.resolve("out", "shots", "s.png"),
         maxVariation: 0.05,
         overwrite: "aboveVariation",
+        threshold: 0.1,
       });
     } finally {
       delete process.env.DD_EFFECTIVE_STEP;

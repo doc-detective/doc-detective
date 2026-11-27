@@ -315,6 +315,67 @@ describe("instantiateCursor (coverage)", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /Couldn't wait for page to load/);
   });
+
+  // A driver that refuses a pointer move outside the viewport, as the WebDriver
+  // spec requires ("move target out of bounds"). `viewport` is mutable, so a
+  // test can change it between calls, as a navigation does.
+  function makeBoundedDriver(viewport, state = {}) {
+    const moves = [];
+    const driver = makeDriver({
+      state,
+      performActionsImpl: async ([{ actions: [move] }]) => {
+        if (
+          move.x < 0 ||
+          move.x > viewport.innerWidth ||
+          move.y < 0 ||
+          move.y > viewport.innerHeight
+        ) {
+          throw new Error("move target out of bounds");
+        }
+        moves.push({ x: move.x, y: move.y });
+      },
+    });
+    driver.execute = async (fn, ...args) => {
+      installDomStub(viewport);
+      try {
+        return await fn(...args);
+      } finally {
+        delete global.document;
+        delete global.window;
+      }
+    };
+    return { driver, moves };
+  }
+
+  // An Android mobile-web context with `autoRecord`: the cursor first lands on
+  // the blank start page, which Chrome lays out 980 px wide. The first `goTo`
+  // to a page with a mobile viewport meta narrows the viewport, and the new
+  // document gets the cursor back at its saved position.
+  it("keeps a restored cursor inside a viewport that narrowed since it was saved", async () => {
+    const viewport = { innerWidth: 980, innerHeight: 1494 };
+    const { driver, moves } = makeBoundedDriver(viewport);
+    await instantiateCursor(driver);
+    assert.deepEqual(moves, [{ x: 490, y: 747 }]);
+
+    viewport.innerWidth = 412;
+    viewport.innerHeight = 732;
+    const result = await instantiateCursor(driver);
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(moves[1], { x: 411, y: 731 });
+    assert.deepEqual({ x: driver.state.x, y: driver.state.y }, { x: 411, y: 731 });
+  });
+
+  // `find` with `moveTo` saves the element's position even when the move
+  // itself was refused, such as for an element below the fold.
+  it("clamps a saved position that lies past either edge of the viewport", async () => {
+    const { driver, moves } = makeBoundedDriver(
+      { innerWidth: 800, innerHeight: 600 },
+      { x: -5, y: 3100 }
+    );
+    const result = await instantiateCursor(driver);
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(moves, [{ x: 0, y: 599 }]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -639,7 +700,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found or empty/);
+    assert.match(result.description, /Couldn't load cookie: environment variable `DD_MISSING_COOKIE` isn't set./);
   });
 
   it("env variable with invalid JSON → FAIL parse", async () => {
@@ -651,7 +712,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Failed to parse cookie data/);
+    assert.match(result.description, /doesn't hold cookie JSON./);
   });
 
   it("env variable happy path → sets cookie, PASS", async () => {
@@ -671,6 +732,37 @@ describe("loadCookie action (coverage)", function () {
     assert.equal(setCookies.callCount, 1);
   });
 
+  it("expired env cookie → FAIL, not set as a session cookie", async () => {
+    setEnv(
+      "DD_EXPIRED_COOKIE",
+      JSON.stringify({ name: "sid", value: "v", domain: "example.com", expiry: 1 })
+    );
+    const setCookies = sinon.spy(async () => {});
+    const driver = makeDriver({ setCookiesImpl: setCookies });
+    const result = await loadCookie({
+      config,
+      step: { loadCookie: "DD_EXPIRED_COOKIE" },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't load cookie: `sid` has expired.");
+    assert.equal(setCookies.callCount, 0);
+  });
+
+  it("expired cookie in a Netscape file → FAIL, not set as a session cookie", async () => {
+    const file = path.join(tmpDir, "expired.txt");
+    fs.writeFileSync(file, netscapeLine({ expiry: "1" }) + "\n");
+    const setCookies = sinon.spy(async () => {});
+    const result = await loadCookie({
+      config,
+      step: { loadCookie: { name: "sid", path: "expired.txt", directory: tmpDir } },
+      driver: makeDriver({ setCookiesImpl: setCookies }),
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't load cookie: `sid` has expired.");
+    assert.equal(setCookies.callCount, 0);
+  });
+
   it("file not found → FAIL", async () => {
     const driver = makeDriver();
     const result = await loadCookie({
@@ -679,7 +771,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found/);
+    assert.match(result.description, /Couldn't load cookie: `.*missing.txt` doesn't exist./);
   });
 
   it("file with no valid cookies → FAIL", async () => {
@@ -692,7 +784,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /No valid cookies found/);
+    assert.match(result.description, /has no cookies./);
   });
 
   it("cookie name not found in file → FAIL", async () => {
@@ -705,7 +797,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found in file/);
+    assert.match(result.description, /has no cookie named `sid`./);
   });
 
   it("file happy path (string .txt form, infers name) → PASS", async () => {
@@ -840,7 +932,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not compatible/);
+    assert.match(result.description, /doesn't match the open page's host/);
   });
 
   it("cookie data missing name → FAIL", async () => {
@@ -852,7 +944,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /missing name/);
+    assert.match(result.description, /the cookie has no `name`./);
   });
 
   it("readFileSync throwing (path is a directory) → FAIL read branch", async () => {
@@ -867,7 +959,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Failed to read cookie file/);
+    assert.match(result.description, /isn't a readable file./);
   });
 
   it("directory omitted + config.output omitted → resolves against cwd", async () => {
@@ -881,7 +973,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found/);
+    assert.match(result.description, /doesn't exist./);
   });
 
   it("cookie without a domain skips domain-compatibility check → PASS", async () => {
@@ -967,7 +1059,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Failed to load cookie: driver refused/);
+    assert.match(result.description, /Couldn't load cookie. driver refused/);
   });
 });
 
@@ -1033,7 +1125,7 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found/);
+    assert.match(result.description, /Couldn't save cookie: no cookie named `sid` is set./);
   });
 
   it("cookie not found for domain → FAIL with domain in message", async () => {
@@ -1049,7 +1141,7 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /for domain 'example.com'/);
+    assert.match(result.description, /is set for `example.com`./);
   });
 
   it("string env form → saves cookie JSON to env var, PASS", async () => {
@@ -1061,7 +1153,7 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "PASS");
-    assert.match(result.description, /environment variable 'sid'/);
+    assert.match(result.description, /environment variable `sid`/);
     assert.deepEqual(JSON.parse(process.env.sid).name, "sid");
   });
 
@@ -1107,7 +1199,43 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /already exists and overwrite is not enabled/);
+    assert.match(result.description, /exists. Set `overwrite` to `true` to replace it./);
+    assert.equal(fs.readFileSync(file, "utf8"), "old\n", "the existing file is untouched");
+    assert.deepEqual(fs.readdirSync(tmpDir), ["exists.txt"], "no temporary file is left behind");
+  });
+
+  it("a file that appears after any existence check → FAIL with the exists message, not overwritten", async () => {
+    // Another writer creates the file between a check and the write.
+    const file = path.join(tmpDir, "race.txt");
+    fs.writeFileSync(file, "theirs\n", "utf8");
+    sinon.stub(fs, "existsSync").returns(false);
+    const result = await saveCookie({
+      config,
+      step: { saveCookie: { name: "sid", path: "race.txt", directory: tmpDir } },
+      driver: makeDriver({ cookies: [cookie] }),
+    });
+    sinon.restore();
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, `Couldn't save cookie: \`${file}\` exists. Set \`overwrite\` to \`true\` to replace it.`);
+    assert.equal(fs.readFileSync(file, "utf8"), "theirs\n");
+  });
+
+  it("creates the cookie file readable by its owner only, and replaces a broader one", async function () {
+    if (process.platform === "win32") this.skip();
+    const created = await saveCookie({
+      config,
+      step: { saveCookie: { name: "sid", path: "new.txt", directory: tmpDir } },
+      driver: makeDriver({ cookies: [cookie] }),
+    });
+    assert.equal(fs.statSync(created.outputs.path).mode & 0o777, 0o600);
+    const file = path.join(tmpDir, "broad.txt");
+    fs.writeFileSync(file, "old\n", { mode: 0o644 });
+    await saveCookie({
+      config,
+      step: { saveCookie: { name: "sid", path: "broad.txt", directory: tmpDir, overwrite: true } },
+      driver: makeDriver({ cookies: [cookie] }),
+    });
+    assert.equal(fs.statSync(file).mode & 0o777, 0o600);
   });
 
   it("file exists + overwrite true → overwrites, PASS", async () => {
@@ -1239,6 +1367,6 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Failed to save cookie: browser gone/);
+    assert.match(result.description, /Couldn't save cookie\. browser gone/);
   });
 });

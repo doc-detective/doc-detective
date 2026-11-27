@@ -176,6 +176,14 @@ Known flake signatures and dispositions:
   them. The apps×windows/macos fixture legs set `DD_FIXTURES_REQUIRE_PASS=1`
   ([../scripts/check-fixture-results.cjs](../scripts/check-fixture-results.cjs)) so an image
   regression fails loudly instead of reading as all-SKIPPED green.
+- **The macOS `mobile-web-ios` leg starts with no WebDriverAgent build, on purpose**
+  (`wdaFirstUse` in [../scripts/select-fixture-bundles.cjs](../scripts/select-fixture-bundles.cjs),
+  ADR 01214). It skips the WebDriverAgent restore and `install ios`, and clears the build the weekly
+  `dd-cache` entry may carry. Its run then builds WebDriverAgent before the first iOS session, which
+  adds a few minutes. A context warning that starts `No WebDriverAgent build is cached` is expected
+  there. `apps-ios` still restores and prebuilds (ADR 01116), so it covers a run that finds a build.
+  The leg's gate sets `DD_FIXTURES_REQUIRE_PASS_SPECS=ios-wda-first-use`, so that spec must PASS. A
+  skip of it fails the job, even when other specs in the bundle pass.
 - **Android AVD home must be pinned.** `avdmanager` and the `emulator` binary resolve the AVD
   directory from different env vars on hosted runners; the shared `androidAvdHome()` helper in
   `src/runtime/androidInstaller.ts` pins `ANDROID_AVD_HOME` for both. Symptom of a regression:
@@ -183,6 +191,10 @@ Known flake signatures and dispositions:
   stderr are both captured.
 - **Non-skip Android runs happen only on Linux with KVM**; mac/win/no-KVM legs capability-SKIP by
   design.
+- **The hosted `ubuntu-latest` SDK has `platform-tools` but no `emulator` package.** A cache step
+  that restores `$ANDROID_HOME/system-images` alone leaves an SDK with images and no emulator. The
+  Android preflight installs the package there (ADR 01215). Before that fix the context skipped with
+  `avdmanager create exited 1: Error: "emulator" package must be installed!`.
 
 ## CodeQL false positives on managed-tool execution
 

@@ -3727,6 +3727,37 @@
                     "type": "integer"
                   }
                 }
+              },
+              "colorScheme": {
+                "type": "string",
+                "enum": [
+                  "light",
+                  "dark"
+                ]
+              },
+              "locale": {
+                "type": "string",
+                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+              },
+              "timezone": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+              },
+              "deviceScaleFactor": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 4
+              },
+              "reducedMotion": {
+                "type": "string",
+                "enum": [
+                  "reduce",
+                  "no-preference"
+                ]
+              },
+              "clock": {
+                "type": "string",
+                "format": "date-time"
               }
             }
           }
@@ -4294,6 +4325,7 @@
         "visit": {},
         "durationMs": {},
         "startedAt": {},
+        "checkFile": {},
         "checkLink": {},
         "click": {},
         "find": {},
@@ -4312,12 +4344,33 @@
         "loadVariables": {},
         "dragAndDrop": {},
         "loadCookie": {},
+        "mockRequest": {},
         "swipe": {},
         "wait": {},
-        "annotate": {}
+        "annotate": {},
+        "saveState": {},
+        "loadState": {}
       },
       "additionalProperties": false,
       "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "checkFile"
+              ],
+              "properties": {
+                "checkFile": {
+                  "$ref": "checkFile_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
         {
           "allOf": [
             {
@@ -4650,6 +4703,24 @@
             {
               "type": "object",
               "required": [
+                "mockRequest"
+              ],
+              "properties": {
+                "mockRequest": {
+                  "$ref": "mockRequest_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
                 "swipe"
               ],
               "properties": {
@@ -4696,9 +4767,143 @@
               }
             }
           ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "saveState"
+              ],
+              "properties": {
+                "saveState": {
+                  "$ref": "saveState_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "loadState"
+              ],
+              "properties": {
+                "loadState": {
+                  "$ref": "loadState_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
         }
       ],
       "$id": "step_v3.schema.json"
+    },
+    "loadState_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "loadState_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "loadState_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^.*\\S.*\\.json$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      "$id": "loadState_v3.schema.json"
+    },
+    "saveState_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "saveState_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "saveState_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^.*\\S.*\\.json$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "overwrite": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      "$id": "saveState_v3.schema.json"
     },
     "annotate_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5274,6 +5479,76 @@
         }
       },
       "$id": "swipe_v3.schema.json"
+    },
+    "mockRequest_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "response": {
+          "type": "object",
+          "additionalProperties": false,
+          "not": {
+            "required": [
+              "body",
+              "bodyPath"
+            ]
+          },
+          "errorMessage": {
+            "not": "set `body` or `bodyPath`, not both."
+          },
+          "properties": {
+            "statusCode": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "body": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object"
+                },
+                {
+                  "type": "array"
+                }
+              ]
+            },
+            "bodyPath": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "$id": "mockRequest_v3.schema.json"
     },
     "loadCookie_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5904,10 +6179,45 @@
                 },
                 "then": {
                   "not": {
-                    "required": [
-                      "crop"
+                    "anyOf": [
+                      {
+                        "required": [
+                          "crop"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "style"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "fullPage"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "animations"
+                        ]
+                      }
                     ]
                   }
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "crop",
+                    "fullPage"
+                  ],
+                  "properties": {
+                    "fullPage": {
+                      "const": true
+                    }
+                  }
+                },
+                "errorMessage": {
+                  "not": "set `crop` or `fullPage`, not both."
                 }
               }
             ]
@@ -5944,6 +6254,16 @@
                 "minimum": 0,
                 "maximum": 1
               },
+              "threshold": {
+                "type": "number",
+                "default": 0.1,
+                "minimum": 0,
+                "maximum": 1
+              },
+              "maxDiffPixels": {
+                "type": "integer",
+                "minimum": 0
+              },
               "overwrite": {
                 "type": "string",
                 "enum": [
@@ -5963,10 +6283,45 @@
                   }
                 ]
               },
+              "style": {
+                "type": "string",
+                "minLength": 1
+              },
+              "stable": {
+                "type": "boolean"
+              },
+              "fullPage": {
+                "type": "boolean"
+              },
+              "animations": {
+                "type": "string",
+                "enum": [
+                  "allow",
+                  "disabled"
+                ]
+              },
               "annotations": {
                 "type": "array",
                 "items": {
                   "$ref": "annotation_v3.schema.json#"
+                }
+              },
+              "mask": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "transform": [
+                        "trim"
+                      ]
+                    },
+                    {
+                      "$ref": "annotation_v3.nodefaults.schema.json#/components/schemas/target_element"
+                    }
+                  ]
                 }
               },
               "sourceIntegration": {
@@ -7016,6 +7371,69 @@
         }
       },
       "$id": "checkLink_v3.schema.json"
+    },
+    "checkFile_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "checkFile_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "checkFile_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "minLength": 1
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "download"
+                ]
+              }
+            ],
+            "not": {
+              "required": [
+                "path",
+                "download"
+              ]
+            },
+            "errorMessage": {
+              "not": "set `path` or `download`, not both."
+            },
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "download": {
+                "type": "string",
+                "minLength": 1
+              },
+              "content": {
+                "type": "string"
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 30000
+              }
+            }
+          }
+        }
+      },
+      "$id": "checkFile_v3.schema.json"
     },
     "routing_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8100,6 +8518,14 @@
             "off"
           ],
           "default": "auto"
+        },
+        "overwriteScreenshots": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "aboveVariation"
+          ]
         },
         "retries": {
           "type": "integer",
@@ -12119,6 +12545,37 @@
                     "type": "integer"
                   }
                 }
+              },
+              "colorScheme": {
+                "type": "string",
+                "enum": [
+                  "light",
+                  "dark"
+                ]
+              },
+              "locale": {
+                "type": "string",
+                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+              },
+              "timezone": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+              },
+              "deviceScaleFactor": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 4
+              },
+              "reducedMotion": {
+                "type": "string",
+                "enum": [
+                  "reduce",
+                  "no-preference"
+                ]
+              },
+              "clock": {
+                "type": "string",
+                "format": "date-time"
               }
             }
           }
@@ -12671,6 +13128,7 @@
         "visit": {},
         "durationMs": {},
         "startedAt": {},
+        "checkFile": {},
         "checkLink": {},
         "click": {},
         "find": {},
@@ -12689,12 +13147,33 @@
         "loadVariables": {},
         "dragAndDrop": {},
         "loadCookie": {},
+        "mockRequest": {},
         "swipe": {},
         "wait": {},
-        "annotate": {}
+        "annotate": {},
+        "saveState": {},
+        "loadState": {}
       },
       "additionalProperties": false,
       "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "checkFile"
+              ],
+              "properties": {
+                "checkFile": {
+                  "$ref": "checkFile_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
         {
           "allOf": [
             {
@@ -13027,6 +13506,24 @@
             {
               "type": "object",
               "required": [
+                "mockRequest"
+              ],
+              "properties": {
+                "mockRequest": {
+                  "$ref": "mockRequest_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
                 "swipe"
               ],
               "properties": {
@@ -13072,9 +13569,142 @@
               }
             }
           ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "saveState"
+              ],
+              "properties": {
+                "saveState": {
+                  "$ref": "saveState_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "loadState"
+              ],
+              "properties": {
+                "loadState": {
+                  "$ref": "loadState_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
         }
       ],
       "$id": "step_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "loadState_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "loadState_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^.*\\S.*\\.json$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      "$id": "loadState_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "saveState_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "saveState_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^.*\\S.*\\.json$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "overwrite": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      "$id": "saveState_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13645,6 +14275,76 @@
         }
       },
       "$id": "swipe_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "response": {
+          "type": "object",
+          "additionalProperties": false,
+          "not": {
+            "required": [
+              "body",
+              "bodyPath"
+            ]
+          },
+          "errorMessage": {
+            "not": "set `body` or `bodyPath`, not both."
+          },
+          "properties": {
+            "statusCode": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "body": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object"
+                },
+                {
+                  "type": "array"
+                }
+              ]
+            },
+            "bodyPath": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "$id": "mockRequest_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14269,10 +14969,45 @@
                 },
                 "then": {
                   "not": {
-                    "required": [
-                      "crop"
+                    "anyOf": [
+                      {
+                        "required": [
+                          "crop"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "style"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "fullPage"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "animations"
+                        ]
+                      }
                     ]
                   }
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "crop",
+                    "fullPage"
+                  ],
+                  "properties": {
+                    "fullPage": {
+                      "const": true
+                    }
+                  }
+                },
+                "errorMessage": {
+                  "not": "set `crop` or `fullPage`, not both."
                 }
               }
             ]
@@ -14308,6 +15043,15 @@
                 "minimum": 0,
                 "maximum": 1
               },
+              "threshold": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "maxDiffPixels": {
+                "type": "integer",
+                "minimum": 0
+              },
               "overwrite": {
                 "type": "string",
                 "enum": [
@@ -14326,10 +15070,45 @@
                   }
                 ]
               },
+              "style": {
+                "type": "string",
+                "minLength": 1
+              },
+              "stable": {
+                "type": "boolean"
+              },
+              "fullPage": {
+                "type": "boolean"
+              },
+              "animations": {
+                "type": "string",
+                "enum": [
+                  "allow",
+                  "disabled"
+                ]
+              },
               "annotations": {
                 "type": "array",
                 "items": {
                   "$ref": "annotation_v3.nodefaults.schema.json#"
+                }
+              },
+              "mask": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "transform": [
+                        "trim"
+                      ]
+                    },
+                    {
+                      "$ref": "annotation_v3.nodefaults.schema.json#/components/schemas/target_element"
+                    }
+                  ]
                 }
               },
               "sourceIntegration": {
@@ -15338,6 +16117,68 @@
         }
       },
       "$id": "checkLink_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "checkFile_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "checkFile_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "minLength": 1
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "download"
+                ]
+              }
+            ],
+            "not": {
+              "required": [
+                "path",
+                "download"
+              ]
+            },
+            "errorMessage": {
+              "not": "set `path` or `download`, not both."
+            },
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "download": {
+                "type": "string",
+                "minLength": 1
+              },
+              "content": {
+                "type": "string"
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      },
+      "$id": "checkFile_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -16372,6 +17213,14 @@
             "auto",
             "explicit",
             "off"
+          ]
+        },
+        "overwriteScreenshots": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "aboveVariation"
           ]
         },
         "retries": {

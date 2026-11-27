@@ -14,6 +14,7 @@ BOOL
 breakpoint
 callouts
 checkHyperlink
+checkFile
 checkLink
 CLA
 CLEAR
@@ -61,11 +62,13 @@ json
 Kanban
 keypresses
 loadCookie
+loadState
 loadVariables
 logLevel
 manni
 matchText
 maxVariation
+mockRequest
 mockResponse
 moveTo
 NULL
@@ -100,6 +103,7 @@ runShell
 runTests
 sandboxed
 saveCookie
+saveState
 saveDirectory
 savePath
 saveScreenshot

@@ -44,15 +44,44 @@ Set `maxVariation` to a value from `0` to `1` to enable comparison. It's the max
 
 - `"false"`: never overwrite.
 - `"true"`: always overwrite.
-- `"aboveVariation"` (default): overwrite only when the difference exceeds `maxVariation`.
+- `"aboveVariation"` (default): overwrite only when the difference exceeds `maxVariation`, or `maxDiffPixels` when set.
 
 When a comparison runs, the step exposes `$$variation` (the fractional difference) and `$$aspectRatioMatches` (whether the two images share an aspect ratio). Capture either with the step-level `variables` object. For the full list of outputs, see [Visual regression testing](/docs/actions/screenshot) and the [`screenshot`](/reference/schemas/screenshot) schema.
 
+### Read what changed
+
+When a comparison finds any changed pixels, Doc Detective writes two images to the context's `screenshots/` folder in the [run folder](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts):
+
+- `<name>-<stepId>.diff.png`: the comparison, with changed pixels in red.
+- `<name>-<stepId>.previous.png`: the reference image as it was before the step ran. With `"aboveVariation"`, the step overwrites the reference when it drifts, so this copy is the only record of the old image.
+
+When a step runs again in the same run, such as in a `goToStep` loop, its later pairs get `-2`, `-3`, and so on before `.diff.png` and `.previous.png`.
+
+The `WARNING` message ends with the diff's path. For example: ``See `/home/runner/work/docs/.doc-detective/runs/<runId>/specs/…/screenshots/home-check-home.diff.png`.`` The step also exposes `$$diffPixels` (the number of changed pixels), and `$$diffPath` and `$$previousPath` when it wrote the images. Nothing is written next to your docs.
+
+Two keys tune what counts as a change:
+
+- `threshold` (default `0.1`) is how different a pixel's color must be before it counts. Raise it if font smoothing or anti-aliasing differs between machines. Set it to `0` to count any color change. Earlier versions counted every color change, so a comparison that used to warn can now pass. To keep that strictness, set `threshold` to `0`.
+- `maxDiffPixels` caps the number of changed pixels, alongside `maxVariation`. Use it for small images or crops, where a few pixels are a large fraction. When both are set, both must hold.
+
+```json
+{
+  "screenshot": {
+    "path": "billing.png",
+    "threshold": 0.2,
+    "maxDiffPixels": 150,
+    "maxVariation": 0.02
+  }
+}
+```
+
 ### Compare on machines that render at different sizes
 
-A reference image from one machine can have different dimensions than a new screenshot on another. This can happen after your CI provider updates its runner image. When the sizes differ, Doc Detective resizes the browser window to match the reference image, takes the screenshot again, and compares that one. The window returns to its original size when the step ends. The step's `$$resizedToReference` output records the resize: `from` is the size of the first screenshot, and `to` is the size of the reference image. Doc Detective doesn't resize for cropped screenshots or during a recording. It also doesn't resize when the context's `viewport` or `window` setting targets a different size than the reference image. Doc Detective treats that as a deliberate size change and compares the screenshot as taken. For the full list, see **Size mismatches** in the [`screenshot`](/docs/actions/screenshot) reference.
+A reference image from one machine can have different dimensions than a new screenshot on another. This can happen after your CI provider updates its runner image. When the sizes differ, Doc Detective resizes the browser window to match the reference image, takes the screenshot again, and compares that one. The window returns to its original size when the step ends. The step's `$$resizedToReference` output records the resize: `from` is the size of the first screenshot, and `to` is the size of the reference image. Doc Detective doesn't resize for cropped or `fullPage` screenshots, or during a recording. It also doesn't resize when the context's `viewport` or `window` setting targets a different size than the reference image. Doc Detective treats that as a deliberate size change and compares the screenshot as taken. For the full list, see **Size mismatches** in the [`screenshot`](/docs/actions/screenshot) reference.
 
 Each resize costs a second screenshot. If `$$resizedToReference` shows up on every run in an environment that won't change back, refresh the reference image there with `"overwrite": "true"`.
+
+The height of a `fullPage` image follows the page's content. If the page gets longer or shorter by more than about 5%, the aspect ratios no longer match and the step fails. To accept the new length, refresh the reference image with `"overwrite": "true"`.
 
 ### Reference images in cloud storage
 
@@ -70,10 +99,62 @@ Each resize costs a second screenshot. If `$$resizedToReference` shows up on eve
 
 The reference URL can also be on a local development server or a private network, such as `http://localhost:8080/home.png`, with no setting. To guard against server-side request forgery (SSRF), Doc Detective refuses a public host's redirect to a private address. That includes loopback and link-local addresses, such as the `169.254.169.254` cloud-metadata endpoint.
 
+### Ignore parts that change
+
+Some pages show values that differ on every run, such as a date, a counter, or a relative time like "2 minutes ago." Those pixels count as drift, so the comparison warns even when nothing broke. Raising `maxVariation` to absorb them also hides real regressions. Instead, list the changing areas in `mask`:
+
+```json
+{
+  "description": "Compare the billing page, ignoring the next invoice date.",
+  "screenshot": {
+    "path": "./reference/billing.png",
+    "maxVariation": 0.01,
+    "mask": ["#next-invoice-date", { "selector": ".relative-time" }]
+  }
+}
+```
+
+Doc Detective paints the same solid block over each masked area on both the reference image and the new capture, then compares them. Changes inside a mask never count toward `maxVariation`. The saved screenshot keeps the real content, so your docs still show the actual date. Masks apply only when a comparison runs. Without a reference image, or with `"overwrite": "true"`, Doc Detective doesn't look them up.
+
+Each item is one of two kinds:
+
+- **A string**, a selector or display text, the same as `crop` accepts. It masks the first matching element.
+- **An element object**, with the same element-finding fields as `crop`, such as `selector`, `elementText`, or `elementClass`. It masks every matching element on a browser page, or the first match in an app window. Use it when the changing value appears in several places on a browser page. In an app window, list one item for each element.
+
+A mask must find its element. If it can't, the step fails with `Couldn't find every mask target.`, rather than comparing with nothing masked. If a string mask's element lies entirely outside the capture or the crop, the step returns `WARNING`. The `$$maskTargetsFound`, `$$masksInBounds`, and `$$maskedRegions` outputs report each check.
+
+## Accept a redesign in one run
+
+After an intentional redesign, every reference image is out of date. Instead of editing each step's `overwrite`, set it for the whole run with `--overwrite-screenshots`:
+
+```bash
+doc-detective --overwrite-screenshots
+```
+
+Given alone, the flag means `true`: every `screenshot` step with a local reference replaces it with the new capture and passes. Review the changed images in your diff before you commit them.
+
+The flag takes the same values as a step's `overwrite` and replaces the value on every step. That includes automatic screenshots that compare against a reference:
+
+- `true`: replace every local reference.
+- `false`: never replace a reference, even where a step says `"overwrite": "true"`. A step whose local reference exists returns `SKIPPED` before it takes a screenshot or compares, so it never reports drift. Use it when a run must leave every reference untouched. To catch drift in CI, use `aboveVariation` instead: a step whose new screenshot drifts returns `WARNING` and replaces its local reference in the CI workspace.
+- `aboveVariation`: replace a local reference only when the capture differs by more than `maxVariation`, or `maxDiffPixels` when set.
+
+A URL reference is read-only in every mode. Doc Detective captures the screenshot, compares it with the downloaded reference, and reports the result.
+
+To set it for every run, add `overwriteScreenshots` to your config. The flag beats the config key, which beats each step's own `overwrite`:
+
+```json
+{
+  "overwriteScreenshots": "false"
+}
+```
+
+When you list inputs, put them before the flag, or give the flag a value: `doc-detective run docs/billing.md --overwrite-screenshots true`. Any value other than the three above exits `2` with `error: option '--overwrite-screenshots [mode]' argument 'maybe' is invalid. Allowed choices are true, false, aboveVariation.` For details, see [`--overwrite-screenshots`](/reference/reference/cli) and [`overwriteScreenshots`](/reference/schemas/config).
+
 ## Verify it works
 
 - A comparison that stays within `maxVariation` reports `PASS`.
-- A comparison that exceeds `maxVariation` reports `WARNING`, so the run continues while flagging the drift for review.
+- A comparison that exceeds `maxVariation` or `maxDiffPixels` reports `WARNING`, so the run continues while flagging the drift for review. Open the `.diff.png` the message names to see what changed.
 
 ## Troubleshooting
 

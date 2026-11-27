@@ -39,6 +39,7 @@ attempts | unknown | Optional. No description provided. | —
 visit | unknown | Optional. No description provided. | —
 durationMs | unknown | Optional. No description provided. | —
 startedAt | unknown | Optional. No description provided. | —
+checkFile | unknown | Optional. No description provided. | —
 checkLink | unknown | Optional. No description provided. | —
 click | unknown | Optional. No description provided. | —
 find | unknown | Optional. No description provided. | —
@@ -57,9 +58,12 @@ startSurface | unknown | Optional. No description provided. | —
 loadVariables | unknown | Optional. No description provided. | —
 dragAndDrop | unknown | Optional. No description provided. | —
 loadCookie | unknown | Optional. No description provided. | —
+mockRequest | unknown | Optional. No description provided. | —
 swipe | unknown | Optional. No description provided. | —
 wait | unknown | Optional. No description provided. | —
 annotate | unknown | Optional. No description provided. | —
+saveState | unknown | Optional. No description provided. | —
+loadState | unknown | Optional. No description provided. | —
 
 ## Examples
 
@@ -84,6 +88,20 @@ annotate | unknown | Optional. No description provided. | —
 {
   "stepId": "path-only",
   "checkLink": "/search"
+}
+```
+
+```json
+{
+  "checkFile": "out/report.txt"
+}
+```
+
+```json
+{
+  "checkFile": {
+    "download": "*.csv"
+  }
 }
 ```
 
@@ -318,10 +336,54 @@ annotate | unknown | Optional. No description provided. | —
 
 ```json
 {
+  "saveState": "auth.json"
+}
+```
+
+```json
+{
+  "loadState": {
+    "path": "auth.json",
+    "directory": "../.auth"
+  }
+}
+```
+
+```json
+{
   "loadCookie": {
     "name": "auth_cookie",
     "path": "auth-session.txt",
     "directory": "./test-data"
+  }
+}
+```
+
+```json
+{
+  "mockRequest": {
+    "url": "**/api/invoices*",
+    "response": {
+      "body": {
+        "next": "2026-12-03"
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "mockRequest": {
+    "url": "https://api.example.com/user",
+    "method": "GET",
+    "response": {
+      "statusCode": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "bodyPath": "fixtures/user.json"
+    }
   }
 }
 ```

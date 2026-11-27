@@ -101,6 +101,7 @@ export {
   getRunOutputDir,
   reportOutputDir,
   runArchivesArtifacts,
+  stepsCheckDownloads,
   replaceEnvs,
   spawnCommand,
   spawnBackgroundCommand,
@@ -609,8 +610,12 @@ async function spawnPtyBackgroundCommand(
     ? " " + args.map((arg) => quoteShellArg(arg, quoteStyle)).join(" ")
     : "";
   const fullCommand = cmd + argstr;
+  // cmd.exe gets a pre-escaped command line (node-pty takes a string on
+  // Windows), built the way Node builds it for `{ shell }`: `/d /s /c "<cmd>"`.
+  // As an argv array, node-pty would re-escape the quoted args as `\"`, which
+  // cmd doesn't understand, so the program got a mangled argv.
   const shellArgs = isCmdShell
-    ? ["/d", "/s", "/c", fullCommand]
+    ? `/d /s /c "${fullCommand}"`
     : ["-c", fullCommand];
 
   let ptyProcess: any;
@@ -2514,6 +2519,239 @@ export async function applyBrowserSize(
   return { target, realized };
 }
 
+// Browsers that passed the BiDi socket go/no-go (ADR 01219). Every session of
+// one of these runs fully on BiDi (webSocketUrl: true, enforceWebDriverClassic:
+// false). Add a browser only with its own spike evidence in an ADR. Re-exported
+// from tests.ts.
+export const BIDI_BROWSERS: ReadonlySet<string> = new Set(["chrome"]);
+
+// Whether a browser's sessions have the BiDi socket. A feature that needs BiDi
+// runs where this is true and is SKIPPED everywhere else.
+export function hasBidi(browserName: string | undefined): boolean {
+  return BIDI_BROWSERS.has(String(browserName ?? "").toLowerCase());
+}
+
+// Page emulation keys on the context `browser` object (ADR 01223), in the
+// order unsupportedEmulation reports them.
+const EMULATION_KEYS = [
+  "colorScheme",
+  "locale",
+  "timezone",
+  "deviceScaleFactor",
+  "reducedMotion",
+  "clock",
+] as const;
+
+/**
+ * Launch-time options for a context's page emulation keys (ADR 01223):
+ * Chrome args and prefs, Firefox prefs. `timezone` and `clock` in Chrome go
+ * over BiDi instead (applyEmulation). Other browsers get nothing;
+ * unsupportedEmulation skips them first.
+ */
+export function emulationCapabilities(browser: any): {
+  args: string[];
+  prefs: Record<string, any>;
+} {
+  const args: string[] = [];
+  const prefs: Record<string, any> = {};
+  const b = browser ?? {};
+  if (b.name === "chrome") {
+    if (b.colorScheme !== undefined)
+      args.push(
+        `--blink-settings=preferredColorScheme=${b.colorScheme === "dark" ? 0 : 1}`
+      );
+    if (b.locale !== undefined) {
+      args.push(`--lang=${b.locale}`);
+      prefs["intl.accept_languages"] = b.locale;
+    }
+    if (b.deviceScaleFactor !== undefined)
+      args.push(`--force-device-scale-factor=${b.deviceScaleFactor}`);
+    if (b.reducedMotion !== undefined)
+      args.push(
+        b.reducedMotion === "reduce"
+          ? "--force-prefers-reduced-motion"
+          : "--force-prefers-no-reduced-motion"
+      );
+  } else if (b.name === "firefox") {
+    if (b.colorScheme !== undefined)
+      prefs["layout.css.prefers-color-scheme.content-override"] =
+        b.colorScheme === "dark" ? 0 : 1;
+    if (b.locale !== undefined) {
+      prefs["intl.locale.requested"] = b.locale;
+      prefs["intl.accept_languages"] = b.locale;
+    }
+    if (b.deviceScaleFactor !== undefined)
+      prefs["layout.css.devPixelsPerPx"] = String(b.deviceScaleFactor);
+    if (b.reducedMotion !== undefined)
+      prefs["ui.prefersReducedMotion"] = b.reducedMotion === "reduce" ? 1 : 0;
+  }
+  return { args, prefs };
+}
+
+const MOTION_ARGS = [
+  "--force-prefers-reduced-motion",
+  "--force-prefers-no-reduced-motion",
+];
+const BLINK_SETTINGS = "--blink-settings=";
+
+/**
+ * Put a browser's emulation args and prefs back into capabilities after an
+ * authored `driverOptions` replaced `goog:chromeOptions` or
+ * `moz:firefoxOptions`. Authored args and prefs stay; emulation wins a
+ * conflicting pref, so a dark context never opens a light session.
+ * Mutates and returns `caps`.
+ */
+export function keepEmulationCapabilities(
+  caps: Record<string, any>,
+  browser: any
+): Record<string, any> {
+  const { args, prefs } = emulationCapabilities(browser);
+  if (args.length === 0 && Object.keys(prefs).length === 0) return caps;
+  const key =
+    browser?.name === "chrome" ? "goog:chromeOptions" : "moz:firefoxOptions";
+  const options = { ...(caps[key] ?? {}) };
+  if (args.length) {
+    let merged: string[] = Array.isArray(options.args) ? [...options.args] : [];
+    // Chrome lets --force-prefers-reduced-motion win over its opposite, so
+    // drop any authored motion flag before adding the requested one.
+    if (browser.reducedMotion !== undefined)
+      merged = merged.filter((a) => !MOTION_ARGS.includes(a));
+    for (const arg of args) {
+      const blink = arg.startsWith(BLINK_SETTINGS)
+        ? merged.findIndex((a) => a.startsWith(BLINK_SETTINGS))
+        : -1;
+      if (blink >= 0) {
+        // ChromeDriver keeps only the last --blink-settings switch, so the
+        // color scheme joins the authored settings in one argument.
+        const ours = arg.slice(BLINK_SETTINGS.length);
+        const theirs = merged[blink]
+          .slice(BLINK_SETTINGS.length)
+          .split(",")
+          .filter((s) => s && !s.startsWith("preferredColorScheme="));
+        merged[blink] = `${BLINK_SETTINGS}${[...theirs, ours].join(",")}`;
+      } else if (!merged.includes(arg)) merged.push(arg);
+    }
+    options.args = merged;
+  }
+  if (Object.keys(prefs).length)
+    options.prefs = { ...(options.prefs ?? {}), ...prefs };
+  caps[key] = options;
+  return caps;
+}
+
+/**
+ * Why this browser can't set one of its emulation keys on this platform, as
+ * "`<browser>` can't set `<key>`" (plus " on <device OS>"), or null when it
+ * can set every key it has (ADR 01223). The skip and open-failure messages
+ * both wrap it.
+ */
+function emulationGap(browser: any, platform: string): string | null {
+  const keys = EMULATION_KEYS.filter((k) => browser?.[k] !== undefined);
+  if (keys.length === 0) return null;
+  const name = browser.name === "webkit" ? "safari" : browser.name;
+  const cantSet = (key: string) => `\`${name}\` can't set \`${key}\``;
+  const onDevice = ({ android: "Android", ios: "iOS" } as any)[platform];
+  if (onDevice) return `${cantSet(keys[0])} on ${onDevice}`;
+  for (const key of keys) {
+    // `timezone` and `clock` need BiDi. There's no fallback: headless
+    // Firefox on Linux ignored a `TZ` env in CI (ADR 01223).
+    if (key === "timezone" || key === "clock") {
+      if (hasBidi(name)) continue;
+      return cantSet(key);
+    }
+    // Launch-time keys: Chrome args and Firefox prefs.
+    if (name === "chrome" || name === "firefox") continue;
+    return cantSet(key);
+  }
+  return null;
+}
+
+/**
+ * The skip message for the first emulation key this browser can't set on
+ * this platform, or null when it can set every key it has (ADR 01223).
+ * Running a dark-mode test in light mode would quietly overwrite its
+ * reference screenshot, so an unsupported key skips the context.
+ */
+export function unsupportedEmulation(
+  browser: any,
+  platform: string
+): string | null {
+  const gap = emulationGap(browser, platform);
+  return gap ? `Skipped: ${gap}.` : null;
+}
+
+/**
+ * The step failure for a later `startSurface` session whose engine can't set
+ * one of the context browser's emulation keys, or null when it can.
+ */
+export function emulationOpenError(
+  engine: string,
+  browser: any,
+  platform: string
+): string | null {
+  const gap = emulationGap({ ...browser, name: engine }, platform);
+  return gap ? `Couldn't open \`${engine}\`: ${gap}.` : null;
+}
+
+/**
+ * Preload script source that pins `Date.now()` and `new Date()` to `ms`.
+ * Explicit dates, `Date.parse` and `Date.UTC` keep working.
+ */
+export function freezeDateSource(ms: number): string {
+  return `() => {
+  const T = ${ms};
+  const D = globalThis.Date;
+  function F(...a) {
+    if (!new.target) return new D(T).toString();
+    return Reflect.construct(D, a.length ? a : [T], new.target);
+  }
+  F.prototype = D.prototype;
+  F.now = () => T;
+  F.parse = D.parse;
+  F.UTC = D.UTC;
+  globalThis.Date = F;
+}`;
+}
+
+/**
+ * Session-start emulation that needs BiDi (ADR 01223): `timezone` and
+ * `clock`, in browsers in BIDI_BROWSERS. Throws the context FAIL message
+ * when the browser rejects a command.
+ */
+export async function applyEmulation(driver: any, browser: any): Promise<void> {
+  if (!hasBidi(browser?.name)) return;
+  const fail = (key: string) =>
+    new Error(
+      `Couldn't set \`${key}\` to \`${browser[key]}\` in \`${browser.name}\`.`
+    );
+  if (browser.timezone) {
+    try {
+      // Chrome rejects a global override. The default user context holds
+      // every tab and window this session opens.
+      await driver.emulationSetTimezoneOverride({
+        timezone: browser.timezone,
+        userContexts: ["default"],
+      });
+    } catch {
+      throw fail("timezone");
+    }
+  }
+  if (browser.clock) {
+    // A value that skipped schema validation must never freeze pages at NaN.
+    const ms = Date.parse(browser.clock);
+    if (!Number.isFinite(ms)) throw fail("clock");
+    const source = freezeDateSource(ms);
+    try {
+      // The preload covers every later document. The one already open
+      // predates it, so it gets the same replacement directly.
+      await driver.scriptAddPreloadScript({ functionDeclaration: source });
+      await driver.execute(`(${source})();`);
+    } catch {
+      throw fail("clock");
+    }
+  }
+}
+
 function logLabel(config: any, level: string): string {
   if (config?.logLevel === "debug") {
     return `${new Date().toISOString()} (${level.toUpperCase()}) `;
@@ -3256,6 +3494,11 @@ function getRunOutputDir(
 // switch lowercases) and the internal `runFolderReporter` key matches verbatim
 // (its default branch passes the token straight to the reporters map);
 // non-string (e.g. function) reporters are not the runFolder reporter.
+// Whether any step is a `checkFile` `download` check (ADR 01231).
+function stepsCheckDownloads(steps: any): boolean {
+  return Array.isArray(steps) && steps.some((step: any) => step?.checkFile?.download !== undefined);
+}
+
 function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   const list = Array.isArray(specs) ? specs : [];
   if (list.length > 0) {
@@ -3273,6 +3516,15 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
       )
     );
     if (writesArtifact) return true;
+    // Downloads land in the run folder too (ADR 01231).
+    const checksDownload = list.some((spec: any) =>
+      (spec?.tests ?? []).some(
+        (test: any) =>
+          stepsCheckDownloads(test?.steps) ||
+          (test?.contexts ?? []).some((context: any) => stepsCheckDownloads(context?.steps))
+      )
+    );
+    if (checksDownload) return true;
   } else if (config?.autoScreenshot !== false || config?.autoRecord !== false) {
     return true;
   }
