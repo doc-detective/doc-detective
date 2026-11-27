@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { loadMatrixValues } from "../dist/matrixFile.js";
 
-describe("loadMatrixValues (ADR 01228)", function () {
+describe("loadMatrixValues (ADR 01233)", function () {
   let dir;
   const write = (name, text) => fs.writeFileSync(path.join(dir, name), text);
   before(function () {

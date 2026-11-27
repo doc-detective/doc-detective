@@ -355,7 +355,7 @@ A key can read its list from a file instead, so a page list or sitemap your site
 - A relative path resolves against the spec or config file that declares the `runOn`, or against the working directory with `relativePathBase: "cwd"`.
 - Doc Detective reads each file once, before any test runs. For each test a `matrix` expands, the log says how many contexts it made, such as `login: 12 contexts from matrix.`
 
-A file that doesn't load makes its spec invalid, the same as the other [`matrix` errors](#errors), so the CLI exits `2`:
+A file that doesn't load stops the run, the same as the other [`matrix` errors](#errors), and the CLI exits `2`:
 
 ```text
 tests[0]: Couldn't read `matrix` file `/docs/pages.json`.

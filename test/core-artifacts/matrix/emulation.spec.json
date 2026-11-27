@@ -1,6 +1,6 @@
 {
   "specId": "matrix-emulation",
-  "description": "Object `matrix` values drive Chrome's page emulation (ADR 01227, ADR 01223). Each of the four combinations asserts what the page sees, and writes its own screenshot through a path that references every key.",
+  "description": "Object `matrix` values drive Chrome's page emulation (ADR 01232, ADR 01223). Each of the four combinations asserts what the page sees, and writes its own screenshot through a path that references every key.",
   "tests": [
     {
       "testId": "object-values-drive-emulation",
