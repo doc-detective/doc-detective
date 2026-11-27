@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-run-code",
+      "steps": [
+        {
+          "runCode": {
+            "language": "javascript",
+            "code": "console.log(\"Hello from JavaScript\");",
+            "stdio": "Hello from JavaScript",
+            "exitCodes": [
+              0
+            ],
+            "workingDirectory": ".",
+            "timeout": 10000,
+            "path": "output/greeting.txt",
+            "maxVariation": 0,
+            "overwrite": "false"
+          }
+        },
+        {
+          "runCode": {
+            "language": "py",
+            "code": "print(\"Hello from Python\")",
+            "stdio": "/^Hello from Python/"
+          }
+        },
+        {
+          "runCode": {
+            "language": "bash",
+            "code": "echo \"Hello from Bash\"",
+            "stdio": "Hello from Bash"
+          }
+        }
+      ]
+    }
+  ]
+}
