@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "structure-test-after",
+      "after": "sign-out.spec.json",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies/set/structure-session/signed-in"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "structure-session=signed-in"
+        }
+      ]
+    }
+  ]
+}
