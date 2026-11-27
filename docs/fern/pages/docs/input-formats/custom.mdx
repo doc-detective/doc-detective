@@ -194,6 +194,8 @@ An executable file type needs only two properties:
 - `extensions`: The file extensions to run with this command.
 - `runShell`: The [`runShell`](/docs/actions/runshell) step to perform. Use `$1` as a placeholder for the path of the matched file.
 
+Put single quotes around `$1`, as in `node '$1'`. Doc Detective replaces `$1` with the file's absolute path, then runs the command in [`bash` by default](/docs/actions/runshell#shell-selection), Windows included. Bash reads a backslash in an unquoted path as an escape character, so a Windows path such as `C:\docs\test.js` reaches the command as `C:docstest.js`. Quoting also keeps a path that contains spaces in one argument. Quote `$1` in `args` entries too, because Doc Detective joins `command` and `args` into one command line. If you set `shell` to `cmd` or `powershell`, use that shell's quoting instead.
+
 For example, this configuration runs every `.js` file with Node.js, every `.py` file with Python, and runs Jupyter notebooks through `jupyter nbconvert`:
 
 ```json
@@ -203,14 +205,14 @@ For example, this configuration runs every `.js` file with Node.js, every `.py` 
       "name": "JavaScript",
       "extensions": "js",
       "runShell": {
-        "command": "node $1"
+        "command": "node '$1'"
       }
     },
     {
       "name": "Python",
       "extensions": "py",
       "runShell": {
-        "command": "python $1"
+        "command": "python '$1'"
       }
     },
     {
@@ -218,7 +220,7 @@ For example, this configuration runs every `.js` file with Node.js, every `.py` 
       "extensions": "ipynb",
       "runShell": {
         "command": "jupyter",
-        "args": ["nbconvert", "--to", "script", "--execute", "$1", "--stdout"]
+        "args": ["nbconvert", "--to", "script", "--execute", "'$1'", "--stdout"]
       }
     }
   ]
