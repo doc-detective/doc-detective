@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "nav-find-elementimage-object",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "find": {
+            "elementImage": {
+              "path": "save.svg",
+              "threshold": 0.95
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

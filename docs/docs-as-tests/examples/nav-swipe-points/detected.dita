@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-swipe-points">
+  <title>Swipe between two points</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-swipe-points","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the element test page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/enhanced-elements.html"}'/></info></step>
+      <step><cmd>Swipe from the middle of the page toward the top.</cmd>
+        <info><data name="doc-detective" value='step {"swipe":{"from":{"x":400,"y":400},"to":{"x":400,"y":250}}}'/></info></step>
+      <step><cmd>Check that <b>Submit by ID</b> is still on the page.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

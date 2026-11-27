@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-checklink-headers-object">
+  <title>Send headers as an object</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Check that <xref href="http://localhost:8092/api/health" scope="external" format="html">the API health check</xref> responds.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

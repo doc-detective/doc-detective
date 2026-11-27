@@ -1,0 +1,5 @@
+# Open a page in a new window
+
+1. Go to [the multi-tab page](http://localhost:8092/multi-tab.html).
+2. Open [the child page](http://localhost:8092/multi-tab-child.html?page=w1) in a new window.
+3. Check that the new window shows **PAGE w1**.

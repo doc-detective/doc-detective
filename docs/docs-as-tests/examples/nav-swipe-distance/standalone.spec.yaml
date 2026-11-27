@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-swipe-distance
+    steps:
+      - goTo: http://localhost:8092/enhanced-elements.html
+      - swipe:
+          direction: up
+          distance: 0.8
+      - find: Submit by ID

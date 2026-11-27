@@ -1,0 +1,10 @@
+= Wait for network requests to finish
+
+// (test {"testId":"nav-goto-waituntil-networkidle","detectSteps":true})
+
+. Go to http://localhost:8092/waitUntil-test-network.html[the network test page].
++
+// (step {"goTo":{"url":"http://localhost:8092/waitUntil-test-network.html","waitUntil":{"networkIdleTime":500}}})
+. Check that the page shows *Content loaded from API*.
+
+// (test end)

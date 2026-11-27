@@ -1,0 +1,4 @@
+= Wait for the page to stop changing
+
+. Go to http://localhost:8092/waitUntil-test-dom-mutations.html[the DOM mutations page].
+. Check that the page shows *All mutations complete*.

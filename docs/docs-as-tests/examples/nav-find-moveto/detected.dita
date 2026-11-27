@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-find-moveto">
+  <title>Find an element and scroll to it</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-find-moveto","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/find-image.html" scope="external" format="html">the toolbar page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/find-image.html"}'/></info></step>
+      <step><cmd>Scroll down to the icon at the bottom of the page.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"selector":"#far","moveTo":true}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

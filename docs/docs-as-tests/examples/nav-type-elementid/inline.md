@@ -1,0 +1,12 @@
+<!-- test {"testId":"nav-type-elementid","detectSteps":false} -->
+
+# Type into a field by its ID
+
+1. Go to [the type echo page](http://localhost:8092/type-echo.html).
+   <!-- step {"goTo":"http://localhost:8092/type-echo.html"} -->
+2. Type `Hello` into the **Type here:** field.
+   <!-- step {"type":{"keys":["Hello"],"elementId":"type-input"}} -->
+3. Check that the page shows **Hello** below the field.
+   <!-- step {"find":"Hello"} -->
+
+<!-- test end -->

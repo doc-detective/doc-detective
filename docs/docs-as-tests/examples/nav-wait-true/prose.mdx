@@ -1,0 +1,5 @@
+# Pause for the default time
+
+1. Go to [the wait delay page](http://localhost:8092/wait-delay.html).
+2. Wait a few seconds.
+3. Check that the page shows **Loaded after 2 seconds**.

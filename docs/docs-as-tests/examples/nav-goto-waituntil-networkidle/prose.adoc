@@ -1,0 +1,4 @@
+= Wait for network requests to finish
+
+. Go to http://localhost:8092/waitUntil-test-network.html[the network test page].
+. Check that the page shows *Content loaded from API*.

@@ -1,0 +1,12 @@
+= Find an element by its selector
+
+// (test {"testId":"nav-find-selector","detectSteps":true})
+
+. Go to http://localhost:8092/enhanced-elements.html[the element test page].
++
+// (step {"goTo":"http://localhost:8092/enhanced-elements.html"})
+. Find the *Submit by ID* button.
++
+// (step {"find":{"selector":"#submit-button"}})
+
+// (test end)

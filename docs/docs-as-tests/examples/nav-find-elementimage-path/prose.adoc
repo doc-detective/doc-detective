@@ -1,0 +1,4 @@
+= Find an element by an image file
+
+. Go to http://localhost:8092/find-image.html[the toolbar page].
+. Find the save icon in the toolbar.
