@@ -37,6 +37,11 @@ describe("loadMatrixValues (ADR 01228)", function () {
     ]);
   });
 
+  it("leaves a surrogate character reference, which XML forbids, as written", function () {
+    write("surrogates.xml", "<urlset><url><loc>&#55296;</loc></url><url><loc>&#xDFFF;</loc></url></urlset>");
+    assert.deepEqual(loadMatrixValues("url", { file: "surrogates.xml" }, dir), ["&#55296;", "&#xDFFF;"]);
+  });
+
   const cases = [
     ["a missing file", "missing.json", null, "Couldn't read `matrix` file `<file>`."],
     ["another extension", "pages.txt", "a", "Couldn't load `matrix` key `k`: `<file>` must be `.json` or `.xml`."],
