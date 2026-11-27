@@ -16,7 +16,7 @@ import { splitLines } from "./asciidoc.js";
 
 // ponytail: English keywords only, and a `# language:` header isn't read. Upgrade: a keyword table per language.
 const KEYWORD = /^(Feature|Rule|Background|Scenario Outline|Scenario Template|Scenario|Example|Examples|Scenarios):(.*)$/;
-const STEP = /^(Given|When|Then|And|But|\*)\s+(.+)$/;
+const STEP = /^(Given|When|Then|And|But|\*)\s+(\S.*)$/;
 const FENCE = /^("""|```)\s*(\S*)$/;
 const BROWSERS = ["chrome", "firefox", "safari", "webkit"];
 const PLATFORMS = ["windows", "mac", "linux", "android", "ios"];
