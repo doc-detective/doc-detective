@@ -13,7 +13,64 @@ const {
   findMissingNeedles,
   canonicalKey,
   splitKnownGaps,
+  slugify,
+  mapExamplesToPages,
+  buildIndex,
+  renderIndexJson,
+  renderIndexMdx,
 } = require("../docs/.scripts/docsAsTestsCoverage.js");
+
+describe("docs-as-tests coverage: feature index", function () {
+  it("slugs a heading the way the docs site anchors it", function () {
+    assert.equal(slugify("Take screenshots of a sign-in form"), "take-screenshots-of-a-sign-in-form");
+    assert.equal(slugify("Run `curl` and check its output"), "run-curl-and-check-its-output");
+  });
+
+  it("maps each example to the page that includes it, at the nearest H2 or H3 above", function () {
+    const pages = [
+      {
+        slug: "capture",
+        text: [
+          "---", "title: x", "---", "## Take screenshots", "", '<Markdown src="examples/shots/_variants.mdx" />',
+          "### What detection finds", "## Record a walkthrough", "### Where it runs",
+          '<Markdown src="examples/rec/_variants.mdx" />',
+        ].join("\n"),
+      },
+    ];
+    assert.deepEqual(mapExamplesToPages(pages), {
+      shots: "/reference/docs-as-tests/capture#take-screenshots",
+      rec: "/reference/docs-as-tests/capture#where-it-runs",
+    });
+  });
+
+  it("lists, for each covered field and form, the examples that use it", function () {
+    const fields = { goTo: { url: ["string"], newTab: ["boolean", "string"] }, click: { elementId: ["string"] }, find: { elementId: ["string"] } };
+    const usageByExample = {
+      tabs: { "goTo:url": ["string"], "goTo:newTab": ["string"] },
+      ids: { "find:elementId": ["string"], "goTo:url": ["string"] },
+    };
+    const canon = (root, p) => canonicalKey(root, p, fields[root]);
+    const pages = { tabs: "/reference/docs-as-tests/s#tabs" };
+    assert.deepEqual(buildIndex(fields, usageByExample, canon, pages, { "features.rst": ["ids"] }), {
+      "features.rst": [{ example: "ids", page: null }],
+      "goTo.newTab (string)": [{ example: "tabs", page: "/reference/docs-as-tests/s#tabs" }],
+      "goTo.url": [{ example: "ids", page: null }, { example: "tabs", page: "/reference/docs-as-tests/s#tabs" }],
+      "shared:locator.elementId": [{ example: "ids", page: null }],
+    });
+  });
+
+  it("renders the index as sorted JSON and as a page with one table per group", function () {
+    const index = {
+      "goTo.url": [{ example: "tabs", page: "/reference/docs-as-tests/s#tabs" }, { example: "ids", page: null }],
+      "click.button": [{ example: "ids", page: null }],
+    };
+    assert.equal(renderIndexJson(index), JSON.stringify({ "click.button": index["click.button"], "goTo.url": index["goTo.url"] }, null, 2) + "\n");
+    const mdx = renderIndexMdx(index);
+    assert.match(mdx, /^---\ntitle: Examples by feature\n/);
+    assert.ok(mdx.indexOf("## `click`") < mdx.indexOf("## `goTo`"));
+    assert.match(mdx, /\| `url` \| \[tabs\]\(\/reference\/docs-as-tests\/s#tabs\), ids \|/);
+  });
+});
 
 // A tiny two-file schema set: a step whose `go` action is a string or an
 // object (through $ref and anyOf), a result-only field, a deprecated alias,

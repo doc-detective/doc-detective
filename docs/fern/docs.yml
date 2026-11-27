@@ -381,6 +381,9 @@ navigation:
           - page: Overview
             path: pages/reference/docs-as-tests/index.mdx
             slug: overview
+          - page: Examples by feature
+            path: pages/reference/docs-as-tests/feature-index.mdx
+            slug: feature-index
           - page: Navigation and interaction
             path: pages/reference/docs-as-tests/navigation-interaction.mdx
             slug: navigation-interaction
