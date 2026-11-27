@@ -370,6 +370,18 @@ describe("mockRequest harPath", function () {
     return file;
   };
 
+  it("matches a recorded URL with brackets in its query literally", async function () {
+    const recorded = "http://localhost:8092/api/items?ids[]=1&ids[]=2";
+    const file = writeHar(har([harEntry("GET", recorded, { text: "items" })]));
+    const { result, driver } = await run({ harPath: file });
+    assert.equal(result.status, "PASS", result.description);
+    const [{ url }] = driver.mockCalls;
+    // The browser sends brackets percent-encoded or as recorded; both must match.
+    assert.ok(url.test(recorded));
+    assert.ok(url.test(new URL(recorded).href));
+    assert.equal(url.test("http://localhost:8092/api/items?ids=1"), false);
+  });
+
   it("mocks each recorded url and method with a literal pattern", async function () {
     const file = writeHar(
       har([

@@ -188,7 +188,9 @@ function respondWith(mock: any, responses: any[]) {
 // The same escaping webdriverio uses for its own literal patterns. `null` for
 // a URL that isn't absolute or doesn't parse.
 function literalPattern(url: string) {
-  const escape = (value: string) => value.replace(/[*:(){}?+\\]/g, "\\$&");
+  // `[` and `]` too: Node's URLPattern reads them literally today, but an
+  // escape is always literal, so no parser change can turn them into syntax.
+  const escape = (value: string) => value.replace(/[*:(){}?\[\]+\\]/g, "\\$&");
   if (!URL.canParse(url)) return null;
   const { protocol, hostname, port, pathname, search } = new URL(url);
   return new URLPattern({
