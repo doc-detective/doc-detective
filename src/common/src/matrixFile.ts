@@ -31,6 +31,8 @@ export function loadMatrixValues(key: string, definition: { file: string }, base
   } catch {
     throw new Error(`Couldn't read \`matrix\` file \`${file}\`.`);
   }
+  // A regular expression, not an XML parser: enough for the `<loc>` entries of
+  // a standard sitemap, with no new dependency (ADR 01228).
   if (extension === ".xml") {
     const values = [...text.matchAll(/<loc>\s*([\s\S]*?)\s*<\/loc>/g)].map((match) => decodeXml(match[1]));
     if (values.length === 0) throw cantLoad("has no `<loc>` entries");
@@ -43,6 +45,7 @@ export function loadMatrixValues(key: string, definition: { file: string }, base
     throw cantLoad("isn't a JSON array");
   }
   if (!Array.isArray(values)) throw cantLoad("isn't a JSON array");
+  if (values.length === 0) throw cantLoad("has no values");
   if (!validate({ schemaKey: "matrix_v3", object: { [key]: values } }).valid) {
     throw cantLoad("has values `matrix` doesn't accept");
   }
