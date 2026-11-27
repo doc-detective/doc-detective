@@ -1,6 +1,6 @@
 {
   "specId": "cli-compare-runs",
-  "description": "Each run compares with an earlier one and marks failures new, existing, or fixed (ADR 01233), through the real CLI. Each test runs one case of compare-runs.cjs, which sets up a folder under .tmp/fixture-compare-runs/, runs doc-detective there once or twice, and checks the exit codes, stderr, and results JSON. No browser or network.",
+  "description": "Each run compares with an earlier one and marks failures new, existing, or fixed (ADR 01244), through the real CLI. Each test runs one case of compare-runs.cjs, which sets up a folder under .tmp/fixture-compare-runs/, runs doc-detective there once or twice, and checks the exit codes, stderr, and results JSON. No browser or network.",
   "tests": [
     {
       "testId": "compare-default-no-earlier-run",

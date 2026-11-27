@@ -1,4 +1,4 @@
-// Compare a run with an earlier one (ADR 01233). A unit is one test in one
+// Compare a run with an earlier one (ADR 01244). A unit is one test in one
 // context, keyed by spec ID, test ID, and context ID. Exact IDs only.
 import fs from "node:fs";
 import path from "node:path";
