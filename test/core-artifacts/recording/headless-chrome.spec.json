@@ -1,6 +1,6 @@
 {
   "specId": "recording-headless-chrome",
-  "description": "Headless Chrome recording (ADR 01176): the browser engine captures the tab by title, sized to the viewport, with no display, so it runs on Windows, macOS, and Linux alike. Covers the auto engine, the explicit browser engine, a recording across a goTo navigation, a cursor restored from a position outside the viewport, headed Chrome, and headless Firefox, which stays SKIPPED. Chrome's tab-sharing bar shortens the page while a tab is captured, so the video is the viewport's width and up to the viewport's height, never tab capture's 800x600 default. Headless Chrome renders at a device pixel ratio of 1, so the viewport's CSS size is the video's pixel size; headed Chrome on a high-DPI screen records at device pixels, so its permutation asserts no size.",
+  "description": "Headless Chrome recording (ADR 01176): the browser engine captures the tab by title, sized to the viewport, with no display, so it runs on Windows, macOS, and Linux alike. Covers the auto engine, the explicit browser engine, a recording across a goTo navigation, a cursor restored from a position outside the viewport, headed Chrome, and headless Firefox, which stays SKIPPED. Chrome's tab-sharing bar would shorten the page while a tab is captured, so the runner grows the window by the bar's height (ADR 01227), and the video is the viewport's size, never tab capture's 800x600 default. Headless Chrome renders at a device pixel ratio of 1, so the viewport's CSS size is the video's pixel size; headed Chrome on a high-DPI screen records at device pixels, so its permutation asserts no size.",
   "tests": [
     {
       "testId": "headless-chrome-auto-engine",
@@ -32,7 +32,11 @@
             "overwrite": "true",
             "verify": {
               "minDuration": 0.5,
-              "notBlack": true
+              "notBlack": true,
+              "resolution": {
+                "width": 1024,
+                "height": 640
+              }
             }
           }
         },
@@ -55,8 +59,8 @@
           }
         },
         {
-          "description": "Assert an MP4 at the viewport's width, and no taller than the viewport.",
-          "runShell": "node -e \"const e=process.env; const w=Number(e.HC_AUTO_WIDTH), h=Number(e.HC_AUTO_HEIGHT); const ok = e.HC_AUTO_FORMAT === 'mp4' && require('fs').existsSync(e.HC_AUTO_PATH) && Math.abs(w-1024) <= 2 && h >= 500 && h <= 642; if (!ok) { console.error(JSON.stringify({w,h})); process.exit(1) }\""
+          "description": "Assert an MP4 at the viewport's size.",
+          "runShell": "node -e \"const e=process.env; const w=Number(e.HC_AUTO_WIDTH), h=Number(e.HC_AUTO_HEIGHT); const ok = e.HC_AUTO_FORMAT === 'mp4' && require('fs').existsSync(e.HC_AUTO_PATH) && Math.abs(w-1024) <= 2 && Math.abs(h-640) <= 2; if (!ok) { console.error(JSON.stringify({w,h})); process.exit(1) }\""
         }
       ]
     },
@@ -91,7 +95,11 @@
             "overwrite": "true",
             "verify": {
               "minDuration": 0.5,
-              "notBlack": true
+              "notBlack": true,
+              "resolution": {
+                "width": 1024,
+                "height": 640
+              }
             }
           }
         },
@@ -107,8 +115,78 @@
           }
         },
         {
-          "description": "Assert a WebM at the viewport's width, and no taller than the viewport, even when the capture's first frames come from the tab while it's behind the recorder tab (ADR 01197).",
-          "runShell": "node -e \"const e=process.env; const w=Number(e.HC_BROWSER_WIDTH), h=Number(e.HC_BROWSER_HEIGHT); const ok = e.HC_BROWSER_FORMAT === 'webm' && Math.abs(w-1024) <= 2 && h >= 500 && h <= 642; if (!ok) { console.error(JSON.stringify({w,h})); process.exit(1) }\""
+          "description": "Assert a WebM at the viewport's size, even when the capture's first frames come from the tab while it's behind the recorder tab (ADR 01197).",
+          "runShell": "node -e \"const e=process.env; const w=Number(e.HC_BROWSER_WIDTH), h=Number(e.HC_BROWSER_HEIGHT); const ok = e.HC_BROWSER_FORMAT === 'webm' && Math.abs(w-1024) <= 2 && Math.abs(h-640) <= 2; if (!ok) { console.error(JSON.stringify({w,h})); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "headless-chrome-viewport-held",
+      "description": "An 800x600 viewport stays 800x600 while the sharing bar shows and after the recording stops, and the video is 800x600 (ADR 01227).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true,
+            "viewport": {
+              "width": 800,
+              "height": 600
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "headless-chrome-viewport-held.webm",
+            "engine": "browser",
+            "overwrite": "true",
+            "verify": {
+              "minDuration": 0.5,
+              "resolution": {
+                "width": 800,
+                "height": 600
+              }
+            }
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "screenshot": {
+            "path": "headless-chrome-viewport-during.png",
+            "overwrite": "true"
+          },
+          "variables": {
+            "HC_HELD_DURING_WIDTH": "$$width",
+            "HC_HELD_DURING_HEIGHT": "$$height"
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "screenshot": {
+            "path": "headless-chrome-viewport-after.png",
+            "overwrite": "true"
+          },
+          "variables": {
+            "HC_HELD_AFTER_WIDTH": "$$width",
+            "HC_HELD_AFTER_HEIGHT": "$$height"
+          }
+        },
+        {
+          "description": "Assert the page was 800x600 during and after the recording.",
+          "runShell": "node -e \"const e=process.env; const s=[e.HC_HELD_DURING_WIDTH, e.HC_HELD_DURING_HEIGHT, e.HC_HELD_AFTER_WIDTH, e.HC_HELD_AFTER_HEIGHT].map(Number); const ok = s[0] === 800 && s[1] === 600 && s[2] === 800 && s[3] === 600; if (!ok) { console.error(JSON.stringify(s)); process.exit(1) }\""
         }
       ]
     },
