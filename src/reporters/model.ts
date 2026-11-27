@@ -5,7 +5,7 @@ import path from "node:path";
 import { log } from "../core/utils.js";
 
 export { verdict } from "../cliOutput.js";
-export { nonPassItems, existingFile, mediaPath, environmentLine, writeReport };
+export { present, nonPassItems, existingFile, mediaPath, environmentLine, writeReport };
 
 const NON_PASS = ["FAIL", "WARNING", "SKIPPED"];
 

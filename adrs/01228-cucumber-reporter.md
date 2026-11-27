@@ -64,8 +64,9 @@ nearest other states are wrong. `failed` would turn an Xray test execution red f
 that varied by 3%. `undefined` and `pending` mean "not implemented" to every Cucumber consumer.
 `output` is the field Cucumber reserves for text a step logs, and Allure and Xray show it.
 
-On `FAIL` or `WARNING`, `result.error_message` is the step's `resultDescription`, then its
-`resultHint` on a new line when present.
+On `FAIL`, `result.error_message` is the step's `resultDescription`, then its `resultHint` on a
+new line when present. A `WARNING` step has no `error_message`, because the Cucumber JSON format
+defines it only for failed steps. Its text is in `output`.
 
 ### Durations
 

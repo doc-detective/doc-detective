@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { stepActions } from "../common/src/stepActions.js";
 import { reportOutputDir } from "../core/utils.js";
-import { existingFile, writeReport } from "./model.js";
+import { existingFile, present, writeReport } from "./model.js";
 
 export { cucumberReporter, buildCucumberJson };
 
@@ -11,11 +11,6 @@ export { cucumberReporter, buildCucumberJson };
 // fail the run in Xray or Allure. Its text goes to the step's `output` instead
 // (ADR 01228).
 const STATUS: Record<string, string> = { PASS: "passed", FAIL: "failed", SKIPPED: "skipped", WARNING: "passed" };
-
-// A report's lists have holes (ADR 01092). Each node comes with its 1-based position.
-function present(list: any): [any, number][] {
-  return (Array.isArray(list) ? list : []).map((node: any, index: number): [any, number] => [node, index + 1]).filter(([node]) => node);
-}
 
 // `goTo: https://example.com`: the action key and its main value.
 function actionSummary(step: any): string | undefined {
@@ -50,7 +45,7 @@ function buildCucumberJson(results: any): any[] {
             name: step.description || actionSummary(step) || step.stepId || `step ${stepNumber}`,
             result,
           };
-          if (step.result === "FAIL" || step.result === "WARNING") {
+          if (step.result === "FAIL") {
             result.error_message = [step.resultDescription, step.resultHint].filter(Boolean).join("\n");
           }
           if (step.result === "WARNING" && step.resultDescription) out.output = [step.resultDescription];

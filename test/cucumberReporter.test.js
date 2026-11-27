@@ -150,7 +150,7 @@ describe("cucumber reporter", function () {
       const step = stepsOf(buildCucumberJson(run().report))[1];
       assert.equal(step.result.status, "passed");
       assert.deepEqual(step.output, ["It varied by 3%."]);
-      assert.equal(step.result.error_message, "It varied by 3%.");
+      assert.equal(step.result.error_message, undefined);
     });
 
     it("gives a failed step the description plus the hint as its error_message", function () {
