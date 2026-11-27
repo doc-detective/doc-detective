@@ -70,6 +70,7 @@ async function mockRequest({
 
   const filter = method ? { method } : {};
   const key = `${method ?? "*"} ${url}`;
+  keepPassThroughHeaders(driver);
   if (!(driver.state.mocks instanceof Map)) driver.state.mocks = new Map();
   const mocks: Map<string, MockEntry> = driver.state.mocks;
   const replaced = mocks.get(key);
@@ -105,6 +106,22 @@ async function mockRequest({
 
   result.outputs.matched = entry.answered;
   return result;
+}
+
+// webdriverio 10.2.0 releases a paused response that no mock answers with a
+// bare `network.provideResponse({ request })`. A glob mock's intercept has no
+// path, so it pauses every response, and Chrome then delivers each one with
+// no headers. `network.continueResponse` releases it unchanged. Only that bare
+// form is redirected: a provideResponse with any field is a mock's answer.
+// Installed once per session, before the first mock exists.
+function keepPassThroughHeaders(driver: any) {
+  if (driver.state.keepsPassThroughHeaders) return;
+  driver.overwriteCommand("networkProvideResponse", (provide: any, params: any) =>
+    params && Object.keys(params).length === 1 && "request" in params
+      ? driver.networkContinueResponse(params)
+      : provide(params)
+  );
+  driver.state.keepsPassThroughHeaders = true;
 }
 
 // Restore every mock a driver holds. Called when the test ends, before the

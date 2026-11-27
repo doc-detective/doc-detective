@@ -192,7 +192,7 @@ Not every custom file type contains inline tests or markup patterns. Sometimes t
 An executable file type needs only two properties:
 
 - `extensions`: The file extensions to run with this command.
-- `runShell`: The [`runShell`](/docs/actions/runshell) step to perform. Use `$1` as a placeholder for the path of the matched file.
+- `runShell`: The [`runShell`](/docs/actions/runshell) step to perform. Use `$1` as a placeholder for the absolute path of the matched file. On Windows, the path uses forward slashes, such as `C:/docs/example.js`, so it works unquoted in the default shell. Quote it as `'$1'` if your paths can contain spaces.
 
 The examples below put single quotes around `$1`, as in `node '$1'`, so a path that contains spaces stays one argument. Commands run in [`bash` by default](/docs/actions/runshell#shell-selection), Windows included, so the same quoting works on every platform. Quote `$1` in `args` entries too, because Doc Detective joins `command` and `args` into one command line. If you set `shell` to `cmd` or `powershell`, use that shell's quoting instead.
 

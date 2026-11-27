@@ -90,6 +90,13 @@ describe("built-in fileTypes", function () {
     expect(await steps(content, fileType, "doc.dita")).to.deep.equal([[{ find: "a" }]]);
   });
 
+  it("types into a DITA <uicontrol> by its accessible name, not as a CSS selector", async function () {
+    const content = "<task><taskbody><steps><step><cmd>Type <userinput>Hello, DITA</userinput> into the <uicontrol>Type here:</uicontrol> field.</cmd></step></steps></taskbody></task>";
+    expect(await steps(content, undefined, "doc.dita")).to.deep.equal([
+      [{ type: { keys: "Hello, DITA", elementAria: "Type here:" } }, { find: "Type here:" }],
+    ]);
+  });
+
   it("reads DITA's data statements only with name doc-detective", async function () {
     const content = `<topic><body><data name="step">{"find": "old"}</data><data name="doc-detective" value='step {"find": "new"}'/></body></topic>`;
     expect(await steps(content, undefined, "doc.dita")).to.deep.equal([[{ find: "new" }]]);
@@ -180,10 +187,19 @@ describe("built-in fileTypes", function () {
         expect(a).to.include(step);
       }
     };
+    // The regex tables typed into a <uicontrol> with its name as a CSS
+    // `selector`. It's the control's label, so it's `elementAria` now (ADR 01227).
+    const typesByAccessibleName = (check) => (before, after) => {
+      const renamed = before.map((test) =>
+        test.map((s) => (s.type?.selector ? { type: { keys: s.type.keys, elementAria: s.type.selector } } : s)),
+      );
+      expect(renamed, "the regex table typed into a control").to.not.deep.equal(before);
+      check(renamed, after);
+    };
     const INTENDED = {
-      "dita-detect.dita": dropsDuplicateXrefSteps,
+      "dita-detect.dita": typesByAccessibleName(dropsDuplicateXrefSteps),
       "dita-links.dita": dropsDuplicateXrefSteps,
-      "dita-mixed.dita": dropsDuplicateXrefSteps,
+      "dita-mixed.dita": typesByAccessibleName(dropsDuplicateXrefSteps),
     };
     for (const file of readdirSync(fixtures).filter((f) => /\.(md|dita|adoc|html)$/.test(f))) {
       it(file, async function () {

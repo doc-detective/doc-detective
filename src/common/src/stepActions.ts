@@ -7,6 +7,7 @@
 /** Every step action key, sorted. A step carries exactly one. */
 export const stepActions = [
   "annotate",
+  "checkFile",
   "checkLink",
   "click",
   "closeSurface",

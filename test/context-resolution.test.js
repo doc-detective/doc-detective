@@ -610,6 +610,50 @@ describe("getDriverCapabilities", function () {
     );
   });
 
+  // ADR 01231: Chrome and Firefox save downloads, with no prompt, to the
+  // context's download folder.
+  it("points chrome and firefox downloads at the context's download folder", function () {
+    const runner = {
+      ...baseRunner,
+      availableApps: [
+        ...baseRunner.availableApps,
+        { name: "firefox", path: "/usr/bin/firefox", driver: "/usr/bin/geckodriver" },
+      ],
+    };
+    const downloadDir = "/runs/1/specs/s/tests/t/contexts/c/downloads";
+    const chrome = getDriverCapabilities({
+      runnerDetails: runner,
+      name: "chrome",
+      options: { ...options, downloadDir },
+    })["goog:chromeOptions"].prefs;
+    assert.equal(chrome["download.default_directory"], downloadDir);
+    assert.equal(chrome["download.prompt_for_download"], false);
+    const firefox = getDriverCapabilities({
+      runnerDetails: runner,
+      name: "firefox",
+      options: { ...options, downloadDir },
+    })["moz:firefoxOptions"].prefs;
+    assert.equal(firefox["browser.download.folderList"], 2);
+    assert.equal(firefox["browser.download.dir"], downloadDir);
+    assert.equal(firefox["browser.download.useDownloadDir"], true);
+    assert.equal(firefox["browser.download.always_ask_before_handling_new_types"], false);
+  });
+
+  it("sets no download folder when none is given", function () {
+    const runner = {
+      ...baseRunner,
+      availableApps: [...baseRunner.availableApps, { name: "firefox", path: "/usr/bin/firefox" }],
+    };
+    const chrome = getDriverCapabilities({ runnerDetails: runner, name: "chrome", options })[
+      "goog:chromeOptions"
+    ].prefs;
+    assert.ok(!("download.default_directory" in chrome));
+    const firefox = getDriverCapabilities({ runnerDetails: runner, name: "firefox", options })[
+      "moz:firefoxOptions"
+    ].prefs;
+    assert.ok(!("browser.download.dir" in firefox));
+  });
+
   it("leaves the tab capture flag off headed chrome", function () {
     const caps = getDriverCapabilities({
       runnerDetails: baseRunner,
