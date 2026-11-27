@@ -133,6 +133,8 @@ Scenario: Fill in the form
     | Welcome, Ada |
 ```
 
+A selector can contain double quotes, such as `[name="email"]`. A value can't. Doc Detective warns about that row and doesn't type it, so use a `# step` comment with a [`type`](/docs/actions/type) step instead.
+
 ## Tags
 
 Tags on a `Feature`, `Rule`, `Scenario`, or `Examples` table apply to everything inside it.
