@@ -1,6 +1,6 @@
 {
   "specId": "matrix-files",
-  "description": "`matrix` keys take their values from a JSON file and from a sitemap, relative to this spec (ADR 01235).",
+  "description": "`matrix` keys take their values from a JSON file and from a sitemap, relative to this spec (ADR 01241).",
   "tests": [
     {
       "testId": "values-from-json",
