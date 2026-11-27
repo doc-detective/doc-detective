@@ -25,7 +25,7 @@ In Chrome and Firefox, Doc Detective saves every download to the context's own d
 }
 ```
 
-{/* test {"testId":"checkfile-download","detectSteps":false,"runOn":[{"platforms":["linux","windows","mac"],"browsers":[{"name":"chrome","headless":true}]}]} */}
+{/* test {"testId":"checkfile-download","detectSteps":false,"runOn":[{"platforms":["linux","windows","mac"],"browsers":[{"name":"chrome","headless":true},{"name":"firefox","headless":true}]}]} */}
 {/* step {"stepId":"checkfile-download-goto","description":"Open the local download page","goTo":"http://localhost:8092/download.html"} */}
 {/* step {"stepId":"checkfile-download-click","description":"Start a download","click":"Export first CSV"} */}
 {/* step {"stepId":"checkfile-download-check","description":"Check the downloaded CSV","checkFile":{"download":"*.csv","content":"/^id,name/"}} */}

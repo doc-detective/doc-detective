@@ -6299,7 +6299,13 @@ async function runStep({
   step: any;
   driver: any;
   metaValues?: any;
-  options?: any;
+  // The context's artifact folders, resolved lazily. Without `downloadsDir`,
+  // a `checkFile` `download` step skips (ADR 01231).
+  options?: {
+    screenshotsDir?: () => string;
+    downloadsDir?: () => string;
+    [key: string]: any;
+  };
   processRegistry?: Map<string, any>;
   appSession?: AppSessionState;
   surfaceTracker?: ActiveSurfaceTracker;

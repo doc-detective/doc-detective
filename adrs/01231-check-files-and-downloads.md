@@ -18,8 +18,8 @@ saves downloads to a temp folder named for browser recordings, which ADR 01176 s
 Firefox and Safari have no download prefs, so Firefox prompts or saves to the user's own
 Downloads folder.
 
-How should a spec check that a file exists, is finished, and holds the right text, whether the
-run wrote it or the browser downloaded it?
+How should a spec check that a file exists, is finished, and holds the right text? The run may
+have written it, or the browser may have downloaded it.
 
 ## Decision Drivers
 
@@ -89,9 +89,10 @@ be read as `$$path` in step `variables`, which collides with the `PATH` environm
 
 ### Behavior
 
-* **Finished:** a file counts once it has no `.crdownload` or `.part` suffix, no sibling of its
-  name plus one of those suffixes (Firefox writes an empty placeholder next to its `.part` file),
-  and its size is unchanged across two polls 250 ms apart. Polling continues until `timeout`.
+* **Finished:** a file counts once it has no `.crdownload` or `.part` suffix and no sibling of
+  its name plus one of those suffixes. Firefox writes an empty placeholder next to its `.part`
+  file. The size must also stay unchanged across two polls 250 ms apart. Polling continues until
+  `timeout`.
 * **`path` returns the newest finished match.** It points at the user's own files, so checking
   the same file twice passes twice.
 * **`download` treats the folder as a queue.** It returns the oldest finished match that no earlier
@@ -121,9 +122,9 @@ be read as `$$path` in step `variables`, which collides with the `PATH` environm
 
 * `src/common/test/validate.test.js`: the shorthand, `path`, `download`, `content`, `timeout`;
   both keys, neither key, empty strings, unknown keys, and a zero `timeout` are rejected.
-* `test/checkFile.test.js`: newest-wins for `path`, the download queue, ignoring `.crdownload` and
-  `.part`, the size settle, a `content` string and regex, every message, and the Safari,
-  mobile, app, and no-browser skips.
+* `test/checkFile.test.js`: newest-wins for `path`, the download queue, and ignoring
+  `.crdownload` and `.part`. It also covers the size settle, a `content` string and regex, every
+  message, and the Safari, mobile, app, and no-browser skips.
 * `test/core-artifacts/process/check-file.spec.json`: `path` permutations on every OS.
 * `test/core-artifacts/interactions/download.spec.json`: Chrome and Firefox downloads, two
   downloads, `content`, `timeout`, a `variables` and `runShell` check, and the Safari skip.

@@ -61,7 +61,9 @@ async function checkFile({
       return result;
     }
     const dir = downloadsDir();
-    // The download folder is per context, so its queue lives on the context.
+    // The download folder is per context, so its queue lives on the context,
+    // beside the runner's other private `__` fields (`__display`). It's the
+    // list of files earlier checks returned.
     if (!Array.isArray(context.__checkedDownloads)) context.__checkedDownloads = [];
     const returned: string[] = context.__checkedDownloads;
     list = () => {
@@ -82,6 +84,7 @@ async function checkFile({
     // Detection resolved a relative path against the spec; a step from
     // getRunner() has none, so resolve against the working directory.
     const glob = path.resolve(pattern);
+    // Glob patterns separate folders with `/`; a `\` can read as an escape.
     list = () => fs.globSync(glob.split(path.sep).join("/")).map((file) => path.resolve(file));
     pick = (finished) => finished.reduce((a, b) => (b.mtimeMs > a.mtimeMs ? b : a));
     missing = `Couldn't find a finished file matching \`${glob}\` within ${timeout} ms.`;
@@ -91,6 +94,9 @@ async function checkFile({
   // `.crdownload` or `.part` file, or Firefox's placeholder next to its
   // `.part`) and its size matches the previous poll's.
   const deadline = Date.now() + timeout;
+  // Starts empty on purpose: a file is finished only once its size matches
+  // the PRIOR poll, so even an old file waits one POLL_MS. Don't add a fast
+  // path for existing files; it would break the stability guarantee.
   let previous = new Map<string, number>();
   let found: Candidate | undefined;
   for (;;) {
