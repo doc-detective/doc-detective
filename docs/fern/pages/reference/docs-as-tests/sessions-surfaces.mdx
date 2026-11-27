@@ -175,7 +175,6 @@ One procedure starts a process with [`runShell`](/docs/actions/runshell) and `ba
 - `waitUntil` holds the step until the process prints a match (`stdio`), a `port` accepts connections, an `httpGet` URL answers, or `delayMs` passes. Conditions in one object must all hold.
 - `workingDirectory` sets where the process starts. A relative path resolves against the file that holds the test.
 - `type` and `closeSurface` address a process by its name (`"sessions-repl"`) or with the object form (`{ "process": "sessions-bg-repl" }`).
-- The background test sets `autoRecord` to `false`. Its context drives no browser or app, so there's nothing to record.
 
 ### What detection finds
 

@@ -211,7 +211,7 @@ Start a server and a REPL together
 
 ## Run the REPL in the background
 
-<!-- test {"testId":"sessions-process-background","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} -->
+<!-- test {"testId":"sessions-process-background","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} -->
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
    <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} -->
@@ -257,7 +257,7 @@ Start a server and a REPL together
 
 ## Run the REPL in the background
 
-{/* test {"testId":"sessions-process-background","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} */}
+{/* test {"testId":"sessions-process-background","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} */}
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
    {/* step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} */}
@@ -306,7 +306,7 @@ Start a server and a REPL together
 
 == Run the REPL in the background
 
-// (test {"testId":"sessions-process-background","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]})
+// (test {"testId":"sessions-process-background","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]})
 
 . Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
 +
@@ -358,7 +358,7 @@ Start a server and a REPL together
 </ol>
 <!-- test end -->
 <h2>Run the REPL in the background</h2>
-<!-- test {"testId":"sessions-process-background","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} -->
+<!-- test {"testId":"sessions-process-background","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} -->
 <ol>
   <li>Run <code>node -i</code> in the background as a process named <code>sessions-bg-repl</code>, and wait for the <code>&gt;</code> prompt.
     <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} --></li>
@@ -412,7 +412,7 @@ Start the REPL as a surface
 Run the REPL in the background
 ------------------------------
 
-.. test {"testId":"sessions-process-background","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}
+.. test {"testId":"sessions-process-background","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}
 
 #. Run ``node -i`` in the background as a process named ``sessions-bg-repl``, and wait for the ``>`` prompt.
 
@@ -476,7 +476,7 @@ Start a server and a REPL together
   <task id="sessions-process-background">
     <title>Run the REPL in the background</title>
     <taskbody>
-      <data name="doc-detective" value='test {"testId":"sessions-process-background","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}'/>
+      <data name="doc-detective" value='test {"testId":"sessions-process-background","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}'/>
       <steps>
         <step><cmd>Run <codeph>node -i</codeph> in the background as a process named <codeph>sessions-bg-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
           <info><data name="doc-detective" value='step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}}'/></info></step>
@@ -531,7 +531,7 @@ Start a server and a REPL together
 
 ## Run the REPL in the background
 
-<!-- test {"testId":"sessions-process-background","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} -->
+<!-- test {"testId":"sessions-process-background","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} -->
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
    <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} -->
@@ -577,7 +577,7 @@ Start a server and a REPL together
 
 ## Run the REPL in the background
 
-{/* test {"testId":"sessions-process-background","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} */}
+{/* test {"testId":"sessions-process-background","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} */}
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
    {/* step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} */}
@@ -626,7 +626,7 @@ Start a server and a REPL together
 
 == Run the REPL in the background
 
-// (test {"testId":"sessions-process-background","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]})
+// (test {"testId":"sessions-process-background","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]})
 
 . Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
 +
@@ -678,7 +678,7 @@ Start a server and a REPL together
 </ol>
 <!-- test end -->
 <h2>Run the REPL in the background</h2>
-<!-- test {"testId":"sessions-process-background","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} -->
+<!-- test {"testId":"sessions-process-background","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} -->
 <ol>
   <li>Run <code>node -i</code> in the background as a process named <code>sessions-bg-repl</code>, and wait for the <code>&gt;</code> prompt.
     <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} --></li>
@@ -732,7 +732,7 @@ Start the REPL as a surface
 Run the REPL in the background
 ------------------------------
 
-.. test {"testId":"sessions-process-background","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}
+.. test {"testId":"sessions-process-background","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}
 
 #. Run ``node -i`` in the background as a process named ``sessions-bg-repl``, and wait for the ``>`` prompt.
 
@@ -796,7 +796,7 @@ Start a server and a REPL together
   <task id="sessions-process-background">
     <title>Run the REPL in the background</title>
     <taskbody>
-      <data name="doc-detective" value='test {"testId":"sessions-process-background","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}'/>
+      <data name="doc-detective" value='test {"testId":"sessions-process-background","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}'/>
       <steps>
         <step><cmd>Run <codeph>node -i</codeph> in the background as a process named <codeph>sessions-bg-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
           <info><data name="doc-detective" value='step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}}'/></info></step>
@@ -886,7 +886,6 @@ Start a server and a REPL together
     },
     {
       "testId": "sessions-process-background",
-      "autoRecord": false,
       "runOn": [
         {
           "platforms": [
@@ -1046,7 +1045,6 @@ tests:
       - closeSurface:
           process: sessions-repl
   - testId: sessions-process-background
-    autoRecord: false
     runOn:
       - platforms: *a1
         requires:

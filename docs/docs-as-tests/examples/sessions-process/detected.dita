@@ -22,7 +22,7 @@
   <task id="sessions-process-background">
     <title>Run the REPL in the background</title>
     <taskbody>
-      <data name="doc-detective" value='test {"testId":"sessions-process-background","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}'/>
+      <data name="doc-detective" value='test {"testId":"sessions-process-background","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}'/>
       <steps>
         <step><cmd>Run <codeph>node -i</codeph> in the background as a process named <codeph>sessions-bg-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
           <info><data name="doc-detective" value='step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}}'/></info></step>

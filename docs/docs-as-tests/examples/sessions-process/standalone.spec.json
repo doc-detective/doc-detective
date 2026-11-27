@@ -50,7 +50,6 @@
     },
     {
       "testId": "sessions-process-background",
-      "autoRecord": false,
       "runOn": [
         {
           "platforms": [
