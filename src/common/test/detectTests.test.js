@@ -1011,6 +1011,18 @@ function readFixture(filename) {
         expect(result[0].steps).to.have.lengthOf(1);
       });
 
+      it("accepts a markup `actions` string as a single action", async function () {
+        const fileType = { ...markdownFileType, markup: [{ regex: ["\\[[^\\]]+\\]\\(([^)]+)\\)"], actions: "checkLink" }] };
+        const result = await parseContent({
+          config: { detectSteps: true },
+          content: "[Link](https://other.com)",
+          filePath: "test.md",
+          fileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0].steps.map((s) => s.checkLink)).to.deep.equal(["https://other.com"]);
+      });
+
       it("should skip runCode actions in markup", async function () {
         const fileType = {
           extensions: ["md"],

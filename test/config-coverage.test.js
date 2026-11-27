@@ -952,6 +952,24 @@ describe("config.ts — setConfig", function () {
     assert.ok(ft.extensions.includes("mdbare"));
   });
 
+  it("normalizes a string `extensions` to an array, with and without `extends`", async function () {
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [
+          { name: "cjs", extensions: "cjs", runShell: "node $1" },
+          { extends: "markdown", extensions: "mdbare" },
+        ],
+      },
+    });
+    assert.deepEqual(config.fileTypes[0].extensions, ["cjs"]);
+    // Not spread into characters on merge.
+    assert.equal(config.fileTypes[1].extensions.at(-1), "mdbare");
+    assert.ok(!config.fileTypes[1].extensions.includes("m"));
+  });
+
   it("rejects a fileType that extends an unknown definition", async function () {
     await assert.rejects(
       () =>
