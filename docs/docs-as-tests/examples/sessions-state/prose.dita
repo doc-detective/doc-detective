@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-state">
+  <title>Reuse a signed-in browser state</title>
+  <taskbody>
+    <context><p>Run these steps in Firefox and in Chrome.</p></context>
+    <steps>
+      <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_state/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_state</codeph> cookie.</cmd></step>
+      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph> in the output folder, and to <codeph>sessions-state.json</codeph> in a <codeph>tmp</codeph> folder next to this file.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd></step>
+      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph> in the output folder.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_state=signed-in</b>.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref> again, and load the browser state from <codeph>tmp/sessions-state.json</codeph>.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref> again, and check that it shows <b>sessions_state=signed-in</b>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

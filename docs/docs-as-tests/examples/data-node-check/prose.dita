@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-node-check">
+  <title>Check your Node.js version</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock>
+          <p>The output starts with <codeph>v</codeph> and the major version, such as <codeph>v22.11.0</codeph>. You need version 18 or later.</p></info></step>
+      <step><cmd>If Node.js printed a version, print the npm version:</cmd>
+        <info><codeblock outputclass="language-shell">npm --version</codeblock></info></step>
+      <step><cmd>Find the Node.js executable. On Windows, run:</cmd>
+        <info><codeblock outputclass="language-shell">where node</codeblock>
+          <p>On macOS and Linux, run:</p>
+          <codeblock outputclass="language-shell">command -v node</codeblock></info></step>
+    </steps>
+  </taskbody>
+</task>

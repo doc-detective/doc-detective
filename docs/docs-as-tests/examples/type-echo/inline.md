@@ -1,0 +1,14 @@
+<!-- test {"testId":"type-echo","detectSteps":false} -->
+
+# Echo text back
+
+1. Go to [the type echo page](http://localhost:8092/type-echo.html).
+   <!-- step {"goTo":"http://localhost:8092/type-echo.html"} -->
+2. Click **Type here:**.
+   <!-- step {"click":"Type here:"} -->
+3. Type "Hello, Doc Detective".
+   <!-- step {"type":"Hello, Doc Detective"} -->
+4. Check that the page shows **Hello, Doc Detective** below the field.
+   <!-- step {"find":"Hello, Doc Detective"} -->
+
+<!-- test end -->

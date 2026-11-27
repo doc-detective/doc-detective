@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: custom-statement-syntax
+    steps:
+      - runShell: curl -sf http://localhost:8092/type-echo.html > /dev/null
+      - goTo: http://localhost:8092/type-echo.html
+      - find: Type Echo Test Page
+      - click: "Type here:"
+      - type: Hello, Doc Detective
+      - wait: 200
+      - find:
+          selector: "#echo"
+          elementText: Hello, Doc Detective

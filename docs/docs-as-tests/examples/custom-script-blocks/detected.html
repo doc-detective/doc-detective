@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Print a greeting with Node.js</title></head>
+<body>
+<!-- test {"testId":"custom-script-blocks","detectSteps":true} -->
+<h1>Print a greeting with Node.js</h1>
+<p>Define the name to greet:</p>
+<pre><code class="language-javascript">const name = "Doc Detective";</code></pre>
+<p>Don't declare <code>name</code> a second time. A script that does throws a <code>SyntaxError</code>:</p>
+<pre><code class="language-javascript">// Don't run: this redeclares name.
+const name = "someone else";</code></pre>
+<p>Print the greeting:</p>
+<pre><code class="language-javascript">console.log(`Hello, ${name}!`);</code></pre>
+<p>The script prints <code>Hello, Doc Detective!</code>.</p>
+<!-- test end -->
+</body>
+</html>

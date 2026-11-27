@@ -115,9 +115,11 @@ HTML inline tests support JSON, YAML, and XML attribute syntax:
 
 **YAML syntax:**
 ```html
-<!-- test testId: my-yaml-test description: Test description -->
+<!-- test {testId: my-yaml-test, description: Test description} -->
 <!-- step goTo: https://example.com -->
 ```
+
+A YAML statement with more than one key goes inside braces, with commas between the keys. Without them, Doc Detective can't parse the statement and reports it.
 
 **XML attribute syntax:**
 ```html

@@ -1,0 +1,1 @@
+Before you start, check that http://localhost:8092/api/users responds.

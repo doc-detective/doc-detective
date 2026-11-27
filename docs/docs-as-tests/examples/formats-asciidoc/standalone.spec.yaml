@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: formats-asciidoc
+    steps:
+      - httpRequest:
+          url: http://localhost:8092/api/users
+          method: post
+          request:
+            body:
+              name: Grace
+          response:
+            body:
+              name: Grace

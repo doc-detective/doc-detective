@@ -1,0 +1,170 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: sessions-tabs
+    runOn:
+      - browsers:
+          name: firefox
+          headless: true
+        browserFallback: off
+    steps:
+      - goTo: http://localhost:8092/multi-tab.html
+      - click: Open child in new tab
+      - find:
+          elementText: PAGE linked
+          surface:
+            browser: firefox
+            tab:
+              index: -1
+      - goTo:
+          url: http://localhost:8092/multi-tab-child.html?page=report
+          newTab:
+            name: report
+      - goTo:
+          url: http://localhost:8092/multi-tab-child.html?page=scratch
+          newTab: true
+      - find:
+          elementText: PAGE report
+          surface:
+            browser: firefox
+            tab: report
+      - find:
+          elementText: PAGE scratch
+          surface:
+            browser: firefox
+            tab:
+              url: http://localhost:8092/multi-tab-child.html?page=scratch
+      - goTo:
+          url: http://localhost:8092/multi-tab-child.html?page=settings
+          newWindow:
+            name: settings
+            tab: general
+      - goTo:
+          url: http://localhost:8092/multi-tab-child.html?page=help
+          newWindow: true
+      - find:
+          elementText: PAGE settings
+          surface:
+            browser: firefox
+            window: settings
+      - find:
+          elementText: PAGE settings
+          surface:
+            browser: firefox
+            window:
+              name: settings
+            tab:
+              name: general
+      - find:
+          elementText: PAGE help
+          surface:
+            browser: firefox
+            window: -1
+      - find:
+          elementText: PAGE help
+          surface:
+            browser: firefox
+            window:
+              title: Child help
+      - find:
+          elementText: PAGE help
+          surface:
+            browser: firefox
+            window:
+              url: http://localhost:8092/multi-tab-child.html?page=help
+      - find:
+          elementText: MULTI-TAB HOME
+          surface:
+            browser: firefox
+            window:
+              index: 0
+            tab:
+              title: Multi-tab home
+      - type:
+          keys: hello
+          selector: "#echo-input"
+          surface:
+            browser: firefox
+            window:
+              url: http://localhost:8092/multi-tab-child.html?page=help
+      - type:
+          keys: hello
+          selector: "#echo-input"
+          surface:
+            browser: firefox
+            window: -1
+      - type:
+          keys: " again"
+          selector: "#echo-input"
+          surface:
+            browser: firefox
+            window:
+              index: -1
+      - type:
+          keys: hello
+          selector: "#echo-input"
+          surface:
+            browser: firefox
+            tab: 1
+      - goTo:
+          url: http://localhost:8092/multi-tab-child.html?page=notes
+          newTab: notes
+      - goTo:
+          url: http://localhost:8092/multi-tab-child.html?page=about
+          newWindow: about
+      - find:
+          elementText: PAGE notes
+          surface:
+            browser: firefox
+            tab: notes
+      - find:
+          elementText: PAGE about
+          surface:
+            browser: firefox
+            window: about
+      - startSurface:
+          - browser: firefox
+            name: reviewer
+            headless: true
+            viewport:
+              width: 800
+              height: 600
+          - browser: firefox
+            name: editor
+            headless: true
+            size:
+              width: 1024
+              height: 768
+      - goTo:
+          url: http://localhost:8092/multi-tab-child.html?page=review
+          surface:
+            browser: firefox
+            name: reviewer
+      - goTo:
+          url: http://localhost:8092/multi-tab.html
+          surface: firefox
+      - find:
+          elementText: MULTI-TAB HOME
+          surface: firefox
+      - closeSurface:
+          - browser: firefox
+            tab:
+              name: report
+          - browser: firefox
+            tab:
+              url: http://localhost:8092/multi-tab-child.html?page=scratch
+          - browser: firefox
+            tab:
+              index: 1
+          - browser: firefox
+            window:
+              title: Child help
+          - browser: firefox
+            window:
+              name: settings
+          - browser: firefox
+            tab: notes
+          - browser: firefox
+            window: about
+          - browser: firefox
+            name: reviewer
+          - editor
