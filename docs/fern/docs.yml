@@ -235,6 +235,12 @@ navigation:
               - page: HTTP & APIs
                 path: pages/docs/test-code/http-and-api.mdx
                 slug: http-and-api
+              - page: Mock backend
+                path: pages/docs/test-code/mock-backend.mdx
+                slug: mock-backend
+              - page: Karate suites
+                path: pages/docs/test-code/karate-suite.mdx
+                slug: karate-suite
               - page: Generate requests from OpenAPI
                 path: pages/docs/test-code/generate-tests-from-openapi.mdx
                 slug: generate-tests-from-openapi

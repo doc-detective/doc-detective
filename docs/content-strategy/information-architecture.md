@@ -180,6 +180,8 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 |---|---|---|---|
 | Run shell & code steps | D1 | ★ | `runShell` / `runCode` / `runBrowserScript`, outputs. |
 | HTTP & API testing | D2 | ★ | `httpRequest`, `checkLink`. |
+| Run a mock backend for API tests | D2 | | Authored: `/docs/test-docs/mock-backend`. Recipe: start a mock server (Prism, json-server) as a `startSurface` `process` surface with `waitUntil`, point `httpRequest` at it, stop it with `closeSurface`. Inline test uses a dependency-free Node stand-in (`mock-api-server.cjs`). |
+| Run an existing Karate suite | D2 | | Authored: `/docs/test-docs/karate-suite`. Recipe: `runShell` runs Karate and gates on `exitCodes`, reads `karate-summary-json.txt` into step `variables` with `jq(… "fromjson \| …")`. Explains Karate for API contracts vs. Doc Detective for doc procedures, screenshots, and recordings. Inline test uses labeled stub commands (no Java in the docs suite). |
 | Cookies & variables | D2 | | `saveCookie` / `loadCookie` / `loadVariables` / outputs. |
 | mockRequest action | D2, W2 | | Authored: `/docs/actions/mockrequest`. Answer browser requests with a fixed response, for stable screenshots and error states. Chrome only; Firefox and Safari skip. |
 | checkFile action | W2, D1 | | Authored: `/docs/actions/checkfile`. Wait for a finished file or browser download and check its text. "Check a download" leads; downloads land in the run folder. `download` works in desktop Chrome and Firefox; Safari skips. |
