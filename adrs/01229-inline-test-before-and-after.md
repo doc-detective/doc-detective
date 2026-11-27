@@ -47,7 +47,7 @@ same message a spec file gets.
 
 * `test/detecttests-coverage.test.js` checks that a Markdown test statement's `before` and `after`
   steps wrap its own steps, and that the cleanup steps keep their marker.
-* `test/core-artifacts/detection/inline-before-after/` runs the reported case end to end: the setup
+* `test/core-artifacts/detection/inline-before-after/` runs the reported case end to end. The setup
   file sets a cookie, and the test's `find` step passes only if the setup ran in its session.
 
 ## Pros and Cons of the Options

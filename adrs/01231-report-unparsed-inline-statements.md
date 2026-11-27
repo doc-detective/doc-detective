@@ -41,8 +41,8 @@ reaches `onInvalid`:
 Couldn't parse the inline `test` statement `testId: my-test description: Test description`. Write it as JSON, as YAML with more than one key inside braces (`{key: value, key: value}`), or as `key=value` attributes.
 ```
 
-So `doc-detective validate` lists the file as invalid, and a run that exits on failure stops before
-it runs anything, as it does for other invalid inline tests. A match that a `test end` or `test
+So `doc-detective validate` lists the file as invalid. A run that exits on failure stops before it
+runs anything, as it does for other invalid inline tests. A match that a `test end` or `test
 ignore` statement covers isn't reported, and neither is one inside an ignore block.
 
 ### Consequences
