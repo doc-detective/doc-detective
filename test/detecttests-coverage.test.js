@@ -292,6 +292,37 @@ describe("detectTests coverage", function () {
       // 1 before + 1 original + 1 after = 3 steps merged.
       assert.equal(specs[0].tests[0].steps.length, 3);
     });
+
+    it("merges before/after files into an inline test statement's steps", async function () {
+      write(
+        "setup.spec.json",
+        JSON.stringify({ tests: [{ steps: [{ runShell: { command: "echo", args: ["before"] } }] }] })
+      );
+      write(
+        "cleanup.spec.json",
+        JSON.stringify({ tests: [{ steps: [{ runShell: { command: "echo", args: ["after"] } }] }] })
+      );
+      const md = write(
+        "doc.md",
+        [
+          '<!-- test {"testId":"t","before":"setup.spec.json","after":"cleanup.spec.json"} -->',
+          '<!-- step {"goTo": "https://example.com"} -->',
+          "<!-- test end -->",
+          "",
+        ].join("\n")
+      );
+      const config = await makeConfig({ input: [md], relativePathBase: "file" });
+      const specs = await parseTests({ config, files: [md] });
+      assert.equal(specs.length, 1);
+      const steps = specs[0].tests[0].steps;
+      assert.deepEqual(
+        steps.map((s) => s.runShell?.args?.[0] ?? s.goTo),
+        ["before", "https://example.com", "after"]
+      );
+      // The cleanup marker reaches the runner; the setup marker doesn't.
+      assert.equal(steps[2]._fromAfter, true);
+      assert.equal("_fromBefore" in steps[0], false);
+    });
   });
 
   describe("parseTests text/markdown branches", function () {
