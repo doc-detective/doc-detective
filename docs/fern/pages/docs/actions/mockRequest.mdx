@@ -35,6 +35,7 @@ A later `mockRequest` for the same `url` and `method` replaces the earlier one. 
 - A `bodyPath` that Doc Detective can't read. For example: ``Couldn't read `bodyPath` `/abs/fixtures/user.json`.``
 - A `harPath` that Doc Detective can't read: ``Couldn't read `harPath` `/abs/fixtures/app.har`.``
 - A `harPath` file that isn't HAR JSON: ``Couldn't parse `harPath` `/abs/fixtures/app.har`: it isn't HAR JSON.``
+- A HAR file with a recorded URL that isn't absolute: ``Couldn't parse a URL in `harPath` `/abs/fixtures/app.har`.``
 - A HAR file with no request that matches `url` and `method`: ``Couldn't find HAR entries matching `**/api/**` in `/abs/fixtures/app.har`.``
 
 > For every field, see the [`mockRequest`](/reference/schemas/mockrequest) reference.

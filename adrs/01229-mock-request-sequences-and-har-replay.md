@@ -69,6 +69,7 @@ HAR mapping:
 |---|---|---|
 | `harPath` can't be read | FAIL | ``Couldn't read `harPath` `<absolute path>`.`` |
 | `harPath` isn't HAR JSON (`log.entries` isn't an array) | FAIL | ``Couldn't parse `harPath` `<absolute path>`: it isn't HAR JSON.`` |
+| A recorded URL isn't absolute or doesn't parse | FAIL | ``Couldn't parse a URL in `harPath` `<absolute path>`.`` |
 | No entry matches `url` and `method` | FAIL | ``Couldn't find HAR entries matching `<url>` in `<absolute path>`.`` (`*` when `url` is omitted) |
 | A `responses[].bodyPath` can't be read | FAIL | ``Couldn't read `bodyPath` `<absolute path>`.`` |
 
@@ -85,8 +86,10 @@ Firefox and Safari skip, as in ADR 01225.
   (`#setOverwrite` in `webdriverio/build/node.js`). webdriverio calls the body function first, then
   headers, then status, synchronously for each request, so all three read the same entry.
 * `harToMocks(har, { url, method })` in `src/core/utils.ts` is pure. It groups the entries and
-  matches the `url` glob with the same rules as webdriverio: `**` collapses to `*`, a pattern
-  starting `http` matches the whole URL, any other pattern matches the path.
+  matches the `url` glob with webdriverio's rules. `**` collapses to `*`. A pattern starting `http`
+  matches the whole URL, and any other pattern matches the path.
+* A recorded status of `0`, which browsers write for a request that got no response, is sent as
+  `200`.
 * Each HAR mock is registered with a literal `URLPattern`, so `?`, `:` and `*` in a recorded URL
   match themselves.
 * `resolvePaths` resolves `harPath` and every `responses[].bodyPath` against the spec, like
