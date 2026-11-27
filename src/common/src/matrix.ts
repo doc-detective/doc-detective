@@ -8,6 +8,7 @@ type MatrixValue = Scalar | { [key: string]: any };
 export type MatrixCombination = Record<string, MatrixValue>;
 
 const REFERENCE = /\$\$matrix\.([A-Za-z0-9_]+)((?:\.[A-Za-z0-9_]+)*)/g;
+const WHOLE_REFERENCE = new RegExp(`^${REFERENCE.source}$`);
 const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 const isObject = (value: unknown): value is Record<string, any> =>
@@ -84,7 +85,7 @@ export function substituteMatrix(value: any, combination: MatrixCombination): an
     return copy;
   }
   if (typeof value !== "string") return value;
-  const whole = new RegExp(`^${REFERENCE.source}$`).exec(value);
+  const whole = WHOLE_REFERENCE.exec(value);
   if (whole && Object.hasOwn(combination, whole[1])) {
     const { value: resolved, rest } = resolveReference(whole[1], whole[2], combination);
     if (!rest) return resolved;
