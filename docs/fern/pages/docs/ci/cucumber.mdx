@@ -36,7 +36,7 @@ Then("the docs in {string} pass", { timeout: 10 * 60 * 1000 }, async function (p
 });
 ```
 
-`runTests()` takes the same options as a [config file](/reference/schemas/config). `input` is a path, relative to the folder you run Cucumber from. It returns the run's results. `results.summary` counts the specs, tests, contexts, and steps by result:
+`runTests()` takes the same options as a [config file](/reference/schemas/config). `input` is a path, relative to the folder you run Cucumber from. Point it at your docs, not at your `features` folder: Doc Detective reads `.feature` files as [Gherkin tests](/docs/test-docs/input-formats/gherkin), so it would run your Cucumber features too. `runTests()` returns the run's results. `results.summary` counts the specs, tests, contexts, and steps by result:
 
 ```json title="results.summary" invalid
 {
