@@ -206,8 +206,6 @@ knownGaps:
     reason: Fails on Windows, where backslashes in the substituted path break JSON parsing.
   - key: config.fileTypes.markup.actions (string)
     reason: Crashes detection.
-  - key: runCode.directory
-    reason: Doubles the path when set with `path`; fixed in doc-detective/doc-detective#1055.
   - key: record.verify.resolution (object)
     reason: Headless recordings are shorter than the viewport, so no correct size can be asserted.
   - key: record.verify.resolution.width

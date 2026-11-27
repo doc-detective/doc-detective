@@ -7719,6 +7719,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -7749,6 +7753,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -9247,6 +9255,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -9277,6 +9289,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -9329,6 +9345,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -9339,6 +9359,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-local-server",
@@ -10897,6 +10921,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -10927,6 +10955,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -12653,6 +12685,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -12683,6 +12719,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -14297,6 +14337,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -14327,6 +14371,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -15867,6 +15915,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -15897,6 +15949,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -17513,6 +17569,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -17543,6 +17603,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -18323,6 +18387,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -18337,6 +18405,10 @@
     {
       "example": "http-code-stdio-regex",
       "page": "/reference/docs-as-tests/http-code#stdio-as-a-regular-expression"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-local-server",
@@ -19267,6 +19339,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -19297,6 +19373,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -20169,6 +20249,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -20179,6 +20263,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-local-server",
@@ -21177,6 +21265,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -21207,6 +21299,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -25185,6 +25281,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
+    },
+    {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
     }
@@ -25195,11 +25295,19 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
+    },
+    {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
     }
   ],
   "runCode.background.tty (boolean)": [
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
+    },
     {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
@@ -25227,6 +25335,10 @@
     {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-local-server",
@@ -25257,6 +25369,10 @@
   ],
   "runCode.background.waitUntil.stdio": [
     {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
+    },
+    {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
     }
@@ -25273,6 +25389,10 @@
     {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
+    },
+    {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
     },
     {
       "example": "http-code-exitcodes",
@@ -25307,6 +25427,10 @@
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
     },
     {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
+    },
+    {
       "example": "http-code-unsafe-allowed",
       "page": "/reference/docs-as-tests/http-code#allowunsafesteps-true"
     },
@@ -25317,6 +25441,16 @@
     {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
+    },
+    {
+      "example": "http-run-code",
+      "page": "/reference/docs-as-tests/http-code#run-code-blocks"
+    }
+  ],
+  "runCode.directory": [
+    {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
     },
     {
       "example": "http-run-code",
@@ -25347,6 +25481,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -25377,6 +25515,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -25408,6 +25550,10 @@
     }
   ],
   "runCode.path": [
+    {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
     {
       "example": "http-run-code",
       "page": "/reference/docs-as-tests/http-code#run-code-blocks"
@@ -25455,6 +25601,10 @@
     {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-local-server",
@@ -28837,6 +28987,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -28867,6 +29021,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -31313,6 +31471,10 @@
     {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-local-server",
@@ -33891,6 +34053,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -33921,6 +34087,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -36407,6 +36577,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -36437,6 +36611,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -38619,6 +38797,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -38649,6 +38831,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -40373,6 +40559,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -40403,6 +40593,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-javascript"
     },
     {
       "example": "http-code-unsafe-allowed",
