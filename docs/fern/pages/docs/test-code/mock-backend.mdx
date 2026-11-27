@@ -57,13 +57,49 @@ Send each [`httpRequest`](/docs/actions/httprequest) step to the mock server's a
 }
 ```
 
-A mock server also lets you reach error states on demand. Request something that doesn't exist and expect the error code, so the docs for your error responses stay tested too:
+A mock server also lets you reach error states on demand, so the docs for your error responses stay tested too. Prism doesn't look up IDs: any valid request to `/users/{id}` gets the operation's lowest `2xx` example, so `/users/999` returns `200`. To get an error response, declare it in the description, and ask for it with a `Prefer: code=<status>` request header. This `openapi.yaml` declares a `404` with an example next to the `200`:
+
+```yaml title="openapi.yaml"
+openapi: 3.0.3
+info:
+  title: Users API
+  version: 1.0.0
+paths:
+  /users/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: The user.
+          content:
+            application/json:
+              example:
+                id: 1
+                name: Ada Lovelace
+                role: admin
+        "404":
+          description: No user has this ID.
+          content:
+            application/json:
+              example:
+                error: User not found.
+```
+
+Then send the header and expect the error code:
 
 ```json
 {
   "description": "Confirm the mock API returns 404 for an unknown user.",
   "httpRequest": {
     "url": "http://127.0.0.1:4010/users/999",
+    "request": {
+      "headers": { "Prefer": "code=404" }
+    },
     "statusCodes": [404]
   }
 }
@@ -117,6 +153,9 @@ The complete spec starts the mock, sends two requests, and stops the mock:
           "description": "Confirm the mock API returns 404 for an unknown user.",
           "httpRequest": {
             "url": "http://127.0.0.1:4010/users/999",
+            "request": {
+              "headers": { "Prefer": "code=404" }
+            },
             "statusCodes": [404]
           }
         },
@@ -132,7 +171,7 @@ The complete spec starts the mock, sends two requests, and stops the mock:
 
 {/* step {"stepId":"mock-backend-start","description":"Start a stand-in mock server on port 4010. It's a small Node script next to this page (mock-api-server.cjs) that answers like Prism would, so the docs suite needs no new dependency. A script file rather than node -e, because the process field runs through a shell and cmd.exe mangles inline JavaScript on Windows","startSurface":{"process":"node mock-api-server.cjs","name":"mock-api","workingDirectory":".","waitUntil":{"port":4010},"timeout":30000}} */}
 {/* step {"stepId":"mock-backend-get-user","description":"Fetch a user from the mock API","httpRequest":{"url":"http://127.0.0.1:4010/users/1","response":{"body":{"id":1,"name":"Ada Lovelace"}}}} */}
-{/* step {"stepId":"mock-backend-not-found","description":"Confirm the mock API returns 404 for an unknown user","httpRequest":{"url":"http://127.0.0.1:4010/users/999","statusCodes":[404]}} */}
+{/* step {"stepId":"mock-backend-not-found","description":"Confirm the mock API returns 404 for an unknown user","httpRequest":{"url":"http://127.0.0.1:4010/users/999","request":{"headers":{"Prefer":"code=404"}},"statusCodes":[404]}} */}
 {/* step {"stepId":"mock-backend-stop","description":"Stop the mock server","closeSurface":"mock-api"} */}
 {/* test end */}
 
@@ -149,6 +188,8 @@ To use json-server instead, change the `process` command and the port. json-serv
   }
 }
 ```
+
+json-server looks up records by ID, so a request for an ID that isn't in `db.json` returns `404` on its own. It ignores the `Prefer` header, so leave that header off.
 
 ## Step 4: Run the test
 
