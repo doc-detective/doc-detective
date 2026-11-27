@@ -17,7 +17,7 @@
 ## Run the REPL in the background
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
-2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
+2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
 3. Close the REPL.
 
 ## Start a server and a REPL together
@@ -42,7 +42,7 @@
 ## Run the REPL in the background
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
-2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
+2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
 3. Close the REPL.
 
 ## Start a server and a REPL together
@@ -67,7 +67,7 @@
 == Run the REPL in the background
 
 . Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
-. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
+. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
 . Close the REPL.
 
 == Start a server and a REPL together
@@ -95,7 +95,7 @@
 <h2>Run the REPL in the background</h2>
 <ol>
   <li>Run <code>node -i</code> in the background as a process named <code>sessions-bg-repl</code>, and wait for the <code>&gt;</code> prompt.</li>
-  <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait for the REPL to print <code>1024</code>.</li>
+  <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait at least half a second, and until the REPL prints <code>1024</code>.</li>
   <li>Close the REPL.</li>
 </ol>
 <h2>Start a server and a REPL together</h2>
@@ -129,7 +129,7 @@ Run the REPL in the background
 
 #. Run ``node -i`` in the background as a process named ``sessions-bg-repl``, and wait for the ``>`` prompt.
 
-#. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait for the REPL to print ``1024``.
+#. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait at least half a second, and until the REPL prints ``1024``.
 
 #. Close the REPL.
 
@@ -168,7 +168,7 @@ Start a server and a REPL together
     <taskbody>
       <steps>
         <step><cmd>Run <codeph>node -i</codeph> in the background as a process named <codeph>sessions-bg-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd></step>
-        <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait for the REPL to print <codeph>1024</codeph>.</cmd></step>
+        <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait at least half a second, and until the REPL prints <codeph>1024</codeph>.</cmd></step>
         <step><cmd>Close the REPL.</cmd></step>
       </steps>
     </taskbody>
@@ -215,8 +215,8 @@ Start a server and a REPL together
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
    <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} -->
-2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
-   <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} -->
+2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
+   <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}} -->
 3. Close the REPL.
    <!-- step {"closeSurface":"sessions-bg-repl"} -->
 
@@ -261,8 +261,8 @@ Start a server and a REPL together
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
    {/* step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} */}
-2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
-   {/* step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} */}
+2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
+   {/* step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}} */}
 3. Close the REPL.
    {/* step {"closeSurface":"sessions-bg-repl"} */}
 
@@ -311,9 +311,9 @@ Start a server and a REPL together
 . Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
 +
 // (step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}})
-. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
+. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
 +
-// (step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}})
+// (step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}})
 . Close the REPL.
 +
 // (step {"closeSurface":"sessions-bg-repl"})
@@ -362,8 +362,8 @@ Start a server and a REPL together
 <ol>
   <li>Run <code>node -i</code> in the background as a process named <code>sessions-bg-repl</code>, and wait for the <code>&gt;</code> prompt.
     <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} --></li>
-  <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait for the REPL to print <code>1024</code>.
-    <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} --></li>
+  <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait at least half a second, and until the REPL prints <code>1024</code>.
+    <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}} --></li>
   <li>Close the REPL.
     <!-- step {"closeSurface":"sessions-bg-repl"} --></li>
 </ol>
@@ -418,9 +418,9 @@ Run the REPL in the background
 
    .. step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}}
 
-#. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait for the REPL to print ``1024``.
+#. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait at least half a second, and until the REPL prints ``1024``.
 
-   .. step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}}
+   .. step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}}
 
 #. Close the REPL.
 
@@ -480,8 +480,8 @@ Start a server and a REPL together
       <steps>
         <step><cmd>Run <codeph>node -i</codeph> in the background as a process named <codeph>sessions-bg-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
           <info><data name="doc-detective" value='step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}}'/></info></step>
-        <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait for the REPL to print <codeph>1024</codeph>.</cmd>
-          <info><data name="doc-detective" value='step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}}'/></info></step>
+        <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait at least half a second, and until the REPL prints <codeph>1024</codeph>.</cmd>
+          <info><data name="doc-detective" value='step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}}'/></info></step>
         <step><cmd>Close the REPL.</cmd>
           <info><data name="doc-detective" value='step {"closeSurface":"sessions-bg-repl"}'/></info></step>
       </steps>
@@ -535,8 +535,8 @@ Start a server and a REPL together
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
    <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} -->
-2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
-   <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} -->
+2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
+   <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}} -->
 3. Close the REPL.
    <!-- step {"closeSurface":"sessions-bg-repl"} -->
 
@@ -581,8 +581,8 @@ Start a server and a REPL together
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
    {/* step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} */}
-2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
-   {/* step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} */}
+2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
+   {/* step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}} */}
 3. Close the REPL.
    {/* step {"closeSurface":"sessions-bg-repl"} */}
 
@@ -631,9 +631,9 @@ Start a server and a REPL together
 . Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
 +
 // (step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}})
-. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
+. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
 +
-// (step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}})
+// (step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}})
 . Close the REPL.
 +
 // (step {"closeSurface":"sessions-bg-repl"})
@@ -682,8 +682,8 @@ Start a server and a REPL together
 <ol>
   <li>Run <code>node -i</code> in the background as a process named <code>sessions-bg-repl</code>, and wait for the <code>&gt;</code> prompt.
     <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} --></li>
-  <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait for the REPL to print <code>1024</code>.
-    <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} --></li>
+  <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait at least half a second, and until the REPL prints <code>1024</code>.
+    <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}} --></li>
   <li>Close the REPL.
     <!-- step {"closeSurface":"sessions-bg-repl"} --></li>
 </ol>
@@ -738,9 +738,9 @@ Run the REPL in the background
 
    .. step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}}
 
-#. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait for the REPL to print ``1024``.
+#. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait at least half a second, and until the REPL prints ``1024``.
 
-   .. step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}}
+   .. step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}}
 
 #. Close the REPL.
 
@@ -800,8 +800,8 @@ Start a server and a REPL together
       <steps>
         <step><cmd>Run <codeph>node -i</codeph> in the background as a process named <codeph>sessions-bg-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
           <info><data name="doc-detective" value='step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}}'/></info></step>
-        <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait for the REPL to print <codeph>1024</codeph>.</cmd>
-          <info><data name="doc-detective" value='step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}}'/></info></step>
+        <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait at least half a second, and until the REPL prints <codeph>1024</codeph>.</cmd>
+          <info><data name="doc-detective" value='step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}}'/></info></step>
         <step><cmd>Close the REPL.</cmd>
           <info><data name="doc-detective" value='step {"closeSurface":"sessions-bg-repl"}'/></info></step>
       </steps>
@@ -927,7 +927,8 @@ Start a server and a REPL together
               "process": "sessions-bg-repl"
             },
             "waitUntil": {
-              "stdio": "/1024/"
+              "stdio": "/1024/",
+              "delayMs": 500
             },
             "timeout": 10000
           }
@@ -1069,6 +1070,7 @@ tests:
             process: sessions-bg-repl
           waitUntil:
             stdio: /1024/
+            delayMs: 500
           timeout: 10000
       - closeSurface: sessions-bg-repl
   - testId: sessions-process-server

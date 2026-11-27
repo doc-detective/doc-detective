@@ -52,6 +52,7 @@ tests:
             process: sessions-bg-repl
           waitUntil:
             stdio: /1024/
+            delayMs: 500
           timeout: 10000
       - closeSurface: sessions-bg-repl
   - testId: sessions-process-server

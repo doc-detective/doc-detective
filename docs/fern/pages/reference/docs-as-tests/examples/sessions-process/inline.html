@@ -19,8 +19,8 @@
 <ol>
   <li>Run <code>node -i</code> in the background as a process named <code>sessions-bg-repl</code>, and wait for the <code>&gt;</code> prompt.
     <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} --></li>
-  <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait for the REPL to print <code>1024</code>.
-    <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} --></li>
+  <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait at least half a second, and until the REPL prints <code>1024</code>.
+    <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}} --></li>
   <li>Close the REPL.
     <!-- step {"closeSurface":"sessions-bg-repl"} --></li>
 </ol>

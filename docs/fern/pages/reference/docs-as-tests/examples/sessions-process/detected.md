@@ -19,8 +19,8 @@
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
    <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} -->
-2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
-   <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} -->
+2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
+   <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}} -->
 3. Close the REPL.
    <!-- step {"closeSurface":"sessions-bg-repl"} -->
 

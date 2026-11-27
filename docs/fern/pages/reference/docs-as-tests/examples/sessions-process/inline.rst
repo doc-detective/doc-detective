@@ -29,9 +29,9 @@ Run the REPL in the background
 
    .. step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}}
 
-#. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait for the REPL to print ``1024``.
+#. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait at least half a second, and until the REPL prints ``1024``.
 
-   .. step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}}
+   .. step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/","delayMs":500},"timeout":10000}}
 
 #. Close the REPL.
 

@@ -19,7 +19,7 @@
     <taskbody>
       <steps>
         <step><cmd>Run <codeph>node -i</codeph> in the background as a process named <codeph>sessions-bg-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd></step>
-        <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait for the REPL to print <codeph>1024</codeph>.</cmd></step>
+        <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait at least half a second, and until the REPL prints <codeph>1024</codeph>.</cmd></step>
         <step><cmd>Close the REPL.</cmd></step>
       </steps>
     </taskbody>

@@ -9,7 +9,7 @@
 ## Run the REPL in the background
 
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
-2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
+2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait at least half a second, and until the REPL prints `1024`.
 3. Close the REPL.
 
 ## Start a server and a REPL together
