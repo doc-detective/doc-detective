@@ -3216,7 +3216,7 @@
         "schemas": {
           "url": {
             "type": "string",
-            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
+            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
@@ -12086,7 +12086,7 @@
         "schemas": {
           "url": {
             "type": "string",
-            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
+            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
