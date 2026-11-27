@@ -37,6 +37,7 @@ export interface Context {
    * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context. Not the same as a step's routing `retry.limit`, which re-runs one step on the same session, and whose runs the step's `attempts` result field counts.
    */
   retries?: number;
+  matrix?: Matrix;
   /**
    * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
    */
@@ -69,27 +70,27 @@ export interface Browser {
   window?: BrowserWindow;
   viewport?: BrowserViewport;
   /**
-   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  colorScheme?: "light" | "dark";
+  colorScheme?: ("light" | "dark") | string;
   /**
-   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
   locale?: string;
   /**
-   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.
    */
   timezone?: string;
   /**
-   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  deviceScaleFactor?: number;
+  deviceScaleFactor?: number | string;
   /**
-   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  reducedMotion?: "reduce" | "no-preference";
+  reducedMotion?: ("reduce" | "no-preference") | string;
   /**
-   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.
    */
   clock?: string;
 }
@@ -142,27 +143,27 @@ export interface Browser1 {
   window?: BrowserWindow1;
   viewport?: BrowserViewport1;
   /**
-   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  colorScheme?: "light" | "dark";
+  colorScheme?: ("light" | "dark") | string;
   /**
-   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
   locale?: string;
   /**
-   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.
    */
   timezone?: string;
   /**
-   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  deviceScaleFactor?: number;
+  deviceScaleFactor?: number | string;
   /**
-   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  reducedMotion?: "reduce" | "no-preference";
+  reducedMotion?: ("reduce" | "no-preference") | string;
   /**
-   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.
    */
   clock?: string;
 }
@@ -191,6 +192,24 @@ export interface BrowserViewport1 {
    * Height of the viewport in pixels.
    */
   height?: number;
+}
+/**
+ * Values to run this context once per combination of. Each key names a list of values. Reference a value in the context's fields or in the test's steps as `$$matrix.<key>`, or `$$matrix.<key>.<field>` for a field of an object value. The context runs once per combination of the keys it references, and each combination's context ID ends in `~<key>=<value>`. A reference that is the whole string keeps the value's type; one inside a longer string is spliced in as text. A key that the test doesn't reference doesn't multiply its contexts, but on a `runOn` the test sets itself, an unreferenced key is an error.
+ */
+export interface Matrix {
+  /**
+   * The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars.
+   */
+  [k: string]:
+    | [string | number | boolean, ...(string | number | boolean)[]]
+    | [
+        {
+          [k: string]: string | number | boolean;
+        },
+        ...{
+          [k: string]: string | number | boolean;
+        }[],
+      ];
 }
 export interface Requirements {
   /**
