@@ -9,8 +9,8 @@ decision-makers: [hawkeyexl]
 ## Context and Problem Statement
 
 Teams that track tests in a test-management tool, such as Xray for Jira or Allure, import runs as
-Cucumber JSON. Doc Detective's `junit` reporter covers CI test-summary widgets, but Xray's
-Cucumber import and Allure's Cucumber adapter don't read JUnit with step-level detail. Those teams
+Cucumber JSON. Doc Detective's `junit` reporter covers CI test-summary widgets. Xray's
+Cucumber import and Allure's Cucumber adapter, though, don't read JUnit with step-level detail. Those teams
 had to hand-roll a converter from the `json` reporter's output.
 
 How should Doc Detective emit Cucumber JSON, and how should its results map onto Cucumber's model?
@@ -99,9 +99,9 @@ and the exit code doesn't change, as for `junit`.
 
 ### Confirmation
 
-* `test/cucumberReporter.test.js` covers each status, nanosecond durations, warning output, error
-  messages, the screenshot embedding and a missing file, the recording embedding, both output-path
-  forms, and the write-failure message.
+* `test/cucumberReporter.test.js` covers each status, nanosecond durations, warning output, and
+  error messages. It also covers the screenshot embedding and a missing file, the recording
+  embedding, both output-path forms, and the write-failure message.
 * `test/core-artifacts/reporters/reporters.spec.json` runs the CLI with `--reporters cucumber` and
   checks that `cucumber.json` exists, parses, and carries the expected statuses.
 
@@ -116,7 +116,7 @@ and the exit code doesn't change, as for `junit`.
 ### B. A Cucumber formatter package
 
 * Good, because a reference implementation owns the format.
-* Bad, because those packages consume Cucumber messages from a Cucumber runtime, so Doc Detective
+* Bad, because those packages consume Cucumber messages from a Cucumber runtime. Doc Detective
   would have to synthesize a message stream to get a JSON file.
 * Bad, because it adds a dependency to the CLI install.
 
