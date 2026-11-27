@@ -1,0 +1,215 @@
+---
+title: Gherkin input format
+sidebar-title: Gherkin
+description: Run Gherkin .feature files with Doc Detective. Each scenario runs as a test, with no step definitions to write.
+---
+
+Gherkin is the `Given`/`When`/`Then` language of Cucumber and other behavior-driven development tools. Doc Detective reads `.feature` files with no configuration. Each scenario runs as a test, and each step phrase maps to a Doc Detective action. You don't write step definitions or install Cucumber.
+
+```gherkin
+Feature: Sign up
+
+  Background:
+    Given I go to "https://example.com/signup"
+
+  Scenario: Sign up with an email address
+    When I type "ada@example.com" into "#email"
+    And I click "Sign up"
+    Then I should see "Check your inbox"
+```
+
+## File extensions
+
+Doc Detective processes Gherkin files with the `.feature` extension.
+
+To read files with another extension as Gherkin, add a file type that extends `gherkin` to `fileTypes` in your [config file](/reference/schemas/config):
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "stories",
+      "extends": "gherkin",
+      "extensions": ["story"]
+    }
+  ]
+}
+```
+
+A `fileTypes` list in your config replaces the default list. If your config already sets `fileTypes`, add `"gherkin"` to it to keep reading `.feature` files.
+
+## How scenarios become tests
+
+- Each `.feature` file is a spec.
+- Each `Scenario` (or `Example`) is a test. Its name is the test's `testId` and `description`.
+- `Background` steps run at the start of every scenario in the file. A `Background` inside a `Rule` runs after the file's `Background`, in that rule's scenarios only.
+- A `Scenario Outline` (or `Scenario Template`) runs once per row of its `Examples` (or `Scenarios`) tables. Each `<name>` placeholder takes the row's value, in step text, doc strings, and table cells. Each row's `testId` is the scenario name plus ` [row N]`, counting from 1 across all of the outline's `Examples`.
+- `Rule` groups scenarios. Its tags and `Background` apply to the scenarios inside it.
+
+To filter scenarios with [`--test`](/reference/cli), use the scenario name, or set your own ID with an `@id:` [tag](#tags).
+
+Keywords must be in English.
+
+## Step phrases
+
+With [step detection](/docs/test-docs/detected) on, which is the default, each step's text after `Given`, `When`, `Then`, `And`, `But`, or `*` maps to an action:
+
+| Step phrase | Action |
+|---|---|
+| `I go to "<url>"`, `I open "<url>"` | [`goTo`](/docs/actions/goto) |
+| `I click "<text or selector>"` | [`click`](/docs/actions/click) |
+| `I see "<text or selector>"`, `I should see "<text or selector>"` | [`find`](/docs/actions/find) |
+| `I should not see "<text>"` | Checks that the page's text doesn't contain the text, with [`runBrowserScript`](/docs/actions/runbrowserscript) |
+| `I type "<keys>"` | [`type`](/docs/actions/type) |
+| `I type "<keys>" into "<selector>"` | [`type`](/docs/actions/type) into an element |
+| `I press "<key>"` | [`type`](/docs/actions/type) with a named key, such as `"Enter"`, `"Escape"`, or `"Page Down"` |
+| `I hover over "<text>"`, `I scroll to "<text>"` | [`find`](/docs/actions/find) with `moveTo`, which scrolls the element into view and moves the pointer to it |
+| `I drag "<source>" to "<target>"` | [`dragAndDrop`](/docs/actions/draganddrop) |
+| `I swipe up`, `down`, `left`, or `right` | [`swipe`](/docs/actions/swipe) |
+| `the link "<url>" works` | [`checkLink`](/docs/actions/checklink) |
+| `I take a screenshot "<path>"` | [`screenshot`](/docs/actions/screenshot) |
+| `I take a screenshot of "<text or selector>" as "<path>"` | [`screenshot`](/docs/actions/screenshot), cropped to the element |
+| `I start recording "<path>"`, `I stop recording` | [`record`](/docs/actions/record), [`stopRecord`](/docs/actions/stoprecord) |
+| `I save the session as "<path>"`, `I restore the session "<path>"` | [`saveState`](/docs/actions/savestate), [`loadState`](/docs/actions/loadstate) |
+| `I run "<command>"`, `I run the command "<command>"`, `I run the script "<command>"` | [`runShell`](/docs/actions/runshell) |
+| `I run:` with a doc string | [`runCode`](/docs/actions/runcode). The doc string's media type is the language |
+| `I wait <n> seconds`, `I wait <n> milliseconds` | [`wait`](/docs/actions/wait) |
+| `the variables in "<path>"` | [`loadVariables`](/docs/actions/loadvariables) |
+| `I send a <METHOD> request to "<url>"`, optionally ending in `with:` and a doc string body | [`httpRequest`](/docs/actions/httprequest) |
+| `the response status should be <n>`, `the response status is <n>` | Sets the accepted status code of the request step right before it |
+| `the API "<METHOD> <url>" returns "<file>"`, or `returns:` and a doc string | [`mockRequest`](/docs/actions/mockrequest). The method is optional |
+
+`I run:` makes a `runCode` step, which is unsafe, so it runs only with [`allowUnsafeSteps`](/reference/schemas/config).
+
+A step that matches no phrase doesn't run, and Doc Detective warns:
+
+```text
+Couldn't map step `When I frobnicate` in `/abs/path/login.feature:12` to an action. Add a `step` statement or a `markup` entry.
+```
+
+The rest of the scenario still runs. To run something there, add a [`# step` statement](#inline-statements), or add your own phrase in a file type that extends `gherkin`. Each phrase is a `markup` entry that matches `element` nodes with the tag `step`, and its `regex` runs on the step text without its keyword:
+
+```json
+{
+  "fileTypes": [
+    {
+      "extends": "gherkin",
+      "markup": [
+        {
+          "name": "signIn",
+          "element": { "tag": ["step"] },
+          "regex": ["^I sign in as \"([^\"]+)\"$"],
+          "actions": [{ "type": { "keys": "$1", "selector": "#user" } }, { "click": "Sign in" }]
+        }
+      ]
+    }
+  ]
+}
+```
+
+See [Custom inputs](custom) for how `markup` entries merge.
+
+### Doc strings and data tables
+
+A doc string (`"""` or ```` ``` ````) after `I run:`, a `with:` request, or `returns:` is the code, the request body, or the mocked body. Text after the opening `"""`, such as `bash` or `json`, is the media type:
+
+```gherkin
+Scenario: Create a user
+  When I send a POST request to "https://api.example.com/users" with:
+    """json
+    {"name": "Ada"}
+    """
+  Then the response status should be 201
+```
+
+A data table after `I fill in:` types each row's value into the row's selector. A one-column table after `I should see:` finds each row's text:
+
+```gherkin
+Scenario: Fill in the form
+  When I fill in:
+    | #email | ada@example.com |
+    | #name  | Ada             |
+  Then I should see:
+    | Welcome, Ada |
+```
+
+## Tags
+
+Tags on a `Feature`, `Rule`, `Scenario`, or `Examples` table apply to everything inside it.
+
+| Tag | Effect |
+|---|---|
+| `@chrome`, `@firefox`, `@safari`, `@webkit` | Runs the scenario in those browsers |
+| `@windows`, `@mac`, `@linux`, `@android`, `@ios` | Runs the scenario only on those platforms |
+| `@headless` | Runs the browsers headless |
+| `@record` | Records a video of the scenario. See [automatic recording](/docs/test-docs/automatic-recording) |
+| `@skip`, `@wip` | Skips the scenario, with ``Skipped: test guard `if` condition not met.`` |
+| `@id:<id>` | Sets the scenario's `testId` |
+
+Browser and platform tags set the test's [`runOn`](/docs/test-docs/platforms-and-browsers), which replaces the contexts in your config for that scenario. Other tags have no effect.
+
+## Emulation steps
+
+These steps set how the page sees the browser instead of running an action:
+
+| Step | Sets |
+|---|---|
+| `a <width>x<height> viewport`, as in `Given a 390x844 viewport` | `viewport` |
+| `dark mode`, `light mode` | `colorScheme` |
+| `the locale is "<tag>"`, as in `Given the locale is "de-DE"` | `locale` |
+| `the timezone is "<zone>"`, as in `Given the timezone is "Europe/Berlin"` | `timezone` |
+
+They apply to the whole scenario, wherever they appear in it, and a `Background` sets them for every scenario. With no browser tag, the scenario runs in Chrome, the one browser that supports every setting. A browser that can't apply a setting skips the scenario's context. See [page emulation](/docs/test-docs/platforms-and-browsers#page-emulation) for what each browser supports.
+
+Combine browser tags with emulation steps to run one file across browsers and settings:
+
+```gherkin
+@chrome @firefox
+Feature: Dashboard
+
+  Scenario: Dark mode
+    Given dark mode
+    And a 1280x800 viewport
+    When I go to "https://example.com/dashboard"
+    Then I take a screenshot "dashboard-dark.png"
+```
+
+## Inline statements
+
+Gherkin comments hold [inline statements](/docs/test-docs/inline):
+
+- `# step {...}` adds a step where it sits in the scenario.
+- `# test {...}` above a scenario, or above its tags, adds settings to that scenario's test. Its keys win over the ones tags set.
+- `# test ignore start` and `# test ignore end` skip the steps between them.
+
+Each scenario is already a test, so it needs no `# test end`. Gherkin statements take JSON only.
+
+```gherkin
+Feature: Search
+
+  # test {"testId": "search", "runOn": [{"browsers": "firefox"}]}
+  Scenario: Search for kittens
+    Given I go to "https://example.com"
+    # step {"screenshot": {"path": "search.png", "maxVariation": 0.05}}
+    When I type "kittens" into "#q"
+    # test ignore start
+    Then I should see "Results for kittens"
+    # test ignore end
+```
+
+To run only the inline statements, turn off step detection with [`detectSteps: false`](/reference/schemas/config) in your config, or with `# test {"detectSteps": false}` above a scenario. Step phrases then don't run or warn.
+
+## Warnings
+
+| When | Warning |
+|---|---|
+| A step matches no phrase | ``Couldn't map step `<step>` in `<file>:<line>` to an action. Add a `step` statement or a `markup` entry.`` |
+| A `Scenario Outline` has no `Examples` | ``Couldn't expand `Scenario Outline: <name>` in `<file>:<line>`: it has no `Examples`.`` |
+
+An outline with no `Examples` and a scenario with no steps don't run.
+
+## Next steps
+
+- See [inline tests](/docs/test-docs/inline) for every statement.
+- See [Custom inputs](custom) to add or change step phrases.
+- See [platforms and browsers](/docs/test-docs/platforms-and-browsers) for contexts and emulation.
