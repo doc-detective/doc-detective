@@ -195,6 +195,31 @@ describe("cucumber reporter", function () {
       assert.equal(features[0].elements.length, 1);
       assert.deepEqual(features[0].elements[0].steps, []);
     });
+
+    it("adds a failed step when the context failed but none of its steps did", function () {
+      const context = {
+        result: "FAIL",
+        autoRecording: { result: "FAIL", resultDescription: "Couldn't save the recording." },
+        steps: [{ stepId: "s", wait: 100, result: "PASS" }],
+      };
+      const steps = buildCucumberJson({ specs: [{ specId: "s", tests: [{ testId: "t", contexts: [context] }] }] })[0].elements[0].steps;
+      assert.equal(steps.length, 2);
+      assert.equal(steps[1].result.status, "failed");
+      assert.equal(steps[1].result.error_message, "Couldn't save the recording.");
+      // A context whose own steps carry the failure gets no extra step.
+      assert.equal(stepsOf(buildCucumberJson(run().report)).filter((s) => s.result.status === "failed").length, 1);
+    });
+
+    it("embeds only PNG files as screenshots", function () {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cucumber-"));
+      fs.writeFileSync(path.join(dir, "secret.txt"), "not an image");
+      const report = {
+        runDir: dir,
+        specs: [{ specId: "s", tests: [{ testId: "t", contexts: [{ result: "PASS", steps: [{ stepId: "x", result: "PASS", outputs: { screenshotPath: "secret.txt" } }] }] }] }],
+      };
+      assert.equal(buildCucumberJson(report)[0].elements[0].steps[0].embeddings, undefined);
+      fs.rmSync(dir, { recursive: true, force: true });
+    });
   });
 
   describe("writing", function () {

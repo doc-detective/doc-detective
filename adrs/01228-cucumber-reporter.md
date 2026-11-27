@@ -68,6 +68,10 @@ On `FAIL`, `result.error_message` is the step's `resultDescription`, then its `r
 new line when present. A `WARNING` step has no `error_message`, because the Cucumber JSON format
 defines it only for failed steps. Its text is in `output`.
 
+A context can fail when none of its steps did, as when its recording fails. Then the scenario gets
+one more step, named `context`, with status `failed`. Its `error_message` is the recording's
+`resultDescription`, or else the context's. Without it, the scenario would show every step passing.
+
 ### Durations
 
 `result.duration` is in **nanoseconds**, as the Cucumber JSON format defines it, converted from the
@@ -78,15 +82,15 @@ step's `durationMs`. A missing or negative duration is `0`.
 * A step's screenshot, `autoScreenshotPath` or `outputs.screenshotPath`, found as `nonPassItems`
   finds it, is `{ "mime_type": "image/png", "data": "<base64>" }` in that step's `embeddings`. A
   file that isn't on disk is skipped silently. The image is inlined because importers don't
-  resolve paths beside the report.
+  resolve paths beside the report. Only a path ending in `.png` is read. A report can come from
+  the API, so its paths aren't trusted to name only screenshots.
 * The context's `autoRecording.recordingPath`, when the file exists, is a `text/plain` embedding
   holding the absolute path, on the scenario's last step. Videos are too large to inline. Like
   every embedding's `data`, the path is base64-encoded, as the format requires.
 
 ### File and failures
 
-The file is `cucumber.json` in `outputDir`, or beside `output` when it names a file, resolved by
-`reportOutputDir` as for `junit.xml`. It's overwritten on each run. A write failure logs
+The file is `cucumber.json` in `outputDir`, resolved by `reportOutputDir` as for `junit.xml`. It's overwritten on each run. A write failure logs
 ``Couldn't write the Cucumber report to <absolute path>: <cause in words>.`` through `writeReport`,
 and the exit code doesn't change, as for `junit`.
 

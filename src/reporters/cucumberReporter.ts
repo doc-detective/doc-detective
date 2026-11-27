@@ -49,8 +49,10 @@ function buildCucumberJson(results: any): any[] {
             result.error_message = [step.resultDescription, step.resultHint].filter(Boolean).join("\n");
           }
           if (step.result === "WARNING" && step.resultDescription) out.output = [step.resultDescription];
+          // Only PNGs: the report reads these files, and a path from an API
+          // report mustn't copy any other file into it.
           const shot = [step.autoScreenshotPath, step.outputs?.screenshotPath]
-            .map((file) => existingFile(file, runDir))
+            .map((file) => (/\.png$/i.test(String(file ?? "")) ? existingFile(file, runDir) : undefined))
             .find(Boolean);
           // ponytail: inline base64 makes a big file on a screenshot-heavy run.
           // Add an opt-out (or a path-only mode) when someone hits that.
@@ -61,6 +63,18 @@ function buildCucumberJson(results: any): any[] {
         if (recording && steps.length > 0) {
           const last = steps[steps.length - 1];
           last.embeddings = [...(last.embeddings ?? []), { mime_type: "text/plain", data: Buffer.from(recording).toString("base64") }];
+        }
+        // A context can fail after every step passed, as when its recording fails.
+        if (context.result === "FAIL" && !steps.some((step) => step.result.status === "failed")) {
+          steps.push({
+            keyword: "* ",
+            name: "context",
+            result: {
+              status: "failed",
+              duration: 0,
+              error_message: context.autoRecording?.resultDescription || context.resultDescription || "",
+            },
+          });
         }
         elements.push({
           type: "scenario",
