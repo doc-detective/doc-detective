@@ -13,6 +13,8 @@ Doc Detective tests your documentation by running the procedures it describes an
 
 Write your docs however you like. You can keep tests **inline** in a source file, let Doc Detective **detect** them from your prose, or maintain them as **standalone** spec files. Start with these regardless of which interface your procedures drive. Once a test passes, Doc Detective can [write a "Last verified on" date](/docs/test-docs/last-verified-on) into any page that names the test's `testId` or `specId`.
 
+To find the procedure steps, code blocks, links, and images that no test covers yet, run [`doc-detective audit`](/docs/test-docs/audit-test-coverage). It runs no tests and exits 0 whatever the coverage, so it reports gaps without failing a build.
+
 ## Test UI procedures
 
 For docs that walk a reader through a graphical interface. Find and click elements, fill fields, capture fresh screenshots, and record video so visual steps never drift from the product.
