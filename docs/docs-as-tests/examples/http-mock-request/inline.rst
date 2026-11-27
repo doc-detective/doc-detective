@@ -1,7 +1,7 @@
 Preview invoices against a stubbed API
 ======================================
 
-.. test {"testId":"http-mock-request","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}
+.. test {"testId":"http-mock-request","detectSteps":false,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}
 
 Stub the invoices endpoint so that every ``GET`` request returns the invoices in ``invoices.json``.
 

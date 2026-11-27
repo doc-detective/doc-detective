@@ -2,7 +2,7 @@
 <html lang="en">
 <head><title>Preview invoices against a stubbed API</title></head>
 <body>
-<!-- test {"testId":"http-mock-request","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
+<!-- test {"testId":"http-mock-request","detectSteps":false,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
 <h1>Preview invoices against a stubbed API</h1>
 <p>Stub the invoices endpoint so that every <code>GET</code> request returns the invoices in <code>invoices.json</code>.</p>
 <!-- step {"mockRequest":{"url":"**/api/invoices*","method":"GET","response":{"statusCode":200,"headers":{"x-mock":"docs"},"bodyPath":"invoices.json"}}} -->

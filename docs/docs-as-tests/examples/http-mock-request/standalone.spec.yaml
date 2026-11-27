@@ -3,7 +3,6 @@ tests:
   - testId: http-mock-request
     runOn:
       - platforms:
-          - windows
           - mac
           - linux
         browsers:

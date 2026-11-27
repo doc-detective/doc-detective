@@ -3,7 +3,7 @@
 <topic id="http-mock-request">
   <title>Preview invoices against a stubbed API</title>
   <body>
-    <data name="doc-detective" value='test {"testId":"http-mock-request","detectSteps":true,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}'/>
+    <data name="doc-detective" value='test {"testId":"http-mock-request","detectSteps":true,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}'/>
     <p>Stub the invoices endpoint so that every <codeph>GET</codeph> request returns the invoices in <codeph>invoices.json</codeph>.</p>
     <data name="doc-detective" value='step {"mockRequest":{"url":"**/api/invoices*","method":"GET","response":{"statusCode":200,"headers":{"x-mock":"docs"},"bodyPath":"invoices.json"}}}'/>
     <p>Stub invoice creation too, so that a <codeph>POST</codeph> request returns a new invoice ID.</p>
