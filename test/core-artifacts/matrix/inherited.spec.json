@@ -1,6 +1,6 @@
 {
   "specId": "matrix-inherited",
-  "description": "A spec-level `runOn` `matrix` reaches every test without a `runOn` of its own, and multiplies only the tests that reference it (ADR 01227).",
+  "description": "A spec-level `runOn` `matrix` reaches every test without a `runOn` of its own, and multiplies only the tests that reference it (ADR 01232).",
   "runOn": [
     {
       "matrix": {
