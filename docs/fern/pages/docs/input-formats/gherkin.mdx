@@ -18,6 +18,8 @@ Feature: Sign up
     Then I should see "Check your inbox"
 ```
 
+If your repository already has a Cucumber suite, Doc Detective reads its `.feature` files too. `input` defaults to the current folder, and Doc Detective searches the folders inside it. Steps that match a [phrase](#step-phrases) run as Doc Detective actions, and the rest [warn](#warnings). To leave the suite out, set `input` to your docs folder. To test your docs from that suite instead, see [Run Doc Detective from a Cucumber suite](/docs/ci/cucumber).
+
 ## File extensions
 
 Doc Detective processes Gherkin files with the `.feature` extension.
