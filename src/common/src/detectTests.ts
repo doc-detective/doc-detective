@@ -383,6 +383,24 @@ export async function parseContent({
   let testId = nextPendingTestId();
   let ignore = false;
 
+  // A statement that isn't JSON, YAML, or key=value attributes would otherwise
+  // vanish, and its steps would land in some other test. A `test end` or
+  // `test ignore` comment also matches most `testStart` patterns, so a match
+  // that another statement covers isn't reported.
+  const keywordSpans = statements
+    .filter((s: any) => s.type !== "testStart" && s.type !== "step" && s.type !== "detectedStep")
+    .map((s: any) => [s._startIndex, s._endIndex]);
+  const reportUnparsed = (kind: "test" | "step", text: string, statement: any) => {
+    if (ignore) return;
+    if (keywordSpans.some(([start, end]) => statement._startIndex < end && start < statement._endIndex)) return;
+    const reason =
+      `Couldn't parse the inline \`${kind}\` statement \`${text}\`. ` +
+      "Write it as JSON, as YAML with more than one key inside braces (`{key: value, key: value}`), " +
+      "or as `key=value` attributes.";
+    log(config, "warn", `${filePath}: ${reason}`);
+    onInvalid?.(reason);
+  };
+
   statements.forEach((statement) => {
     let test: DetectedTest | undefined;
     let statementContent = "";
@@ -392,7 +410,10 @@ export async function parseContent({
       case "testStart": {
         statementContent = statement[1] || statement[0];
         const parsedTest = parseObject({ stringifiedObject: statementContent });
-        if (!parsedTest || typeof parsedTest !== 'object') break;
+        if (!parsedTest || typeof parsedTest !== 'object') {
+          reportUnparsed("test", statementContent, statement);
+          break;
+        }
 
         test = parsedTest as DetectedTest;
 
@@ -584,7 +605,10 @@ export async function parseContent({
         test = findTest({ tests, testId });
         statementContent = statement[1] || statement[0];
         const parsedStep = parseObject({ stringifiedObject: statementContent });
-        if (!parsedStep || typeof parsedStep !== 'object') break;
+        if (!parsedStep || typeof parsedStep !== 'object') {
+          reportUnparsed("step", statementContent, statement);
+          break;
+        }
 
         let step = parsedStep;
 
