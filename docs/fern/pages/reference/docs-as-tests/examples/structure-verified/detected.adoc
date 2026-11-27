@@ -1,0 +1,9 @@
+= Open the elements demo
+
+// (meta {"verified-by":[{"tool":"doc-detective","check":"structure-verified"}]})
+// (test {"testId":"structure-verified","badge":true,"detectSteps":true})
+
+. Open http://localhost:8092/index.html[the elements demo].
+. Check that the page shows *Common HTML Elements*.
+
+// (test end)

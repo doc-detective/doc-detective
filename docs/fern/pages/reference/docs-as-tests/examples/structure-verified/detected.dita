@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="open-elements-demo">
+  <title>Open the elements demo</title>
+  <taskbody>
+    <data name="manni-meta" value='{"verified-by":[{"tool":"doc-detective","check":"structure-verified"}]}'/>
+    <data name="doc-detective" value='test {"testId":"structure-verified","badge":true,"detectSteps":true}'/>
+    <steps>
+      <step><cmd>Open <xref href="http://localhost:8092/index.html" scope="external" format="html">the elements demo</xref>.</cmd></step>
+      <step><cmd>Check that the page shows <b>Common HTML Elements</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

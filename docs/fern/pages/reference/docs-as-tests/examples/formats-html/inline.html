@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Press a button</title></head>
+<body>
+<!-- test {"testId":"formats-html","detectSteps":false} -->
+<h1>Press a button</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/index.html">the elements demo</a>.
+    <!-- step goTo: http://localhost:8092/index.html --></li>
+  <li>Find the <strong>Buttons</strong> section.
+    <!-- step find="Buttons" --></li>
+  <li>Click <strong>Standard Button</strong>.
+    <!--
+      step {"click": "Standard Button"}
+    --></li>
+</ol>
+<!-- test ignore start -->
+<p>To fetch the page from a terminal instead, run:</p>
+<pre><code class="language-bash">curl http://localhost:8092/index.html</code></pre>
+<!-- step {"runShell":"curl http://localhost:8092/index.html"} -->
+<!-- test ignore end -->
+<!-- test end -->
+</body>
+</html>

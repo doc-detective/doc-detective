@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="echo-text-dita">
+  <title>Echo text back</title>
+  <?doc-detective test {"testId":"formats-dita","detectSteps":false} ?>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
+        <?doc-detective step
+          goTo: http://localhost:8092/type-echo.html
+        ?></step>
+      <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd>
+        <?doc-detective step click="Type here:" ?></step>
+      <step><cmd>Type "Hello, DITA".</cmd>
+        <!-- step type="Hello, DITA" --></step>
+      <step><cmd>Check that the page shows <b>Hello, DITA</b> below the field.</cmd>
+        <info><data name='doc-detective' value='step {"find":"Hello, DITA"}'/></info></step>
+    </steps>
+    <postreq>
+      <?doc-detective test ignore start?>
+      <p>To fetch the page from a terminal instead, run:</p>
+      <codeblock outputclass="language-bash">curl http://localhost:8092/type-echo.html</codeblock>
+      <data name="doc-detective" value="step runShell='curl http://localhost:8092/type-echo.html'"/>
+      <?doc-detective test ignore end?>
+    </postreq>
+  </taskbody>
+  <data name="doc-detective" value="test end"></data>
+</task>

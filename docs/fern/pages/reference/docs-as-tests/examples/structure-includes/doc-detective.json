@@ -1,0 +1,21 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": true,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "fileTypes": [
+    "markdown",
+    "asciidoc",
+    "rst",
+    "dita",
+    {
+      "extends": "html",
+      "includeStatements": ["<!--#include\\s+file=\"([^\"]+)\"\\s*-->"]
+    }
+  ],
+  "beforeAll": "../../../../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  }
+}
