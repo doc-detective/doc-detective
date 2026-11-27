@@ -90,9 +90,11 @@ A `FAIL` or `WARNING` sets the context's `result`, the way a step's does. `PASS`
 The field is absent when Doc Detective didn't try to record the context. That means one of these is true:
 
 - `autoRecord` is `false`.
-- The context drives no browser, app, or device.
+- The context drives no browser, app, or device, and doesn't type into a background process.
 - A headless Chrome context has its own `record` step.
 - `autoRecord` is unset and the host check below failed.
+
+A context that [types into a background process](/docs/actions/type#type-to-a-background-process) with `"surface": { "process": "<name>" }` drives no browser, app, or device, but Doc Detective still tries to record it. Its `autoRecording` is SKIPPED with `Skipped: the context has no browser, app, or device session to record.`, and the context still passes. Like any recording that didn't pass, it's listed as an item of its own in the `terminal`, `markdown`, and `junit` reports. To leave it out, set `autoRecord` to `false` on those tests, or at the spec or config level.
 
 Each reporter points at the video its own way:
 
