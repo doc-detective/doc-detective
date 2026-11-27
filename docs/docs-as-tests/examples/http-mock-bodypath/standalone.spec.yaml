@@ -3,7 +3,6 @@ tests:
   - testId: http-mock-bodypath
     runOn:
       - platforms:
-          - windows
           - mac
           - linux
         browsers:

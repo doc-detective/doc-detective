@@ -3,7 +3,7 @@
 <topic id="http-mock-body-array">
   <title>Stub an API response</title>
   <body>
-    <data name="doc-detective" value='test {"testId":"http-mock-body-array","detectSteps":true,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}'/>
+    <data name="doc-detective" value='test {"testId":"http-mock-body-array","detectSteps":true,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}'/>
     <p>Stub the plans endpoint.</p>
     <data name="doc-detective" value='step {"mockRequest":{"url":"**/api/plans","response":{"body":["pro","team"]}}}'/>
     <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>

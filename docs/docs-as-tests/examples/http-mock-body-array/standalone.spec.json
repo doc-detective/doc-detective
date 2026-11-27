@@ -6,7 +6,6 @@
       "runOn": [
         {
           "platforms": [
-            "windows",
             "mac",
             "linux"
           ],

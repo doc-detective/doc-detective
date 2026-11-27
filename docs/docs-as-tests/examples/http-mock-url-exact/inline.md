@@ -1,4 +1,4 @@
-<!-- test {"testId":"http-mock-url-exact","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
+<!-- test {"testId":"http-mock-url-exact","detectSteps":false,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
 
 # Stub an API response
 

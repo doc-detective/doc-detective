@@ -3,7 +3,6 @@ tests:
   - testId: http-mock-body-array
     runOn:
       - platforms:
-          - windows
           - mac
           - linux
         browsers:

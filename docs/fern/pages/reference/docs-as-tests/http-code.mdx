@@ -392,7 +392,7 @@ These examples load `users.openapi.json` from the [OpenAPI example](#call-operat
 
 ## `mockRequest` permutations
 
-`mockRequest` needs Chrome, so each example runs on headless Chrome through `runOn`. A `runBrowserScript` step fetches the stubbed URL from the test site to show the response.
+`mockRequest` needs Chrome, so each example runs on headless Chrome on macOS and Linux through `runOn`. Windows is left out, as in the example above. A `runBrowserScript` step fetches the stubbed URL from the test site to show the response.
 
 ### `url` as a glob
 

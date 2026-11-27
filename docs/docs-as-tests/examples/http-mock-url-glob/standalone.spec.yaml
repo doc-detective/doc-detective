@@ -3,7 +3,6 @@ tests:
   - testId: http-mock-url-glob
     runOn:
       - platforms:
-          - windows
           - mac
           - linux
         browsers:

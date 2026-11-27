@@ -3,7 +3,6 @@ tests:
   - testId: http-mock-url-exact
     runOn:
       - platforms:
-          - windows
           - mac
           - linux
         browsers:

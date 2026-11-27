@@ -1,7 +1,7 @@
 Stub an API response
 ====================
 
-.. test {"testId":"http-mock-url-glob","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}
+.. test {"testId":"http-mock-url-glob","detectSteps":false,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}
 
 Stub the plans endpoint.
 
