@@ -1,0 +1,9 @@
+<!-- test {"testId":"http-request-parameters","detectSteps":false} -->
+
+# Send query parameters
+
+Send a `GET` request to `http://localhost:8093/api/users` with the `page` parameter set to `2`. The response echoes it.
+
+<!-- step {"httpRequest":{"url":"http://localhost:8093/api/users","request":{"parameters":{"page":"2"}},"response":{"body":{"page":"2"}}}} -->
+
+<!-- test end -->

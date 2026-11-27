@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Run a process in a terminal</title></head>
+<body>
+<!-- test {"testId":"http-shell-tty-true","detectSteps":false} -->
+<h1>Run a process in a terminal</h1>
+<p>Print the terminal size the process sees. It's <code>120x30</code>:</p>
+<pre><code class="language-shell">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</code></pre>
+<!-- step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-shell-tty-true","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} -->
+<p>Stop it when you're done.</p>
+<!-- step {"closeSurface":"http-shell-tty-true"} -->
+<!-- test end -->
+</body>
+</html>

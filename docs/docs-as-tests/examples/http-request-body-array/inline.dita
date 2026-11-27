@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-body-array">
+  <title>Send an array body</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-body-array","detectSteps":false}'/>
+    <p>Send a <codeph>POST</codeph> request to <codeph>http://localhost:8093/api/users/batch</codeph> with two users in an array. The response echoes the array.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/users/batch","method":"post","request":{"headers":{"Content-Type":"application/json"},"body":[{"name":"Ada"},{"name":"Grace"}]},"response":{"body":[{"name":"Ada"},{"name":"Grace"}]}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

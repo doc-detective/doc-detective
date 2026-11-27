@@ -1,0 +1,13 @@
+<!-- test {"testId":"http-code-language-javascript","detectSteps":false} -->
+
+# Run a code block
+
+Run this code. It prints `ready`:
+
+```javascript
+console.log("ready");
+```
+
+<!-- step {"runCode":{"language":"javascript","code":"console.log(\"ready\");","stdio":"ready"}} -->
+
+<!-- test end -->

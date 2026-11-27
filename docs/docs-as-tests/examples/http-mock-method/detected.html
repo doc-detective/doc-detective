@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Stub an API response</title></head>
+<body>
+<!-- test {"testId":"http-mock-method","detectSteps":true,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
+<h1>Stub an API response</h1>
+<p>Stub the plans endpoint.</p>
+<!-- step {"mockRequest":{"url":"**/api/plans","method":"POST","response":{"body":"mocked-post"}}} -->
+<p>Open the test site at <code>http://localhost:8092/</code>.</p>
+<!-- step {"goTo":"http://localhost:8092/"} -->
+<p>Fetch <code>/api/plans</code> with <code>GET</code> and with <code>POST</code>. Only the <code>POST</code> request is stubbed.</p>
+<!-- step {"runBrowserScript":{"script":"const u = '/api/plans'; return Promise.all([fetch(u).then((r) => r.text()), fetch(u, { method: 'POST' }).then((r) => r.text())]).then(([get, post]) => (get === 'mocked-post' ? 'GET was mocked' : 'GET passed') + ', POST ' + post);","output":"GET passed, POST mocked-post"}} -->
+<!-- test end -->
+</body>
+</html>

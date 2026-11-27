@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-openapi-useexample-both
+    openApi:
+      - name: users
+        descriptionPath: ../http-openapi/users.openapi.json
+    steps:
+      - httpRequest:
+          openApi:
+            operationId: createUser
+            useExample: both

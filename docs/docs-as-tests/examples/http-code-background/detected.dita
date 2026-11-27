@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-background">
+  <title>Start a server from code</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-code-background","detectSteps":true}'/>
+    <p>Start a server on port 8251:</p>
+    <data name="doc-detective" value="test ignore start"/>
+    <codeblock outputclass="language-js">require('http').createServer((q, r) =&gt; r.end('ok')).listen(8251);</codeblock>
+    <data name="doc-detective" value="test ignore end"/>
+    <data name="doc-detective" value='step {"runCode":{"language":"js","code":"require(&apos;http&apos;).createServer((q, r) => r.end(&apos;ok&apos;)).listen(8251);","background":{"name":"http-code-server","waitUntil":{"port":8251}},"timeout":15000}}'/>
+    <p>Stop it when you're done.</p>
+    <data name="doc-detective" value='step {"closeSurface":"http-code-server"}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

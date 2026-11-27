@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-method-get">
+  <title>GET a user</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-method-get","detectSteps":false}'/>
+    <p>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8093/api/users?page=2</codeph>.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/users?page=2","method":"get","response":{"body":{"page":"2"}}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-unsafe-allowed">
+  <title>Run an unsafe step</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-code-unsafe-allowed","detectSteps":true}'/>
+    <p>Run this code:</p>
+    <codeblock outputclass="language-javascript">console.log("ready");</codeblock>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

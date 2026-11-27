@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-method-patch">
+  <title>PATCH a user</title>
+  <body>
+    <p>Send a <codeph>PATCH</codeph> request to <codeph>http://localhost:8093/api/users/2</codeph> with the body <codeph>{"job":"lead"}</codeph>.</p>
+  </body>
+</topic>

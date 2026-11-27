@@ -1,0 +1,9 @@
+# Run a process in a terminal
+
+Print the terminal size the process sees. It's `100x40`:
+
+```shell
+node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+```
+
+Stop it when you're done.

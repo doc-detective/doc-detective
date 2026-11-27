@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-mock-body-array">
+  <title>Stub an API response</title>
+  <body>
+    <p>Stub the plans endpoint.</p>
+    <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
+    <p>Fetch <codeph>/api/plans</codeph>. The response lists <codeph>pro</codeph> and <codeph>team</codeph>.</p>
+  </body>
+</topic>
