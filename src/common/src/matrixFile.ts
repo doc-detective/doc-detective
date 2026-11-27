@@ -10,7 +10,9 @@ function decodeXml(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
     if (entity[0] === "#") {
       const code = entity[1].toLowerCase() === "x" ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
-      return code <= 0x10ffff ? String.fromCodePoint(code) : match;
+      // Out of range, or a surrogate XML doesn't allow: leave it as written.
+      const valid = code <= 0x10ffff && (code < 0xd800 || code > 0xdfff);
+      return valid ? String.fromCodePoint(code) : match;
     }
     return ENTITIES[entity.toLowerCase()] ?? match;
   });
