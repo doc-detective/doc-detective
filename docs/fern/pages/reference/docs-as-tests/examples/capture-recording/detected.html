@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Record a walkthrough</title></head>
+<body>
+<h1>Record a walkthrough</h1>
+<!-- test {"testId":"capture-record-tab","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["windows","mac"],"browsers":{"name":"chrome","headless":false}},{"platforms":["linux"],"browsers":{"name":"chrome","headless":true}}]} -->
+<h2>Record the browser tab</h2>
+<ol>
+  <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
+    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
+  <li>Start recording the tab.
+    <!-- step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}} --></li>
+  <li>Click <strong>Type here:</strong>.</li>
+  <li>Type "Hello, Doc Detective".</li>
+  <li>Wait a moment, then stop the recording.
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":"walkthrough"} --></li>
+</ol>
+<!-- test end -->
+<!-- test {"testId":"capture-record-screen","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["windows","mac"],"browsers":{"name":"chrome","headless":false}}]} -->
+<h2>Record the screen</h2>
+<ol>
+  <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
+    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
+  <li>Start a screen recording.
+    <!-- step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}} --></li>
+  <li>Click <strong>Type here:</strong>.</li>
+  <li>Type "Recorded on screen".</li>
+  <li>Wait a moment, then stop the recording.
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":true} --></li>
+  <li>Record a short clip of the result.
+    <!-- step {"record":".dd-output/capture-quick.gif"} --></li>
+  <li>Wait a second, then stop the clip.
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":true} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

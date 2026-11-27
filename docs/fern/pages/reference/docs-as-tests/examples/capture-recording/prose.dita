@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-recording">
+  <title>Record a walkthrough</title>
+  <taskbody/>
+  <task id="capture-record-tab">
+    <title>Record the browser tab</title>
+    <taskbody>
+      <steps>
+        <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd></step>
+        <step><cmd>Start recording the tab.</cmd></step>
+        <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
+        <step><cmd>Type "Hello, Doc Detective".</cmd></step>
+        <step><cmd>Wait a moment, then stop the recording.</cmd></step>
+      </steps>
+    </taskbody>
+  </task>
+  <task id="capture-record-screen">
+    <title>Record the screen</title>
+    <taskbody>
+      <steps>
+        <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd></step>
+        <step><cmd>Start a screen recording.</cmd></step>
+        <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
+        <step><cmd>Type "Recorded on screen".</cmd></step>
+        <step><cmd>Wait a moment, then stop the recording.</cmd></step>
+        <step><cmd>Record a short clip of the result.</cmd></step>
+        <step><cmd>Wait a second, then stop the clip.</cmd></step>
+      </steps>
+    </taskbody>
+  </task>
+</task>

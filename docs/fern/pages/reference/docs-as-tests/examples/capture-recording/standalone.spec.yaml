@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+autoRecord: false
+tests:
+  - testId: capture-record-tab
+    runOn:
+      - platforms:
+          - windows
+          - mac
+        browsers:
+          name: chrome
+          headless: false
+      - platforms:
+          - linux
+        browsers:
+          name: chrome
+          headless: true
+    steps:
+      - goTo: http://localhost:8092/type-echo.html
+      - record:
+          path: capture-walkthrough.webm
+          directory: .dd-output
+          name: walkthrough
+          engine: browser
+          overwrite: "true"
+          checkpoints:
+            maxVariation: 0.5
+            directory: .dd-output/walkthrough-checkpoints
+          verify:
+            minDuration: 0.5
+            maxDuration: 120
+            notBlack: true
+      - click: "Type here:"
+      - type: Hello, Doc Detective
+      - wait: 1000
+      - stopRecord: walkthrough
+  - testId: capture-record-screen
+    runOn:
+      - platforms:
+          - windows
+          - mac
+        browsers:
+          name: chrome
+          headless: false
+    steps:
+      - goTo: http://localhost:8092/type-echo.html
+      - record:
+          path: capture-screen.mp4
+          directory: .dd-output
+          engine:
+            name: ffmpeg
+            target: viewport
+            fps: 15
+          overwrite: "true"
+      - click: "Type here:"
+      - type: Recorded on screen
+      - wait: 1000
+      - stopRecord: true
+      - record: .dd-output/capture-quick.gif
+      - wait: 1000
+      - stopRecord: true

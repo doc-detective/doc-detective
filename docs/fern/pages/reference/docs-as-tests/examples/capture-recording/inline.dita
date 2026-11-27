@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-recording">
+  <title>Record a walkthrough</title>
+  <taskbody/>
+  <task id="capture-record-tab">
+    <title>Record the browser tab</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"capture-record-tab","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["windows","mac"],"browsers":{"name":"chrome","headless":false}},{"platforms":["linux"],"browsers":{"name":"chrome","headless":true}}]}'/>
+      <steps>
+        <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
+          <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
+        <step><cmd>Start recording the tab.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-walkthrough.webm","directory":".dd-output","name":"walkthrough","engine":"browser","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/walkthrough-checkpoints"},"verify":{"minDuration":0.5,"maxDuration":120,"notBlack":true}}}'/></info></step>
+        <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd>
+          <info><data name="doc-detective" value='step {"click":"Type here:"}'/></info></step>
+        <step><cmd>Type "Hello, Doc Detective".</cmd>
+          <info><data name="doc-detective" value='step {"type":"Hello, Doc Detective"}'/></info></step>
+        <step><cmd>Wait a moment, then stop the recording.</cmd>
+          <info><data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":"walkthrough"}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+  <task id="capture-record-screen">
+    <title>Record the screen</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"capture-record-screen","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["windows","mac"],"browsers":{"name":"chrome","headless":false}}]}'/>
+      <steps>
+        <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
+          <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
+        <step><cmd>Start a screen recording.</cmd>
+          <info><data name="doc-detective" value='step {"record":{"path":"capture-screen.mp4","directory":".dd-output","engine":{"name":"ffmpeg","target":"viewport","fps":15},"overwrite":"true"}}'/></info></step>
+        <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd>
+          <info><data name="doc-detective" value='step {"click":"Type here:"}'/></info></step>
+        <step><cmd>Type "Recorded on screen".</cmd>
+          <info><data name="doc-detective" value='step {"type":"Recorded on screen"}'/></info></step>
+        <step><cmd>Wait a moment, then stop the recording.</cmd>
+          <info><data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+        <step><cmd>Record a short clip of the result.</cmd>
+          <info><data name="doc-detective" value='step {"record":".dd-output/capture-quick.gif"}'/></info></step>
+        <step><cmd>Wait a second, then stop the clip.</cmd>
+          <info><data name="doc-detective" value='step {"wait":1000}'/>
+            <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+</task>

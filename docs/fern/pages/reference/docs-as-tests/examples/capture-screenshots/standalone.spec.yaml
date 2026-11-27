@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+autoScreenshot: true
+tests:
+  - testId: capture-screenshots
+    annotationDefaults:
+      color: "#E11D48"
+      strokeWidth: 3
+      badge:
+        background: "#E11D48"
+        color: "#FFFFFF"
+    steps:
+      - goTo: http://localhost:8092/enhanced-elements.html
+      - screenshot: .dd-output/capture-form.png
+      - screenshot:
+          path: capture-submit.png
+          directory: .dd-output
+          maxVariation: 0.2
+          overwrite: aboveVariation
+          crop:
+            elementText: Submit by ID
+            padding:
+              top: 8
+              right: 16
+              bottom: 8
+              left: 16
+      - screenshot:
+          path: capture-sign-in.png
+          directory: .dd-output
+          overwrite: "true"
+          crop:
+            selector: "#inputs-section"
+            padding: 10
+          annotations:
+            - badge: "#username-input"
+              label: "1"
+            - badge:
+                elementTestId: password-field
+                timeout: 10000
+              label: "2"
+            - callout:
+                selector: "#username-input"
+              label: Your account name
+              position: right
+              style:
+                maxWidth: 200
+                fontSize: 14
+            - outline:
+                elementAttribute:
+                  data-validation: email-validator
+              style:
+                color: "#7C3AED"
+                radius: 4
+            - blur:
+                elementAttribute:
+                  type: password
+            - arrow:
+                position:
+                  x: 40
+                  y: 20
+            - text:
+                position: bottom-right
+              label: Sample data

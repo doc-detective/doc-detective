@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshots">
+  <title>Take screenshots of a sign-in form</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-screenshots","detectSteps":true,"autoScreenshot":true,"annotationDefaults":{"color":"#E11D48","strokeWidth":3,"badge":{"background":"#E11D48","color":"#FFFFFF"}}}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the sample form</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/enhanced-elements.html"}'/></info></step>
+      <step><cmd>The form opens.</cmd>
+        <info><image href=".dd-output/capture-form.png" outputclass="screenshot"><alt>The sample form</alt></image></info></step>
+      <step><cmd>Find the <b>Submit by ID</b> button at the top of the form.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-submit.png","directory":".dd-output","maxVariation":0.2,"overwrite":"aboveVariation","crop":{"elementText":"Submit by ID","padding":{"top":8,"right":16,"bottom":8,"left":16}}}}'/></info></step>
+      <step><cmd>Fill in the sign-in fields in the order the numbers show.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-sign-in.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#inputs-section","padding":10},"annotations":[{"badge":"#username-input","label":"1"},{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"},{"callout":{"selector":"#username-input"},"label":"Your account name","position":"right","style":{"maxWidth":200,"fontSize":14}},{"outline":{"elementAttribute":{"data-validation":"email-validator"}},"style":{"color":"#7C3AED","radius":4}},{"blur":{"elementAttribute":{"type":"password"}}},{"arrow":{"position":{"x":40,"y":20}}},{"text":{"position":"bottom-right"},"label":"Sample data"}]}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>
