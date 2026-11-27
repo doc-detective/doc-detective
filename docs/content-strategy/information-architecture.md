@@ -181,7 +181,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Run shell & code steps | D1 | ★ | `runShell` / `runCode` / `runBrowserScript`, outputs. |
 | HTTP & API testing | D2 | ★ | `httpRequest`, `checkLink`. |
 | Cookies & variables | D2 | | `saveCookie` / `loadCookie` / `loadVariables` / outputs. |
-| mockRequest action | D2, W2 | | Authored: `/docs/actions/mockrequest`. Answer browser requests with a fixed response, for stable screenshots and error states. Chrome only; Firefox and Safari skip. |
+| mockRequest action | D2, W2 | | Authored: `/docs/actions/mockrequest`. Answer browser requests with a fixed response, a sequence of responses (`responses`), or a replayed HAR file (`harPath`). Use it for stable screenshots, polling pages, and error states. Chrome only; Firefox and Safari skip. |
 | checkFile action | W2, D1 | | Authored: `/docs/actions/checkfile`. Wait for a finished file or browser download and check its text. "Check a download" leads; downloads land in the run folder. `download` works in desktop Chrome and Firefox; Safari skips. |
 | Generate tests from OpenAPI | D3 | | `openApi` integration. |
 
