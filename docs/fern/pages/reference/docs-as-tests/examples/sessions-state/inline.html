@@ -8,13 +8,20 @@
 <ol>
   <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_state/signed-in">the sign-in page</a>. The server sets the <code>sessions_state</code> cookie.
     <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"} --></li>
-  <li>Save the browser state to <code>sessions-state.json</code>.
-    <!-- step {"saveState":{"path":"sessions-state.json","overwrite":true}} --></li>
+  <li>Save the browser state to <code>sessions-state.json</code> in the output folder, and to <code>sessions-state.json</code> in a <code>tmp</code> folder next to this file.
+    <!-- step {"saveState":{"path":"sessions-state.json","overwrite":true}} -->
+    <!-- step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}} --></li>
   <li>Go to <a href="http://localhost:8092/cookies/set/sessions_state/signed-out">the sign-out page</a>, which replaces the cookie.
     <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"} --></li>
-  <li>Load the browser state from <code>sessions-state.json</code>.
+  <li>Load the browser state from <code>sessions-state.json</code> in the output folder.
     <!-- step {"loadState":"sessions-state.json"} --></li>
   <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_state=signed-in</strong>.
+    <!-- step {"goTo":"http://localhost:8092/cookies"} -->
+    <!-- step {"find":"sessions_state=signed-in"} --></li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_state/signed-out">the sign-out page</a> again, and load the browser state from <code>tmp/sessions-state.json</code>.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"} -->
+    <!-- step {"loadState":{"path":"sessions-state.json","directory":"tmp"}} --></li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a> again, and check that it shows <strong>sessions_state=signed-in</strong>.
     <!-- step {"goTo":"http://localhost:8092/cookies"} -->
     <!-- step {"find":"sessions_state=signed-in"} --></li>
 </ol>

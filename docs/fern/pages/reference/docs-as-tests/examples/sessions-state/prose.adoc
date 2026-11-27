@@ -3,7 +3,9 @@
 Run these steps in Firefox and in Chrome.
 
 . Sign in at http://localhost:8092/cookies/set/sessions_state/signed-in[the sign-in page]. The server sets the `sessions_state` cookie.
-. Save the browser state to `sessions-state.json`.
+. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
 . Go to http://localhost:8092/cookies/set/sessions_state/signed-out[the sign-out page], which replaces the cookie.
-. Load the browser state from `sessions-state.json`.
+. Load the browser state from `sessions-state.json` in the output folder.
 . Go to http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_state=signed-in*.
+. Go to http://localhost:8092/cookies/set/sessions_state/signed-out[the sign-out page] again, and load the browser state from `tmp/sessions-state.json`.
+. Go to http://localhost:8092/cookies[the cookie report] again, and check that it shows *sessions_state=signed-in*.

@@ -2,7 +2,7 @@
 tests:
   - testId: sessions-process-surface
     runOn:
-      - platforms:
+      - platforms: &a1
           - linux
           - mac
           - windows
@@ -13,6 +13,7 @@ tests:
           args:
             - -i
           name: sessions-repl
+          tty: true
           waitUntil:
             stdio: />/
           timeout: 30000
@@ -29,10 +30,7 @@ tests:
   - testId: sessions-process-background
     autoRecord: false
     runOn:
-      - platforms:
-          - linux
-          - mac
-          - windows
+      - platforms: *a1
         requires:
           commands:
             - node
@@ -56,3 +54,40 @@ tests:
             stdio: /1024/
           timeout: 10000
       - closeSurface: sessions-bg-repl
+  - testId: sessions-process-server
+    runOn:
+      - platforms: *a1
+        requires:
+          - node
+          - npm
+    steps:
+      - startSurface:
+          - process: node
+            args:
+              - simple-json-server.cjs
+            name: sessions-api
+            workingDirectory: ../../../../docs/actions
+            waitUntil:
+              port: 8087
+              httpGet: http://localhost:8087
+            timeout: 30000
+          - process: node
+            args:
+              - -i
+            name: sessions-client
+            tty:
+              cols: 100
+              rows: 30
+            waitUntil:
+              delayMs: 1000
+      - type:
+          keys:
+            - fetch("http://localhost:8087").then((r) => r.text()).then(console.log)
+            - $ENTER$
+          surface: sessions-client
+          waitUntil:
+            stdio: /"status":"ok"/
+          timeout: 10000
+      - closeSurface:
+          - sessions-client
+          - process: sessions-api

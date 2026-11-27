@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-contexts">
+  <title>Check what the page sees in an emulated browser</title>
+  <taskbody>
+    <context><p>Run these steps in headless Chrome set to dark mode, German, Berlin time, a 2x display, reduced motion, and a fixed clock.</p></context>
+    <data name="doc-detective" value='test {"testId":"sessions-contexts","detectSteps":false,"runOn":[{"contextId":"sessions-emulated-chrome","platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"colorScheme":"dark","locale":"de-DE","timezone":"Europe/Berlin","deviceScaleFactor":2,"reducedMotion":"reduce","clock":"2026-12-03T09:00:00Z"}}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/index.html" scope="external" format="html">the test site's home page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/index.html"}'/></info></step>
+      <step><cmd>Check that the page prefers the dark color scheme and reduced motion.</cmd>
+        <info><data name="doc-detective" value='step {"runBrowserScript":{"script":"return String(matchMedia(\"(prefers-color-scheme: dark)\").matches);","output":"true"}}'/><data name="doc-detective" value='step {"runBrowserScript":{"script":"return String(matchMedia(\"(prefers-reduced-motion: reduce)\").matches);","output":"true"}}'/></info></step>
+      <step><cmd>Check that the page's language is <codeph>de-DE</codeph> and its time zone is <codeph>Europe/Berlin</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"runBrowserScript":{"script":"return navigator.language;","output":"de-DE"}}'/><data name="doc-detective" value='step {"runBrowserScript":{"script":"return Intl.DateTimeFormat().resolvedOptions().timeZone;","output":"Europe/Berlin"}}'/></info></step>
+      <step><cmd>Check that the device pixel ratio is <codeph>2</codeph>, and that the clock reads 3 December 2026, 09:00 UTC.</cmd>
+        <info><data name="doc-detective" value='step {"runBrowserScript":{"script":"return String(devicePixelRatio);","output":"2"}}'/><data name="doc-detective" value='step {"runBrowserScript":{"script":"return new Date().toISOString();","output":"/^2026-12-03T09:00/"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

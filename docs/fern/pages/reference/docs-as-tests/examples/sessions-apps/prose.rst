@@ -10,14 +10,16 @@ Windows: Character Map
 
 #. Check that the window shows the **Copy** button.
 
+#. Check the Copy button again, picking the window by its title, by name, and as the newest window.
+
 #. Close Character Map.
 
 macOS: Calculator
 -----------------
 
-#. Open Calculator, and wait for its ``1`` button.
+#. Open Calculator with ``SESSIONS_DOCS=1`` in its environment, and wait for its ``1`` button.
 
-#. Press the ``1`` button.
+#. In the first window, press the ``1`` button.
 
 #. Close Calculator.
 
@@ -32,10 +34,17 @@ Android: Settings
 
 #. Close the Settings app.
 
+Android: your own app
+---------------------
+
+#. Install ``build/sessions-demo.apk`` on a headless Android 14 phone emulator named ``sessions-pixel``, open its main activity, and wait for the Welcome screen.
+
+#. Close the app.
+
 iOS: Settings
 -------------
 
-#. On an iPhone simulator named ``sessions-iphone``, open the Settings app, and wait for the General entry.
+#. On the iPhone simulator named ``sessions-iphone``, open the Settings app, and wait for the General entry.
 
 #. Tap the General entry.
 

@@ -10,7 +10,7 @@
 
 ## Start the REPL as a surface
 
-1. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
+1. Start `node -i` in a terminal as a process named `sessions-repl`, and wait for the `>` prompt.
 2. In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
 3. Close the REPL.
 
@@ -19,6 +19,12 @@
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
 2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
 3. Close the REPL.
+
+## Start a server and a REPL together
+
+1. From the `docs/actions` folder, start `node simple-json-server.cjs` as `sessions-api`, and wait until port `8087` answers. At the same time, start `node -i` in a 100 by 30 terminal as `sessions-client`, and give it a second to start.
+2. In the REPL, fetch the server's root URL, and wait for it to print `ok`.
+3. Close the REPL and the server.
 ```
 
       </Tab>
@@ -29,7 +35,7 @@
 
 ## Start the REPL as a surface
 
-1. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
+1. Start `node -i` in a terminal as a process named `sessions-repl`, and wait for the `>` prompt.
 2. In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
 3. Close the REPL.
 
@@ -38,6 +44,12 @@
 1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
 2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
 3. Close the REPL.
+
+## Start a server and a REPL together
+
+1. From the `docs/actions` folder, start `node simple-json-server.cjs` as `sessions-api`, and wait until port `8087` answers. At the same time, start `node -i` in a 100 by 30 terminal as `sessions-client`, and give it a second to start.
+2. In the REPL, fetch the server's root URL, and wait for it to print `ok`.
+3. Close the REPL and the server.
 ```
 
       </Tab>
@@ -48,7 +60,7 @@
 
 == Start the REPL as a surface
 
-. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
+. Start `node -i` in a terminal as a process named `sessions-repl`, and wait for the `>` prompt.
 . In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
 . Close the REPL.
 
@@ -57,6 +69,12 @@
 . Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
 . In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
 . Close the REPL.
+
+== Start a server and a REPL together
+
+. From the `docs/actions` folder, start `node simple-json-server.cjs` as `sessions-api`, and wait until port `8087` answers. At the same time, start `node -i` in a 100 by 30 terminal as `sessions-client`, and give it a second to start.
+. In the REPL, fetch the server's root URL, and wait for it to print `ok`.
+. Close the REPL and the server.
 ```
 
       </Tab>
@@ -70,7 +88,7 @@
 <h1>Evaluate expressions in the Node.js REPL</h1>
 <h2>Start the REPL as a surface</h2>
 <ol>
-  <li>Start <code>node -i</code> as a process named <code>sessions-repl</code>, and wait for the <code>&gt;</code> prompt.</li>
+  <li>Start <code>node -i</code> in a terminal as a process named <code>sessions-repl</code>, and wait for the <code>&gt;</code> prompt.</li>
   <li>In the REPL, enter <code>40 + 2</code> and press Enter. Wait for the REPL to print <code>42</code>.</li>
   <li>Close the REPL.</li>
 </ol>
@@ -79,6 +97,12 @@
   <li>Run <code>node -i</code> in the background as a process named <code>sessions-bg-repl</code>, and wait for the <code>&gt;</code> prompt.</li>
   <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait for the REPL to print <code>1024</code>.</li>
   <li>Close the REPL.</li>
+</ol>
+<h2>Start a server and a REPL together</h2>
+<ol>
+  <li>From the <code>docs/actions</code> folder, start <code>node simple-json-server.cjs</code> as <code>sessions-api</code>, and wait until port <code>8087</code> answers. At the same time, start <code>node -i</code> in a 100 by 30 terminal as <code>sessions-client</code>, and give it a second to start.</li>
+  <li>In the REPL, fetch the server's root URL, and wait for it to print <code>ok</code>.</li>
+  <li>Close the REPL and the server.</li>
 </ol>
 </body>
 </html>
@@ -94,7 +118,7 @@ Evaluate expressions in the Node.js REPL
 Start the REPL as a surface
 ---------------------------
 
-#. Start ``node -i`` as a process named ``sessions-repl``, and wait for the ``>`` prompt.
+#. Start ``node -i`` in a terminal as a process named ``sessions-repl``, and wait for the ``>`` prompt.
 
 #. In the REPL, enter ``40 + 2`` and press Enter. Wait for the REPL to print ``42``.
 
@@ -108,6 +132,15 @@ Run the REPL in the background
 #. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait for the REPL to print ``1024``.
 
 #. Close the REPL.
+
+Start a server and a REPL together
+----------------------------------
+
+#. From the ``docs/actions`` folder, start ``node simple-json-server.cjs`` as ``sessions-api``, and wait until port ``8087`` answers. At the same time, start ``node -i`` in a 100 by 30 terminal as ``sessions-client``, and give it a second to start.
+
+#. In the REPL, fetch the server's root URL, and wait for it to print ``ok``.
+
+#. Close the REPL and the server.
 ```
 
       </Tab>
@@ -124,7 +157,7 @@ Run the REPL in the background
     <title>Start the REPL as a surface</title>
     <taskbody>
       <steps>
-        <step><cmd>Start <codeph>node -i</codeph> as a process named <codeph>sessions-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd></step>
+        <step><cmd>Start <codeph>node -i</codeph> in a terminal as a process named <codeph>sessions-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd></step>
         <step><cmd>In the REPL, enter <codeph>40 + 2</codeph> and press Enter. Wait for the REPL to print <codeph>42</codeph>.</cmd></step>
         <step><cmd>Close the REPL.</cmd></step>
       </steps>
@@ -137,6 +170,16 @@ Run the REPL in the background
         <step><cmd>Run <codeph>node -i</codeph> in the background as a process named <codeph>sessions-bg-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd></step>
         <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait for the REPL to print <codeph>1024</codeph>.</cmd></step>
         <step><cmd>Close the REPL.</cmd></step>
+      </steps>
+    </taskbody>
+  </task>
+  <task id="sessions-process-server">
+    <title>Start a server and a REPL together</title>
+    <taskbody>
+      <steps>
+        <step><cmd>From the <codeph>docs/actions</codeph> folder, start <codeph>node simple-json-server.cjs</codeph> as <codeph>sessions-api</codeph>, and wait until port <codeph>8087</codeph> answers. At the same time, start <codeph>node -i</codeph> in a 100 by 30 terminal as <codeph>sessions-client</codeph>, and give it a second to start.</cmd></step>
+        <step><cmd>In the REPL, fetch the server's root URL, and wait for it to print <codeph>ok</codeph>.</cmd></step>
+        <step><cmd>Close the REPL and the server.</cmd></step>
       </steps>
     </taskbody>
   </task>
@@ -157,8 +200,8 @@ Run the REPL in the background
 
 <!-- test {"testId":"sessions-process-surface","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]} -->
 
-1. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
-   <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}} -->
+1. Start `node -i` in a terminal as a process named `sessions-repl`, and wait for the `>` prompt.
+   <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}} -->
 2. In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
    <!-- step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}} -->
 3. Close the REPL.
@@ -178,6 +221,19 @@ Run the REPL in the background
    <!-- step {"closeSurface":"sessions-bg-repl"} -->
 
 <!-- test end -->
+
+## Start a server and a REPL together
+
+<!-- test {"testId":"sessions-process-server","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]} -->
+
+1. From the `docs/actions` folder, start `node simple-json-server.cjs` as `sessions-api`, and wait until port `8087` answers. At the same time, start `node -i` in a 100 by 30 terminal as `sessions-client`, and give it a second to start.
+   <!-- step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]} -->
+2. In the REPL, fetch the server's root URL, and wait for it to print `ok`.
+   <!-- step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}} -->
+3. Close the REPL and the server.
+   <!-- step {"closeSurface":["sessions-client",{"process":"sessions-api"}]} -->
+
+<!-- test end -->
 ```
 
       </Tab>
@@ -190,8 +246,8 @@ Run the REPL in the background
 
 {/* test {"testId":"sessions-process-surface","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]} */}
 
-1. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
-   {/* step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}} */}
+1. Start `node -i` in a terminal as a process named `sessions-repl`, and wait for the `>` prompt.
+   {/* step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}} */}
 2. In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
    {/* step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}} */}
 3. Close the REPL.
@@ -211,6 +267,19 @@ Run the REPL in the background
    {/* step {"closeSurface":"sessions-bg-repl"} */}
 
 {/* test end */}
+
+## Start a server and a REPL together
+
+{/* test {"testId":"sessions-process-server","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]} */}
+
+1. From the `docs/actions` folder, start `node simple-json-server.cjs` as `sessions-api`, and wait until port `8087` answers. At the same time, start `node -i` in a 100 by 30 terminal as `sessions-client`, and give it a second to start.
+   {/* step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]} */}
+2. In the REPL, fetch the server's root URL, and wait for it to print `ok`.
+   {/* step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}} */}
+3. Close the REPL and the server.
+   {/* step {"closeSurface":["sessions-client",{"process":"sessions-api"}]} */}
+
+{/* test end */}
 ```
 
       </Tab>
@@ -223,9 +292,9 @@ Run the REPL in the background
 
 // (test {"testId":"sessions-process-surface","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]})
 
-. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
+. Start `node -i` in a terminal as a process named `sessions-repl`, and wait for the `>` prompt.
 +
-// (step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}})
+// (step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}})
 . In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
 +
 // (step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}})
@@ -250,6 +319,22 @@ Run the REPL in the background
 // (step {"closeSurface":"sessions-bg-repl"})
 
 // (test end)
+
+== Start a server and a REPL together
+
+// (test {"testId":"sessions-process-server","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]})
+
+. From the `docs/actions` folder, start `node simple-json-server.cjs` as `sessions-api`, and wait until port `8087` answers. At the same time, start `node -i` in a 100 by 30 terminal as `sessions-client`, and give it a second to start.
++
+// (step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]})
+. In the REPL, fetch the server's root URL, and wait for it to print `ok`.
++
+// (step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}})
+. Close the REPL and the server.
++
+// (step {"closeSurface":["sessions-client",{"process":"sessions-api"}]})
+
+// (test end)
 ```
 
       </Tab>
@@ -264,8 +349,8 @@ Run the REPL in the background
 <h2>Start the REPL as a surface</h2>
 <!-- test {"testId":"sessions-process-surface","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]} -->
 <ol>
-  <li>Start <code>node -i</code> as a process named <code>sessions-repl</code>, and wait for the <code>&gt;</code> prompt.
-    <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}} --></li>
+  <li>Start <code>node -i</code> in a terminal as a process named <code>sessions-repl</code>, and wait for the <code>&gt;</code> prompt.
+    <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}} --></li>
   <li>In the REPL, enter <code>40 + 2</code> and press Enter. Wait for the REPL to print <code>42</code>.
     <!-- step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}} --></li>
   <li>Close the REPL.
@@ -281,6 +366,17 @@ Run the REPL in the background
     <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} --></li>
   <li>Close the REPL.
     <!-- step {"closeSurface":"sessions-bg-repl"} --></li>
+</ol>
+<!-- test end -->
+<h2>Start a server and a REPL together</h2>
+<!-- test {"testId":"sessions-process-server","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]} -->
+<ol>
+  <li>From the <code>docs/actions</code> folder, start <code>node simple-json-server.cjs</code> as <code>sessions-api</code>, and wait until port <code>8087</code> answers. At the same time, start <code>node -i</code> in a 100 by 30 terminal as <code>sessions-client</code>, and give it a second to start.
+    <!-- step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]} --></li>
+  <li>In the REPL, fetch the server's root URL, and wait for it to print <code>ok</code>.
+    <!-- step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}} --></li>
+  <li>Close the REPL and the server.
+    <!-- step {"closeSurface":["sessions-client",{"process":"sessions-api"}]} --></li>
 </ol>
 <!-- test end -->
 </body>
@@ -299,9 +395,9 @@ Start the REPL as a surface
 
 .. test {"testId":"sessions-process-surface","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]}
 
-#. Start ``node -i`` as a process named ``sessions-repl``, and wait for the ``>`` prompt.
+#. Start ``node -i`` in a terminal as a process named ``sessions-repl``, and wait for the ``>`` prompt.
 
-   .. step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}}
+   .. step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}}
 
 #. In the REPL, enter ``40 + 2`` and press Enter. Wait for the REPL to print ``42``.
 
@@ -331,6 +427,25 @@ Run the REPL in the background
    .. step {"closeSurface":"sessions-bg-repl"}
 
 .. test end
+
+Start a server and a REPL together
+----------------------------------
+
+.. test {"testId":"sessions-process-server","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]}
+
+#. From the ``docs/actions`` folder, start ``node simple-json-server.cjs`` as ``sessions-api``, and wait until port ``8087`` answers. At the same time, start ``node -i`` in a 100 by 30 terminal as ``sessions-client``, and give it a second to start.
+
+   .. step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]}
+
+#. In the REPL, fetch the server's root URL, and wait for it to print ``ok``.
+
+   .. step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}}
+
+#. Close the REPL and the server.
+
+   .. step {"closeSurface":["sessions-client",{"process":"sessions-api"}]}
+
+.. test end
 ```
 
       </Tab>
@@ -348,8 +463,8 @@ Run the REPL in the background
     <taskbody>
       <data name="doc-detective" value='test {"testId":"sessions-process-surface","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]}'/>
       <steps>
-        <step><cmd>Start <codeph>node -i</codeph> as a process named <codeph>sessions-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
-          <info><data name="doc-detective" value='step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}}'/></info></step>
+        <step><cmd>Start <codeph>node -i</codeph> in a terminal as a process named <codeph>sessions-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}}'/></info></step>
         <step><cmd>In the REPL, enter <codeph>40 + 2</codeph> and press Enter. Wait for the REPL to print <codeph>42</codeph>.</cmd>
           <info><data name="doc-detective" value='step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}}'/></info></step>
         <step><cmd>Close the REPL.</cmd>
@@ -373,6 +488,21 @@ Run the REPL in the background
       <data name="doc-detective" value="test end"/>
     </taskbody>
   </task>
+  <task id="sessions-process-server">
+    <title>Start a server and a REPL together</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-process-server","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]}'/>
+      <steps>
+        <step><cmd>From the <codeph>docs/actions</codeph> folder, start <codeph>node simple-json-server.cjs</codeph> as <codeph>sessions-api</codeph>, and wait until port <codeph>8087</codeph> answers. At the same time, start <codeph>node -i</codeph> in a 100 by 30 terminal as <codeph>sessions-client</codeph>, and give it a second to start.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]}'/></info></step>
+        <step><cmd>In the REPL, fetch the server's root URL, and wait for it to print <codeph>ok</codeph>.</cmd>
+          <info><data name="doc-detective" value='step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}}'/></info></step>
+        <step><cmd>Close the REPL and the server.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":["sessions-client",{"process":"sessions-api"}]}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
 </dita>
 ```
 
@@ -390,8 +520,8 @@ Run the REPL in the background
 
 <!-- test {"testId":"sessions-process-surface","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]} -->
 
-1. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
-   <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}} -->
+1. Start `node -i` in a terminal as a process named `sessions-repl`, and wait for the `>` prompt.
+   <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}} -->
 2. In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
    <!-- step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}} -->
 3. Close the REPL.
@@ -411,6 +541,19 @@ Run the REPL in the background
    <!-- step {"closeSurface":"sessions-bg-repl"} -->
 
 <!-- test end -->
+
+## Start a server and a REPL together
+
+<!-- test {"testId":"sessions-process-server","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]} -->
+
+1. From the `docs/actions` folder, start `node simple-json-server.cjs` as `sessions-api`, and wait until port `8087` answers. At the same time, start `node -i` in a 100 by 30 terminal as `sessions-client`, and give it a second to start.
+   <!-- step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]} -->
+2. In the REPL, fetch the server's root URL, and wait for it to print `ok`.
+   <!-- step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}} -->
+3. Close the REPL and the server.
+   <!-- step {"closeSurface":["sessions-client",{"process":"sessions-api"}]} -->
+
+<!-- test end -->
 ```
 
       </Tab>
@@ -423,8 +566,8 @@ Run the REPL in the background
 
 {/* test {"testId":"sessions-process-surface","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]} */}
 
-1. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
-   {/* step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}} */}
+1. Start `node -i` in a terminal as a process named `sessions-repl`, and wait for the `>` prompt.
+   {/* step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}} */}
 2. In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
    {/* step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}} */}
 3. Close the REPL.
@@ -444,6 +587,19 @@ Run the REPL in the background
    {/* step {"closeSurface":"sessions-bg-repl"} */}
 
 {/* test end */}
+
+## Start a server and a REPL together
+
+{/* test {"testId":"sessions-process-server","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]} */}
+
+1. From the `docs/actions` folder, start `node simple-json-server.cjs` as `sessions-api`, and wait until port `8087` answers. At the same time, start `node -i` in a 100 by 30 terminal as `sessions-client`, and give it a second to start.
+   {/* step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]} */}
+2. In the REPL, fetch the server's root URL, and wait for it to print `ok`.
+   {/* step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}} */}
+3. Close the REPL and the server.
+   {/* step {"closeSurface":["sessions-client",{"process":"sessions-api"}]} */}
+
+{/* test end */}
 ```
 
       </Tab>
@@ -456,9 +612,9 @@ Run the REPL in the background
 
 // (test {"testId":"sessions-process-surface","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]})
 
-. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
+. Start `node -i` in a terminal as a process named `sessions-repl`, and wait for the `>` prompt.
 +
-// (step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}})
+// (step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}})
 . In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
 +
 // (step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}})
@@ -483,6 +639,22 @@ Run the REPL in the background
 // (step {"closeSurface":"sessions-bg-repl"})
 
 // (test end)
+
+== Start a server and a REPL together
+
+// (test {"testId":"sessions-process-server","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]})
+
+. From the `docs/actions` folder, start `node simple-json-server.cjs` as `sessions-api`, and wait until port `8087` answers. At the same time, start `node -i` in a 100 by 30 terminal as `sessions-client`, and give it a second to start.
++
+// (step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]})
+. In the REPL, fetch the server's root URL, and wait for it to print `ok`.
++
+// (step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}})
+. Close the REPL and the server.
++
+// (step {"closeSurface":["sessions-client",{"process":"sessions-api"}]})
+
+// (test end)
 ```
 
       </Tab>
@@ -497,8 +669,8 @@ Run the REPL in the background
 <h2>Start the REPL as a surface</h2>
 <!-- test {"testId":"sessions-process-surface","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]} -->
 <ol>
-  <li>Start <code>node -i</code> as a process named <code>sessions-repl</code>, and wait for the <code>&gt;</code> prompt.
-    <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}} --></li>
+  <li>Start <code>node -i</code> in a terminal as a process named <code>sessions-repl</code>, and wait for the <code>&gt;</code> prompt.
+    <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}} --></li>
   <li>In the REPL, enter <code>40 + 2</code> and press Enter. Wait for the REPL to print <code>42</code>.
     <!-- step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}} --></li>
   <li>Close the REPL.
@@ -514,6 +686,17 @@ Run the REPL in the background
     <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} --></li>
   <li>Close the REPL.
     <!-- step {"closeSurface":"sessions-bg-repl"} --></li>
+</ol>
+<!-- test end -->
+<h2>Start a server and a REPL together</h2>
+<!-- test {"testId":"sessions-process-server","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]} -->
+<ol>
+  <li>From the <code>docs/actions</code> folder, start <code>node simple-json-server.cjs</code> as <code>sessions-api</code>, and wait until port <code>8087</code> answers. At the same time, start <code>node -i</code> in a 100 by 30 terminal as <code>sessions-client</code>, and give it a second to start.
+    <!-- step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]} --></li>
+  <li>In the REPL, fetch the server's root URL, and wait for it to print <code>ok</code>.
+    <!-- step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}} --></li>
+  <li>Close the REPL and the server.
+    <!-- step {"closeSurface":["sessions-client",{"process":"sessions-api"}]} --></li>
 </ol>
 <!-- test end -->
 </body>
@@ -532,9 +715,9 @@ Start the REPL as a surface
 
 .. test {"testId":"sessions-process-surface","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]}
 
-#. Start ``node -i`` as a process named ``sessions-repl``, and wait for the ``>`` prompt.
+#. Start ``node -i`` in a terminal as a process named ``sessions-repl``, and wait for the ``>`` prompt.
 
-   .. step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}}
+   .. step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}}
 
 #. In the REPL, enter ``40 + 2`` and press Enter. Wait for the REPL to print ``42``.
 
@@ -564,6 +747,25 @@ Run the REPL in the background
    .. step {"closeSurface":"sessions-bg-repl"}
 
 .. test end
+
+Start a server and a REPL together
+----------------------------------
+
+.. test {"testId":"sessions-process-server","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]}
+
+#. From the ``docs/actions`` folder, start ``node simple-json-server.cjs`` as ``sessions-api``, and wait until port ``8087`` answers. At the same time, start ``node -i`` in a 100 by 30 terminal as ``sessions-client``, and give it a second to start.
+
+   .. step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]}
+
+#. In the REPL, fetch the server's root URL, and wait for it to print ``ok``.
+
+   .. step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}}
+
+#. Close the REPL and the server.
+
+   .. step {"closeSurface":["sessions-client",{"process":"sessions-api"}]}
+
+.. test end
 ```
 
       </Tab>
@@ -581,8 +783,8 @@ Run the REPL in the background
     <taskbody>
       <data name="doc-detective" value='test {"testId":"sessions-process-surface","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]}'/>
       <steps>
-        <step><cmd>Start <codeph>node -i</codeph> as a process named <codeph>sessions-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
-          <info><data name="doc-detective" value='step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}}'/></info></step>
+        <step><cmd>Start <codeph>node -i</codeph> in a terminal as a process named <codeph>sessions-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}}'/></info></step>
         <step><cmd>In the REPL, enter <codeph>40 + 2</codeph> and press Enter. Wait for the REPL to print <codeph>42</codeph>.</cmd>
           <info><data name="doc-detective" value='step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}}'/></info></step>
         <step><cmd>Close the REPL.</cmd>
@@ -602,6 +804,21 @@ Run the REPL in the background
           <info><data name="doc-detective" value='step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}}'/></info></step>
         <step><cmd>Close the REPL.</cmd>
           <info><data name="doc-detective" value='step {"closeSurface":"sessions-bg-repl"}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+  <task id="sessions-process-server">
+    <title>Start a server and a REPL together</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-process-server","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]}'/>
+      <steps>
+        <step><cmd>From the <codeph>docs/actions</codeph> folder, start <codeph>node simple-json-server.cjs</codeph> as <codeph>sessions-api</codeph>, and wait until port <codeph>8087</codeph> answers. At the same time, start <codeph>node -i</codeph> in a 100 by 30 terminal as <codeph>sessions-client</codeph>, and give it a second to start.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]}'/></info></step>
+        <step><cmd>In the REPL, fetch the server's root URL, and wait for it to print <codeph>ok</codeph>.</cmd>
+          <info><data name="doc-detective" value='step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}}'/></info></step>
+        <step><cmd>Close the REPL and the server.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":["sessions-client",{"process":"sessions-api"}]}'/></info></step>
       </steps>
       <data name="doc-detective" value="test end"/>
     </taskbody>
@@ -640,6 +857,7 @@ Run the REPL in the background
               "-i"
             ],
             "name": "sessions-repl",
+            "tty": true,
             "waitUntil": {
               "stdio": "/>/"
             },
@@ -718,6 +936,76 @@ Run the REPL in the background
           "closeSurface": "sessions-bg-repl"
         }
       ]
+    },
+    {
+      "testId": "sessions-process-server",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": [
+            "node",
+            "npm"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": [
+            {
+              "process": "node",
+              "args": [
+                "simple-json-server.cjs"
+              ],
+              "name": "sessions-api",
+              "workingDirectory": "../../../../docs/actions",
+              "waitUntil": {
+                "port": 8087,
+                "httpGet": "http://localhost:8087"
+              },
+              "timeout": 30000
+            },
+            {
+              "process": "node",
+              "args": [
+                "-i"
+              ],
+              "name": "sessions-client",
+              "tty": {
+                "cols": 100,
+                "rows": 30
+              },
+              "waitUntil": {
+                "delayMs": 1000
+              }
+            }
+          ]
+        },
+        {
+          "type": {
+            "keys": [
+              "fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)",
+              "$ENTER$"
+            ],
+            "surface": "sessions-client",
+            "waitUntil": {
+              "stdio": "/\"status\":\"ok\"/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "closeSurface": [
+            "sessions-client",
+            {
+              "process": "sessions-api"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
@@ -731,7 +1019,7 @@ Run the REPL in the background
 tests:
   - testId: sessions-process-surface
     runOn:
-      - platforms:
+      - platforms: &a1
           - linux
           - mac
           - windows
@@ -742,6 +1030,7 @@ tests:
           args:
             - -i
           name: sessions-repl
+          tty: true
           waitUntil:
             stdio: />/
           timeout: 30000
@@ -758,10 +1047,7 @@ tests:
   - testId: sessions-process-background
     autoRecord: false
     runOn:
-      - platforms:
-          - linux
-          - mac
-          - windows
+      - platforms: *a1
         requires:
           commands:
             - node
@@ -785,6 +1071,43 @@ tests:
             stdio: /1024/
           timeout: 10000
       - closeSurface: sessions-bg-repl
+  - testId: sessions-process-server
+    runOn:
+      - platforms: *a1
+        requires:
+          - node
+          - npm
+    steps:
+      - startSurface:
+          - process: node
+            args:
+              - simple-json-server.cjs
+            name: sessions-api
+            workingDirectory: ../../../../docs/actions
+            waitUntil:
+              port: 8087
+              httpGet: http://localhost:8087
+            timeout: 30000
+          - process: node
+            args:
+              - -i
+            name: sessions-client
+            tty:
+              cols: 100
+              rows: 30
+            waitUntil:
+              delayMs: 1000
+      - type:
+          keys:
+            - fetch("http://localhost:8087").then((r) => r.text()).then(console.log)
+            - $ENTER$
+          surface: sessions-client
+          waitUntil:
+            stdio: /"status":"ok"/
+          timeout: 10000
+      - closeSurface:
+          - sessions-client
+          - process: sessions-api
 ```
 
       </Tab>

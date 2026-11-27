@@ -50,10 +50,32 @@
           }
         },
         {
+          "saveState": {
+            "path": "sessions-state.json",
+            "directory": "tmp",
+            "overwrite": true
+          }
+        },
+        {
           "goTo": "http://localhost:8092/cookies/set/sessions_state/signed-out"
         },
         {
           "loadState": "sessions-state.json"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "sessions_state=signed-in"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_state/signed-out"
+        },
+        {
+          "loadState": {
+            "path": "sessions-state.json",
+            "directory": "tmp"
+          }
         },
         {
           "goTo": "http://localhost:8092/cookies"

@@ -5,12 +5,14 @@
   <taskbody>
     <steps>
       <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_demo/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_demo</codeph> cookie.</cmd></step>
-      <step><cmd>Save the <codeph>sessions_demo</codeph> cookie to an environment variable of the same name, and to the file <codeph>sessions_demo.txt</codeph>.</cmd></step>
+      <step><cmd>Save the <codeph>sessions_demo</codeph> cookie four ways: to the <codeph>sessions_demo</codeph> and <codeph>SESSIONS_DEMO_COOKIE</codeph> environment variables, to <codeph>sessions_demo.txt</codeph> in the output folder, and to <codeph>sessions_demo.txt</codeph> in a <codeph>tmp</codeph> folder next to this file, keeping only the <codeph>localhost</codeph> cookie.</cmd></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_demo/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd></step>
-      <step><cmd>Load the cookie from <codeph>sessions_demo.txt</codeph>.</cmd></step>
+      <step><cmd>Load the cookie from <codeph>sessions_demo.txt</codeph> in the output folder.</cmd></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_demo=signed-in</b>.</cmd></step>
-      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_demo/signed-out" scope="external" format="html">the sign-out page</xref> again, and load the cookie from the <codeph>sessions_demo</codeph> environment variable.</cmd></step>
-      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref> again, and check that it still shows <b>sessions_demo=signed-in</b>.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_demo/signed-out" scope="external" format="html">the sign-out page</xref> again, and load the cookie from the <codeph>SESSIONS_DEMO_COOKIE</codeph> environment variable.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref> again, and check that it shows <b>sessions_demo=signed-in</b>.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_demo/signed-out" scope="external" format="html">the sign-out page</xref> once more, and load the <codeph>localhost</codeph> cookie from <codeph>tmp/sessions_demo.txt</codeph>.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref> a last time, and check that it shows <b>sessions_demo=signed-in</b>.</cmd></step>
     </steps>
   </taskbody>
 </task>

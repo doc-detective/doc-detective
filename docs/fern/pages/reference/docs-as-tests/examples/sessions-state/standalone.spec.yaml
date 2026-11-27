@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
 runOn:
-  - platforms:
+  - platforms: &a1
       - linux
       - mac
       - windows
@@ -15,10 +15,7 @@ runOn:
           height: 800
     browserFallback: off
     retries: 2
-  - platforms:
-      - linux
-      - mac
-      - windows
+  - platforms: *a1
     browsers:
       name: chrome
       headless: true
@@ -29,7 +26,17 @@ tests:
       - saveState:
           path: sessions-state.json
           overwrite: true
+      - saveState:
+          path: sessions-state.json
+          directory: tmp
+          overwrite: true
       - goTo: http://localhost:8092/cookies/set/sessions_state/signed-out
       - loadState: sessions-state.json
+      - goTo: http://localhost:8092/cookies
+      - find: sessions_state=signed-in
+      - goTo: http://localhost:8092/cookies/set/sessions_state/signed-out
+      - loadState:
+          path: sessions-state.json
+          directory: tmp
       - goTo: http://localhost:8092/cookies
       - find: sessions_state=signed-in

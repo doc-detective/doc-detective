@@ -7,11 +7,16 @@
   <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.</li>
   <li>Click the Open child in new tab link. The child page opens in a new tab.</li>
   <li>In the newest tab, check that the page reads "PAGE linked".</li>
-  <li>In a new tab named <code>report</code>, load <a href="http://localhost:8092/multi-tab-child.html?page=report">the report page</a>.</li>
-  <li>In a new window named <code>settings</code>, load <a href="http://localhost:8092/multi-tab-child.html?page=settings">the settings page</a>.</li>
-  <li>Start a second Firefox session named <code>reviewer</code>, with an 800 by 600 viewport, and load <a href="http://localhost:8092/multi-tab-child.html?page=review">the review page</a> in it.</li>
-  <li>In the first tab of the first session, check that the page still reads "MULTI-TAB HOME".</li>
-  <li>Close the child tab, the <code>report</code> tab, the <code>settings</code> window, and the <code>reviewer</code> session.</li>
+  <li>In a new tab named <code>report</code>, load <a href="http://localhost:8092/multi-tab-child.html?page=report">the report page</a>. Then load <a href="http://localhost:8092/multi-tab-child.html?page=scratch">the scratch page</a> in another new tab.</li>
+  <li>Check that the <code>report</code> tab reads "PAGE report", and that the tab showing the scratch page reads "PAGE scratch".</li>
+  <li>In a new window named <code>settings</code>, with its first tab named <code>general</code>, load <a href="http://localhost:8092/multi-tab-child.html?page=settings">the settings page</a>. Then load <a href="http://localhost:8092/multi-tab-child.html?page=help">the help page</a> in another new window.</li>
+  <li>Check that the <code>settings</code> window and its <code>general</code> tab read "PAGE settings", and that the newest window, titled "Child help", reads "PAGE help".</li>
+  <li>In the first window, check that the tab titled "Multi-tab home" still reads "MULTI-TAB HOME".</li>
+  <li>Type <code>hello</code> in the echo box of the help window, which is also the newest window, and of the child tab, the second tab opened.</li>
+  <li>Load <a href="http://localhost:8092/multi-tab-child.html?page=notes">the notes page</a> in a new tab named <code>notes</code>, and <a href="http://localhost:8092/multi-tab-child.html?page=about">the about page</a> in a new window named <code>about</code>. Check that each one reads its page name.</li>
+  <li>Start two more Firefox sessions: <code>reviewer</code>, with an 800 by 600 viewport, and <code>editor</code>, with a 1024 by 768 window. Load <a href="http://localhost:8092/multi-tab-child.html?page=review">the review page</a> in <code>reviewer</code>.</li>
+  <li>In the first session, go back to <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>, and check that it reads "MULTI-TAB HOME".</li>
+  <li>Close the <code>report</code> and <code>notes</code> tabs, the scratch tab, the child tab, the help, <code>settings</code>, and <code>about</code> windows, and the <code>reviewer</code> and <code>editor</code> sessions.</li>
 </ol>
 </body>
 </html>

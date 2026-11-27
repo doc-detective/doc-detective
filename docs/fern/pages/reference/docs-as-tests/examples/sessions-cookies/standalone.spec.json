@@ -13,7 +13,22 @@
         {
           "saveCookie": {
             "name": "sessions_demo",
+            "variable": "SESSIONS_DEMO_COOKIE"
+          }
+        },
+        {
+          "saveCookie": {
+            "name": "sessions_demo",
             "path": "sessions_demo.txt",
+            "overwrite": true
+          }
+        },
+        {
+          "saveCookie": {
+            "name": "sessions_demo",
+            "path": "sessions_demo.txt",
+            "directory": "tmp",
+            "domain": "localhost",
             "overwrite": true
           }
         },
@@ -35,7 +50,24 @@
         {
           "loadCookie": {
             "name": "sessions_demo",
-            "variable": "sessions_demo"
+            "variable": "SESSIONS_DEMO_COOKIE"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "sessions_demo=signed-in"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_demo/signed-out"
+        },
+        {
+          "loadCookie": {
+            "name": "sessions_demo",
+            "path": "sessions_demo.txt",
+            "directory": "tmp",
+            "domain": "localhost"
           }
         },
         {

@@ -4,7 +4,7 @@ Evaluate expressions in the Node.js REPL
 Start the REPL as a surface
 ---------------------------
 
-#. Start ``node -i`` as a process named ``sessions-repl``, and wait for the ``>`` prompt.
+#. Start ``node -i`` in a terminal as a process named ``sessions-repl``, and wait for the ``>`` prompt.
 
 #. In the REPL, enter ``40 + 2`` and press Enter. Wait for the REPL to print ``42``.
 
@@ -18,3 +18,12 @@ Run the REPL in the background
 #. In the REPL, enter ``Math.pow(2, 10)`` and press Enter. Wait for the REPL to print ``1024``.
 
 #. Close the REPL.
+
+Start a server and a REPL together
+----------------------------------
+
+#. From the ``docs/actions`` folder, start ``node simple-json-server.cjs`` as ``sessions-api``, and wait until port ``8087`` answers. At the same time, start ``node -i`` in a 100 by 30 terminal as ``sessions-client``, and give it a second to start.
+
+#. In the REPL, fetch the server's root URL, and wait for it to print ``ok``.
+
+#. Close the REPL and the server.

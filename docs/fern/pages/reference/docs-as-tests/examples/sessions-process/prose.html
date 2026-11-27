@@ -5,7 +5,7 @@
 <h1>Evaluate expressions in the Node.js REPL</h1>
 <h2>Start the REPL as a surface</h2>
 <ol>
-  <li>Start <code>node -i</code> as a process named <code>sessions-repl</code>, and wait for the <code>&gt;</code> prompt.</li>
+  <li>Start <code>node -i</code> in a terminal as a process named <code>sessions-repl</code>, and wait for the <code>&gt;</code> prompt.</li>
   <li>In the REPL, enter <code>40 + 2</code> and press Enter. Wait for the REPL to print <code>42</code>.</li>
   <li>Close the REPL.</li>
 </ol>
@@ -14,6 +14,12 @@
   <li>Run <code>node -i</code> in the background as a process named <code>sessions-bg-repl</code>, and wait for the <code>&gt;</code> prompt.</li>
   <li>In the REPL, enter <code>Math.pow(2, 10)</code> and press Enter. Wait for the REPL to print <code>1024</code>.</li>
   <li>Close the REPL.</li>
+</ol>
+<h2>Start a server and a REPL together</h2>
+<ol>
+  <li>From the <code>docs/actions</code> folder, start <code>node simple-json-server.cjs</code> as <code>sessions-api</code>, and wait until port <code>8087</code> answers. At the same time, start <code>node -i</code> in a 100 by 30 terminal as <code>sessions-client</code>, and give it a second to start.</li>
+  <li>In the REPL, fetch the server's root URL, and wait for it to print <code>ok</code>.</li>
+  <li>Close the REPL and the server.</li>
 </ol>
 </body>
 </html>

@@ -6,9 +6,9 @@ Start the REPL as a surface
 
 .. test {"testId":"sessions-process-surface","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]}
 
-#. Start ``node -i`` as a process named ``sessions-repl``, and wait for the ``>`` prompt.
+#. Start ``node -i`` in a terminal as a process named ``sessions-repl``, and wait for the ``>`` prompt.
 
-   .. step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}}
+   .. step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","tty":true,"waitUntil":{"stdio":"/>/"},"timeout":30000}}
 
 #. In the REPL, enter ``40 + 2`` and press Enter. Wait for the REPL to print ``42``.
 
@@ -36,5 +36,24 @@ Run the REPL in the background
 #. Close the REPL.
 
    .. step {"closeSurface":"sessions-bg-repl"}
+
+.. test end
+
+Start a server and a REPL together
+----------------------------------
+
+.. test {"testId":"sessions-process-server","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]}
+
+#. From the ``docs/actions`` folder, start ``node simple-json-server.cjs`` as ``sessions-api``, and wait until port ``8087`` answers. At the same time, start ``node -i`` in a 100 by 30 terminal as ``sessions-client``, and give it a second to start.
+
+   .. step {"startSurface":[{"process":"node","args":["simple-json-server.cjs"],"name":"sessions-api","workingDirectory":"../../../../docs/actions","waitUntil":{"port":8087,"httpGet":"http://localhost:8087"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-client","tty":{"cols":100,"rows":30},"waitUntil":{"delayMs":1000}}]}
+
+#. In the REPL, fetch the server's root URL, and wait for it to print ``ok``.
+
+   .. step {"type":{"keys":["fetch(\"http://localhost:8087\").then((r) => r.text()).then(console.log)","$ENTER$"],"surface":"sessions-client","waitUntil":{"stdio":"/\"status\":\"ok\"/"},"timeout":10000}}
+
+#. Close the REPL and the server.
+
+   .. step {"closeSurface":["sessions-client",{"process":"sessions-api"}]}
 
 .. test end

@@ -5,19 +5,27 @@
 . Sign in at http://localhost:8092/cookies/set/sessions_demo/signed-in[the sign-in page]. The server sets the `sessions_demo` cookie.
 +
 // (step {"goTo":"http://localhost:8092/cookies/set/sessions_demo/signed-in"})
-. Save the `sessions_demo` cookie to an environment variable of the same name, and to the file `sessions_demo.txt`.
+. Save the `sessions_demo` cookie four ways: to the `sessions_demo` and `SESSIONS_DEMO_COOKIE` environment variables, to `sessions_demo.txt` in the output folder, and to `sessions_demo.txt` in a `tmp` folder next to this file, keeping only the `localhost` cookie.
 +
 // (step {"saveCookie":"sessions_demo"})
 +
+// (step {"saveCookie":{"name":"sessions_demo","variable":"SESSIONS_DEMO_COOKIE"}})
++
 // (step {"saveCookie":{"name":"sessions_demo","path":"sessions_demo.txt","overwrite":true}})
++
+// (step {"saveCookie":{"name":"sessions_demo","path":"sessions_demo.txt","directory":"tmp","domain":"localhost","overwrite":true}})
 . Go to http://localhost:8092/cookies/set/sessions_demo/signed-out[the sign-out page], which replaces the cookie.
-. Load the cookie from `sessions_demo.txt`.
+. Load the cookie from `sessions_demo.txt` in the output folder.
 +
 // (step {"loadCookie":"sessions_demo.txt"})
 . Go to http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_demo=signed-in*.
-. Go to http://localhost:8092/cookies/set/sessions_demo/signed-out[the sign-out page] again, and load the cookie from the `sessions_demo` environment variable.
+. Go to http://localhost:8092/cookies/set/sessions_demo/signed-out[the sign-out page] again, and load the cookie from the `SESSIONS_DEMO_COOKIE` environment variable.
 +
-// (step {"loadCookie":{"name":"sessions_demo","variable":"sessions_demo"}})
-. Go to http://localhost:8092/cookies[the cookie report] again, and check that it still shows *sessions_demo=signed-in*.
+// (step {"loadCookie":{"name":"sessions_demo","variable":"SESSIONS_DEMO_COOKIE"}})
+. Go to http://localhost:8092/cookies[the cookie report] again, and check that it shows *sessions_demo=signed-in*.
+. Go to http://localhost:8092/cookies/set/sessions_demo/signed-out[the sign-out page] once more, and load the `localhost` cookie from `tmp/sessions_demo.txt`.
++
+// (step {"loadCookie":{"name":"sessions_demo","path":"sessions_demo.txt","directory":"tmp","domain":"localhost"}})
+. Go to http://localhost:8092/cookies[the cookie report] a last time, and check that it shows *sessions_demo=signed-in*.
 
 // (test end)

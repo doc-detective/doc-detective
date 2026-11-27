@@ -8,12 +8,15 @@
     <steps>
       <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_state/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_state</codeph> cookie.</cmd>
         <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"}'/></info></step>
-      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph>.</cmd>
-        <info><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","overwrite":true}}'/></info></step>
+      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph> in the output folder, and to <codeph>sessions-state.json</codeph> in a <codeph>tmp</codeph> folder next to this file.</cmd>
+        <info><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","overwrite":true}}'/><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}}'/></info></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd></step>
-      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph>.</cmd>
+      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph> in the output folder.</cmd>
         <info><data name="doc-detective" value='step {"loadState":"sessions-state.json"}'/></info></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_state=signed-in</b>.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref> again, and load the browser state from <codeph>tmp/sessions-state.json</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadState":{"path":"sessions-state.json","directory":"tmp"}}'/></info></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref> again, and check that it shows <b>sessions_state=signed-in</b>.</cmd></step>
     </steps>
     <data name="doc-detective" value="test end"/>
   </taskbody>

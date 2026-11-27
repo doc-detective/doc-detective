@@ -11,6 +11,7 @@
         <step><cmd>Open Character Map, and wait for its Select button.</cmd></step>
         <step><cmd>Click <uicontrol>Select</uicontrol>.</cmd></step>
         <step><cmd>Check that the window shows the <b>Copy</b> button.</cmd></step>
+        <step><cmd>Check the Copy button again, picking the window by its title, by name, and as the newest window.</cmd></step>
         <step><cmd>Close Character Map.</cmd></step>
       </steps>
     </taskbody>
@@ -19,8 +20,8 @@
     <title>macOS: Calculator</title>
     <taskbody>
       <steps>
-        <step><cmd>Open Calculator, and wait for its <codeph>1</codeph> button.</cmd></step>
-        <step><cmd>Press the <codeph>1</codeph> button.</cmd></step>
+        <step><cmd>Open Calculator with <codeph>SESSIONS_DOCS=1</codeph> in its environment, and wait for its <codeph>1</codeph> button.</cmd></step>
+        <step><cmd>In the first window, press the <codeph>1</codeph> button.</cmd></step>
         <step><cmd>Close Calculator.</cmd></step>
       </steps>
     </taskbody>
@@ -36,11 +37,20 @@
       </steps>
     </taskbody>
   </task>
+  <task id="sessions-apps-android-install">
+    <title>Android: your own app</title>
+    <taskbody>
+      <steps>
+        <step><cmd>Install <codeph>build/sessions-demo.apk</codeph> on a headless Android 14 phone emulator named <codeph>sessions-pixel</codeph>, open its main activity, and wait for the Welcome screen.</cmd></step>
+        <step><cmd>Close the app.</cmd></step>
+      </steps>
+    </taskbody>
+  </task>
   <task id="sessions-apps-ios">
     <title>iOS: Settings</title>
     <taskbody>
       <steps>
-        <step><cmd>On an iPhone simulator named <codeph>sessions-iphone</codeph>, open the Settings app, and wait for the General entry.</cmd></step>
+        <step><cmd>On the iPhone simulator named <codeph>sessions-iphone</codeph>, open the Settings app, and wait for the General entry.</cmd></step>
         <step><cmd>Tap the General entry.</cmd></step>
         <step><cmd>Check that the screen shows <b>About</b>.</cmd></step>
         <step><cmd>Close the Settings app.</cmd></step>

@@ -13,6 +13,17 @@
 . Check that the window shows the *Copy* button.
 +
 // (step {"find":"Copy"})
+. Check the Copy button again, picking the window by its title, by name, and as the newest window.
++
+// (step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"title":"Character Map"}}}})
++
+// (step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":"Character Map"}}})
++
+// (step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"name":"Character Map"}}}})
++
+// (step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":-1}}})
++
+// (step {"find":{"elementText":"Copy","surface":{"app":"charmap"}}})
 . Close Character Map.
 +
 // (step {"closeSurface":{"app":"charmap"}})
@@ -23,12 +34,12 @@
 
 // (test {"testId":"sessions-apps-mac","detectSteps":false,"runOn":[{"platforms":"mac"}]})
 
-. Open Calculator, and wait for its `1` button.
+. Open Calculator with `SESSIONS_DOCS=1` in its environment, and wait for its `1` button.
 +
-// (step {"startSurface":{"app":"/System/Applications/Calculator.app","name":"calculator","timeout":180000,"waitUntil":{"find":{"elementAria":"1"}}}})
-. Press the `1` button.
+// (step {"startSurface":{"app":"/System/Applications/Calculator.app","name":"calculator","env":{"SESSIONS_DOCS":"1"},"timeout":180000,"waitUntil":{"find":{"elementAria":"1"}}}})
+. In the first window, press the `1` button.
 +
-// (step {"click":{"elementAria":"1"}})
+// (step {"click":{"elementAria":"1","surface":{"app":"calculator","window":{"index":0}}}})
 . Close Calculator.
 +
 // (step {"closeSurface":"calculator"})
@@ -54,13 +65,26 @@
 
 // (test end)
 
+== Android: your own app
+
+// (test {"testId":"sessions-apps-android-install","detectSteps":false,"runOn":[{"platforms":"android","device":"sessions-pixel","requires":{"files":["build/sessions-demo.apk"]}}]})
+
+. Install `build/sessions-demo.apk` on a headless Android 14 phone emulator named `sessions-pixel`, open its main activity, and wait for the Welcome screen.
++
+// (step {"startSurface":{"app":"com.example.sessionsdemo","name":"demo","install":"build/sessions-demo.apk","activity":".MainActivity","device":{"platform":"android","name":"sessions-pixel","deviceType":"phone","osVersion":"14","headless":true},"driverOptions":{"appium:newCommandTimeout":300},"timeout":300000,"waitUntil":{"find":{"elementText":"Welcome"}}}})
+. Close the app.
++
+// (step {"closeSurface":{"app":"demo"}})
+
+// (test end)
+
 == iOS: Settings
 
-// (test {"testId":"sessions-apps-ios","detectSteps":false,"runOn":[{"platforms":"ios","device":{"name":"sessions-iphone","deviceType":"phone"}}]})
+// (test {"testId":"sessions-apps-ios","detectSteps":false,"runOn":[{"platforms":"ios","device":{"platform":"ios","name":"sessions-iphone","deviceType":"phone","osVersion":"18.0","headless":true}}]})
 
-. On an iPhone simulator named `sessions-iphone`, open the Settings app, and wait for the General entry.
+. On the iPhone simulator named `sessions-iphone`, open the Settings app, and wait for the General entry.
 +
-// (step {"startSurface":{"app":"com.apple.Preferences","name":"preferences","timeout":180000,"waitUntil":{"find":{"elementText":"General"}}}})
+// (step {"startSurface":{"app":"com.apple.Preferences","name":"preferences","device":"sessions-iphone","timeout":180000,"waitUntil":{"find":{"elementText":"General"}}}})
 . Tap the General entry.
 +
 // (step {"click":"General"})

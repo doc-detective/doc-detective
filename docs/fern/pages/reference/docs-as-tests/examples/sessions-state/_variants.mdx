@@ -11,10 +11,12 @@
 Run these steps in Firefox and in Chrome.
 
 1. Sign in at [the sign-in page](http://localhost:8092/cookies/set/sessions_state/signed-in). The server sets the `sessions_state` cookie.
-2. Save the browser state to `sessions-state.json`.
+2. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
 3. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out), which replaces the cookie.
-4. Load the browser state from `sessions-state.json`.
+4. Load the browser state from `sessions-state.json` in the output folder.
 5. Go to [the cookie report](http://localhost:8092/cookies), and check that it shows **sessions_state=signed-in**.
+6. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out) again, and load the browser state from `tmp/sessions-state.json`.
+7. Go to [the cookie report](http://localhost:8092/cookies) again, and check that it shows **sessions_state=signed-in**.
 ```
 
       </Tab>
@@ -26,10 +28,12 @@ Run these steps in Firefox and in Chrome.
 Run these steps in Firefox and in Chrome.
 
 1. Sign in at [the sign-in page](http://localhost:8092/cookies/set/sessions_state/signed-in). The server sets the `sessions_state` cookie.
-2. Save the browser state to `sessions-state.json`.
+2. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
 3. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out), which replaces the cookie.
-4. Load the browser state from `sessions-state.json`.
+4. Load the browser state from `sessions-state.json` in the output folder.
 5. Go to [the cookie report](http://localhost:8092/cookies), and check that it shows **sessions_state=signed-in**.
+6. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out) again, and load the browser state from `tmp/sessions-state.json`.
+7. Go to [the cookie report](http://localhost:8092/cookies) again, and check that it shows **sessions_state=signed-in**.
 ```
 
       </Tab>
@@ -41,10 +45,12 @@ Run these steps in Firefox and in Chrome.
 Run these steps in Firefox and in Chrome.
 
 . Sign in at http://localhost:8092/cookies/set/sessions_state/signed-in[the sign-in page]. The server sets the `sessions_state` cookie.
-. Save the browser state to `sessions-state.json`.
+. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
 . Go to http://localhost:8092/cookies/set/sessions_state/signed-out[the sign-out page], which replaces the cookie.
-. Load the browser state from `sessions-state.json`.
+. Load the browser state from `sessions-state.json` in the output folder.
 . Go to http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_state=signed-in*.
+. Go to http://localhost:8092/cookies/set/sessions_state/signed-out[the sign-out page] again, and load the browser state from `tmp/sessions-state.json`.
+. Go to http://localhost:8092/cookies[the cookie report] again, and check that it shows *sessions_state=signed-in*.
 ```
 
       </Tab>
@@ -59,10 +65,12 @@ Run these steps in Firefox and in Chrome.
 <p>Run these steps in Firefox and in Chrome.</p>
 <ol>
   <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_state/signed-in">the sign-in page</a>. The server sets the <code>sessions_state</code> cookie.</li>
-  <li>Save the browser state to <code>sessions-state.json</code>.</li>
+  <li>Save the browser state to <code>sessions-state.json</code> in the output folder, and to <code>sessions-state.json</code> in a <code>tmp</code> folder next to this file.</li>
   <li>Go to <a href="http://localhost:8092/cookies/set/sessions_state/signed-out">the sign-out page</a>, which replaces the cookie.</li>
-  <li>Load the browser state from <code>sessions-state.json</code>.</li>
+  <li>Load the browser state from <code>sessions-state.json</code> in the output folder.</li>
   <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_state=signed-in</strong>.</li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_state/signed-out">the sign-out page</a> again, and load the browser state from <code>tmp/sessions-state.json</code>.</li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a> again, and check that it shows <strong>sessions_state=signed-in</strong>.</li>
 </ol>
 </body>
 </html>
@@ -79,13 +87,17 @@ Run these steps in Firefox and in Chrome.
 
 #. Sign in at `the sign-in page <http://localhost:8092/cookies/set/sessions_state/signed-in>`__. The server sets the ``sessions_state`` cookie.
 
-#. Save the browser state to ``sessions-state.json``.
+#. Save the browser state to ``sessions-state.json`` in the output folder, and to ``sessions-state.json`` in a ``tmp`` folder next to this file.
 
 #. Go to `the sign-out page <http://localhost:8092/cookies/set/sessions_state/signed-out>`__, which replaces the cookie.
 
-#. Load the browser state from ``sessions-state.json``.
+#. Load the browser state from ``sessions-state.json`` in the output folder.
 
 #. Go to `the cookie report <http://localhost:8092/cookies>`__, and check that it shows **sessions_state=signed-in**.
+
+#. Go to `the sign-out page <http://localhost:8092/cookies/set/sessions_state/signed-out>`__ again, and load the browser state from ``tmp/sessions-state.json``.
+
+#. Go to `the cookie report <http://localhost:8092/cookies>`__ again, and check that it shows **sessions_state=signed-in**.
 ```
 
       </Tab>
@@ -100,10 +112,12 @@ Run these steps in Firefox and in Chrome.
     <context><p>Run these steps in Firefox and in Chrome.</p></context>
     <steps>
       <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_state/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_state</codeph> cookie.</cmd></step>
-      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph>.</cmd></step>
+      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph> in the output folder, and to <codeph>sessions-state.json</codeph> in a <codeph>tmp</codeph> folder next to this file.</cmd></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd></step>
-      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph>.</cmd></step>
+      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph> in the output folder.</cmd></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_state=signed-in</b>.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref> again, and load the browser state from <codeph>tmp/sessions-state.json</codeph>.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref> again, and check that it shows <b>sessions_state=signed-in</b>.</cmd></step>
     </steps>
   </taskbody>
 </task>
@@ -125,12 +139,16 @@ Run these steps in Firefox and in Chrome.
 
 1. Sign in at [the sign-in page](http://localhost:8092/cookies/set/sessions_state/signed-in). The server sets the `sessions_state` cookie.
    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"} -->
-2. Save the browser state to `sessions-state.json`.
+2. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
    <!-- step {"saveState":{"path":"sessions-state.json","overwrite":true}} -->
+   <!-- step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}} -->
 3. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out), which replaces the cookie.
-4. Load the browser state from `sessions-state.json`.
+4. Load the browser state from `sessions-state.json` in the output folder.
    <!-- step {"loadState":"sessions-state.json"} -->
 5. Go to [the cookie report](http://localhost:8092/cookies), and check that it shows **sessions_state=signed-in**.
+6. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out) again, and load the browser state from `tmp/sessions-state.json`.
+   <!-- step {"loadState":{"path":"sessions-state.json","directory":"tmp"}} -->
+7. Go to [the cookie report](http://localhost:8092/cookies) again, and check that it shows **sessions_state=signed-in**.
 
 <!-- test end -->
 ```
@@ -147,12 +165,16 @@ Run these steps in Firefox and in Chrome.
 
 1. Sign in at [the sign-in page](http://localhost:8092/cookies/set/sessions_state/signed-in). The server sets the `sessions_state` cookie.
    {/* step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"} */}
-2. Save the browser state to `sessions-state.json`.
+2. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
    {/* step {"saveState":{"path":"sessions-state.json","overwrite":true}} */}
+   {/* step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}} */}
 3. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out), which replaces the cookie.
-4. Load the browser state from `sessions-state.json`.
+4. Load the browser state from `sessions-state.json` in the output folder.
    {/* step {"loadState":"sessions-state.json"} */}
 5. Go to [the cookie report](http://localhost:8092/cookies), and check that it shows **sessions_state=signed-in**.
+6. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out) again, and load the browser state from `tmp/sessions-state.json`.
+   {/* step {"loadState":{"path":"sessions-state.json","directory":"tmp"}} */}
+7. Go to [the cookie report](http://localhost:8092/cookies) again, and check that it shows **sessions_state=signed-in**.
 
 {/* test end */}
 ```
@@ -170,14 +192,20 @@ Run these steps in Firefox and in Chrome.
 . Sign in at http://localhost:8092/cookies/set/sessions_state/signed-in[the sign-in page]. The server sets the `sessions_state` cookie.
 +
 // (step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"})
-. Save the browser state to `sessions-state.json`.
+. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
 +
 // (step {"saveState":{"path":"sessions-state.json","overwrite":true}})
++
+// (step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}})
 . Go to http://localhost:8092/cookies/set/sessions_state/signed-out[the sign-out page], which replaces the cookie.
-. Load the browser state from `sessions-state.json`.
+. Load the browser state from `sessions-state.json` in the output folder.
 +
 // (step {"loadState":"sessions-state.json"})
 . Go to http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_state=signed-in*.
+. Go to http://localhost:8092/cookies/set/sessions_state/signed-out[the sign-out page] again, and load the browser state from `tmp/sessions-state.json`.
++
+// (step {"loadState":{"path":"sessions-state.json","directory":"tmp"}})
+. Go to http://localhost:8092/cookies[the cookie report] again, and check that it shows *sessions_state=signed-in*.
 
 // (test end)
 ```
@@ -196,12 +224,16 @@ Run these steps in Firefox and in Chrome.
 <ol>
   <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_state/signed-in">the sign-in page</a>. The server sets the <code>sessions_state</code> cookie.
     <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"} --></li>
-  <li>Save the browser state to <code>sessions-state.json</code>.
-    <!-- step {"saveState":{"path":"sessions-state.json","overwrite":true}} --></li>
+  <li>Save the browser state to <code>sessions-state.json</code> in the output folder, and to <code>sessions-state.json</code> in a <code>tmp</code> folder next to this file.
+    <!-- step {"saveState":{"path":"sessions-state.json","overwrite":true}} -->
+    <!-- step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}} --></li>
   <li>Go to <a href="http://localhost:8092/cookies/set/sessions_state/signed-out">the sign-out page</a>, which replaces the cookie.</li>
-  <li>Load the browser state from <code>sessions-state.json</code>.
+  <li>Load the browser state from <code>sessions-state.json</code> in the output folder.
     <!-- step {"loadState":"sessions-state.json"} --></li>
   <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_state=signed-in</strong>.</li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_state/signed-out">the sign-out page</a> again, and load the browser state from <code>tmp/sessions-state.json</code>.
+    <!-- step {"loadState":{"path":"sessions-state.json","directory":"tmp"}} --></li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a> again, and check that it shows <strong>sessions_state=signed-in</strong>.</li>
 </ol>
 <!-- test end -->
 </body>
@@ -223,17 +255,25 @@ Run these steps in Firefox and in Chrome.
 
    .. step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"}
 
-#. Save the browser state to ``sessions-state.json``.
+#. Save the browser state to ``sessions-state.json`` in the output folder, and to ``sessions-state.json`` in a ``tmp`` folder next to this file.
 
    .. step {"saveState":{"path":"sessions-state.json","overwrite":true}}
 
+   .. step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}}
+
 #. Go to `the sign-out page <http://localhost:8092/cookies/set/sessions_state/signed-out>`__, which replaces the cookie.
 
-#. Load the browser state from ``sessions-state.json``.
+#. Load the browser state from ``sessions-state.json`` in the output folder.
 
    .. step {"loadState":"sessions-state.json"}
 
 #. Go to `the cookie report <http://localhost:8092/cookies>`__, and check that it shows **sessions_state=signed-in**.
+
+#. Go to `the sign-out page <http://localhost:8092/cookies/set/sessions_state/signed-out>`__ again, and load the browser state from ``tmp/sessions-state.json``.
+
+   .. step {"loadState":{"path":"sessions-state.json","directory":"tmp"}}
+
+#. Go to `the cookie report <http://localhost:8092/cookies>`__ again, and check that it shows **sessions_state=signed-in**.
 
 .. test end
 ```
@@ -252,12 +292,15 @@ Run these steps in Firefox and in Chrome.
     <steps>
       <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_state/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_state</codeph> cookie.</cmd>
         <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"}'/></info></step>
-      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph>.</cmd>
-        <info><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","overwrite":true}}'/></info></step>
+      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph> in the output folder, and to <codeph>sessions-state.json</codeph> in a <codeph>tmp</codeph> folder next to this file.</cmd>
+        <info><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","overwrite":true}}'/><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}}'/></info></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd></step>
-      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph>.</cmd>
+      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph> in the output folder.</cmd>
         <info><data name="doc-detective" value='step {"loadState":"sessions-state.json"}'/></info></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_state=signed-in</b>.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref> again, and load the browser state from <codeph>tmp/sessions-state.json</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadState":{"path":"sessions-state.json","directory":"tmp"}}'/></info></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref> again, and check that it shows <b>sessions_state=signed-in</b>.</cmd></step>
     </steps>
     <data name="doc-detective" value="test end"/>
   </taskbody>
@@ -280,13 +323,20 @@ Run these steps in Firefox and in Chrome.
 
 1. Sign in at [the sign-in page](http://localhost:8092/cookies/set/sessions_state/signed-in). The server sets the `sessions_state` cookie.
    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"} -->
-2. Save the browser state to `sessions-state.json`.
+2. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
    <!-- step {"saveState":{"path":"sessions-state.json","overwrite":true}} -->
+   <!-- step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}} -->
 3. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out), which replaces the cookie.
    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"} -->
-4. Load the browser state from `sessions-state.json`.
+4. Load the browser state from `sessions-state.json` in the output folder.
    <!-- step {"loadState":"sessions-state.json"} -->
 5. Go to [the cookie report](http://localhost:8092/cookies), and check that it shows **sessions_state=signed-in**.
+   <!-- step {"goTo":"http://localhost:8092/cookies"} -->
+   <!-- step {"find":"sessions_state=signed-in"} -->
+6. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out) again, and load the browser state from `tmp/sessions-state.json`.
+   <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"} -->
+   <!-- step {"loadState":{"path":"sessions-state.json","directory":"tmp"}} -->
+7. Go to [the cookie report](http://localhost:8092/cookies) again, and check that it shows **sessions_state=signed-in**.
    <!-- step {"goTo":"http://localhost:8092/cookies"} -->
    <!-- step {"find":"sessions_state=signed-in"} -->
 
@@ -305,13 +355,20 @@ Run these steps in Firefox and in Chrome.
 
 1. Sign in at [the sign-in page](http://localhost:8092/cookies/set/sessions_state/signed-in). The server sets the `sessions_state` cookie.
    {/* step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"} */}
-2. Save the browser state to `sessions-state.json`.
+2. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
    {/* step {"saveState":{"path":"sessions-state.json","overwrite":true}} */}
+   {/* step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}} */}
 3. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out), which replaces the cookie.
    {/* step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"} */}
-4. Load the browser state from `sessions-state.json`.
+4. Load the browser state from `sessions-state.json` in the output folder.
    {/* step {"loadState":"sessions-state.json"} */}
 5. Go to [the cookie report](http://localhost:8092/cookies), and check that it shows **sessions_state=signed-in**.
+   {/* step {"goTo":"http://localhost:8092/cookies"} */}
+   {/* step {"find":"sessions_state=signed-in"} */}
+6. Go to [the sign-out page](http://localhost:8092/cookies/set/sessions_state/signed-out) again, and load the browser state from `tmp/sessions-state.json`.
+   {/* step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"} */}
+   {/* step {"loadState":{"path":"sessions-state.json","directory":"tmp"}} */}
+7. Go to [the cookie report](http://localhost:8092/cookies) again, and check that it shows **sessions_state=signed-in**.
    {/* step {"goTo":"http://localhost:8092/cookies"} */}
    {/* step {"find":"sessions_state=signed-in"} */}
 
@@ -331,16 +388,28 @@ Run these steps in Firefox and in Chrome.
 . Sign in at http://localhost:8092/cookies/set/sessions_state/signed-in[the sign-in page]. The server sets the `sessions_state` cookie.
 +
 // (step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"})
-. Save the browser state to `sessions-state.json`.
+. Save the browser state to `sessions-state.json` in the output folder, and to `sessions-state.json` in a `tmp` folder next to this file.
 +
 // (step {"saveState":{"path":"sessions-state.json","overwrite":true}})
++
+// (step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}})
 . Go to http://localhost:8092/cookies/set/sessions_state/signed-out[the sign-out page], which replaces the cookie.
 +
 // (step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"})
-. Load the browser state from `sessions-state.json`.
+. Load the browser state from `sessions-state.json` in the output folder.
 +
 // (step {"loadState":"sessions-state.json"})
 . Go to http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_state=signed-in*.
++
+// (step {"goTo":"http://localhost:8092/cookies"})
++
+// (step {"find":"sessions_state=signed-in"})
+. Go to http://localhost:8092/cookies/set/sessions_state/signed-out[the sign-out page] again, and load the browser state from `tmp/sessions-state.json`.
++
+// (step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"})
++
+// (step {"loadState":{"path":"sessions-state.json","directory":"tmp"}})
+. Go to http://localhost:8092/cookies[the cookie report] again, and check that it shows *sessions_state=signed-in*.
 +
 // (step {"goTo":"http://localhost:8092/cookies"})
 +
@@ -363,13 +432,20 @@ Run these steps in Firefox and in Chrome.
 <ol>
   <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_state/signed-in">the sign-in page</a>. The server sets the <code>sessions_state</code> cookie.
     <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"} --></li>
-  <li>Save the browser state to <code>sessions-state.json</code>.
-    <!-- step {"saveState":{"path":"sessions-state.json","overwrite":true}} --></li>
+  <li>Save the browser state to <code>sessions-state.json</code> in the output folder, and to <code>sessions-state.json</code> in a <code>tmp</code> folder next to this file.
+    <!-- step {"saveState":{"path":"sessions-state.json","overwrite":true}} -->
+    <!-- step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}} --></li>
   <li>Go to <a href="http://localhost:8092/cookies/set/sessions_state/signed-out">the sign-out page</a>, which replaces the cookie.
     <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"} --></li>
-  <li>Load the browser state from <code>sessions-state.json</code>.
+  <li>Load the browser state from <code>sessions-state.json</code> in the output folder.
     <!-- step {"loadState":"sessions-state.json"} --></li>
   <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_state=signed-in</strong>.
+    <!-- step {"goTo":"http://localhost:8092/cookies"} -->
+    <!-- step {"find":"sessions_state=signed-in"} --></li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_state/signed-out">the sign-out page</a> again, and load the browser state from <code>tmp/sessions-state.json</code>.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"} -->
+    <!-- step {"loadState":{"path":"sessions-state.json","directory":"tmp"}} --></li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a> again, and check that it shows <strong>sessions_state=signed-in</strong>.
     <!-- step {"goTo":"http://localhost:8092/cookies"} -->
     <!-- step {"find":"sessions_state=signed-in"} --></li>
 </ol>
@@ -393,19 +469,33 @@ Run these steps in Firefox and in Chrome.
 
    .. step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"}
 
-#. Save the browser state to ``sessions-state.json``.
+#. Save the browser state to ``sessions-state.json`` in the output folder, and to ``sessions-state.json`` in a ``tmp`` folder next to this file.
 
    .. step {"saveState":{"path":"sessions-state.json","overwrite":true}}
+
+   .. step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}}
 
 #. Go to `the sign-out page <http://localhost:8092/cookies/set/sessions_state/signed-out>`__, which replaces the cookie.
 
    .. step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"}
 
-#. Load the browser state from ``sessions-state.json``.
+#. Load the browser state from ``sessions-state.json`` in the output folder.
 
    .. step {"loadState":"sessions-state.json"}
 
 #. Go to `the cookie report <http://localhost:8092/cookies>`__, and check that it shows **sessions_state=signed-in**.
+
+   .. step {"goTo":"http://localhost:8092/cookies"}
+
+   .. step {"find":"sessions_state=signed-in"}
+
+#. Go to `the sign-out page <http://localhost:8092/cookies/set/sessions_state/signed-out>`__ again, and load the browser state from ``tmp/sessions-state.json``.
+
+   .. step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"}
+
+   .. step {"loadState":{"path":"sessions-state.json","directory":"tmp"}}
+
+#. Go to `the cookie report <http://localhost:8092/cookies>`__ again, and check that it shows **sessions_state=signed-in**.
 
    .. step {"goTo":"http://localhost:8092/cookies"}
 
@@ -428,13 +518,17 @@ Run these steps in Firefox and in Chrome.
     <steps>
       <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_state/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_state</codeph> cookie.</cmd>
         <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"}'/></info></step>
-      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph>.</cmd>
-        <info><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","overwrite":true}}'/></info></step>
+      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph> in the output folder, and to <codeph>sessions-state.json</codeph> in a <codeph>tmp</codeph> folder next to this file.</cmd>
+        <info><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","overwrite":true}}'/><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","directory":"tmp","overwrite":true}}'/></info></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd>
         <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"}'/></info></step>
-      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph>.</cmd>
+      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph> in the output folder.</cmd>
         <info><data name="doc-detective" value='step {"loadState":"sessions-state.json"}'/></info></step>
       <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_state=signed-in</b>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies"}'/><data name="doc-detective" value='step {"find":"sessions_state=signed-in"}'/></info></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref> again, and load the browser state from <codeph>tmp/sessions-state.json</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"}'/><data name="doc-detective" value='step {"loadState":{"path":"sessions-state.json","directory":"tmp"}}'/></info></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref> again, and check that it shows <b>sessions_state=signed-in</b>.</cmd>
         <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies"}'/><data name="doc-detective" value='step {"find":"sessions_state=signed-in"}'/></info></step>
     </steps>
     <data name="doc-detective" value="test end"/>
@@ -502,10 +596,32 @@ Run these steps in Firefox and in Chrome.
           }
         },
         {
+          "saveState": {
+            "path": "sessions-state.json",
+            "directory": "tmp",
+            "overwrite": true
+          }
+        },
+        {
           "goTo": "http://localhost:8092/cookies/set/sessions_state/signed-out"
         },
         {
           "loadState": "sessions-state.json"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "sessions_state=signed-in"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_state/signed-out"
+        },
+        {
+          "loadState": {
+            "path": "sessions-state.json",
+            "directory": "tmp"
+          }
         },
         {
           "goTo": "http://localhost:8092/cookies"
@@ -525,7 +641,7 @@ Run these steps in Firefox and in Chrome.
 ```yaml title="standalone.spec.yaml"
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
 runOn:
-  - platforms:
+  - platforms: &a1
       - linux
       - mac
       - windows
@@ -540,10 +656,7 @@ runOn:
           height: 800
     browserFallback: off
     retries: 2
-  - platforms:
-      - linux
-      - mac
-      - windows
+  - platforms: *a1
     browsers:
       name: chrome
       headless: true
@@ -554,8 +667,18 @@ tests:
       - saveState:
           path: sessions-state.json
           overwrite: true
+      - saveState:
+          path: sessions-state.json
+          directory: tmp
+          overwrite: true
       - goTo: http://localhost:8092/cookies/set/sessions_state/signed-out
       - loadState: sessions-state.json
+      - goTo: http://localhost:8092/cookies
+      - find: sessions_state=signed-in
+      - goTo: http://localhost:8092/cookies/set/sessions_state/signed-out
+      - loadState:
+          path: sessions-state.json
+          directory: tmp
       - goTo: http://localhost:8092/cookies
       - find: sessions_state=signed-in
 ```
