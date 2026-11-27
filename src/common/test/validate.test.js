@@ -1797,7 +1797,7 @@ import { schemas } from "../dist/index.js";
           for (const object of [{ goTo: url }, { checkLink: { url } }, { httpRequest: url }, { httpRequest: { url } }]) {
             const result = step(object);
             expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
-            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])"');
+            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)"');
           }
         }
       });
