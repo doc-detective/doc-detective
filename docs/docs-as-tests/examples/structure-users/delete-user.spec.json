@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "structure-users-delete",
+      "description": "Delete the user that the tests created, after every test runs.",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users/ada",
+            "method": "delete"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<!-- test {"testId":"nav-goto-origin","detectSteps":false} -->
+
+# Open a page by its path
+
+1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
+   <!-- step {"goTo":{"url":"/enhanced-elements.html","origin":"http://localhost:8092"}} -->
+2. Check that the page shows **Submit by ID**.
+   <!-- step {"find":"Submit by ID"} -->
+
+<!-- test end -->

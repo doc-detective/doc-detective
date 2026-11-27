@@ -1,0 +1,19 @@
+= Show code without running it
+
+// (test {"testId":"http-code-testignore","detectSteps":true})
+
+Run this code:
+
+[source,bash]
+----
+echo "ready"
+----
+
+To install the tool for every project on your machine, run:
+
+[source,bash,testIgnore]
+----
+npm install --global ./greeter
+----
+
+// (test end)

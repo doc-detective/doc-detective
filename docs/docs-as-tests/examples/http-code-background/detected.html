@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Start a server from code</title></head>
+<body>
+<!-- test {"testId":"http-code-background","detectSteps":true} -->
+<h1>Start a server from code</h1>
+<p>Start a server on port 8251:</p>
+<!-- test ignore start -->
+<pre><code class="language-js">require('http').createServer((q, r) =&gt; r.end('ok')).listen(8251);</code></pre>
+<!-- test ignore end -->
+<!-- step {"runCode":{"language":"js","code":"require('http').createServer((q, r) => r.end('ok')).listen(8251);","background":{"name":"http-code-server","waitUntil":{"port":8251}},"timeout":15000}} -->
+<p>Stop it when you're done.</p>
+<!-- step {"closeSurface":"http-code-server"} -->
+<!-- test end -->
+</body>
+</html>

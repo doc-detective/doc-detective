@@ -1,0 +1,13 @@
+<!-- test {"testId":"http-shell-shell-bash","detectSteps":false} -->
+
+# Run a command in Bash
+
+Print a word:
+
+```shell
+echo ready
+```
+
+<!-- step {"runShell":{"command":"echo ready","shell":"bash","stdio":"ready"}} -->
+
+<!-- test end -->

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-route-if-array">
+  <title>Skip ahead after a valid version</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-route-if-array","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock>
+          <data name="doc-detective" value='step {"runShell":"node --version","onPass":[{"if":["$$outputs.exitCode == 0","$$outputs.stdio.stdout matches /^v/"],"goToStep":"path"}]}'/></info></step>
+      <step><cmd>Print the npm version:</cmd>
+        <info><codeblock outputclass="language-shell">npm --version</codeblock>
+          <data name="doc-detective" value='step {"stepId":"npm","runShell":"npm --version"}'/></info></step>
+      <step><cmd>Find the Node.js executable:</cmd>
+        <info><codeblock outputclass="language-shell">command -v node</codeblock>
+          <data name="doc-detective" value='step {"stepId":"path","runShell":"command -v node"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

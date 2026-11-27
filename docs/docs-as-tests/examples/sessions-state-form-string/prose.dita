@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-state-form-string">
+  <title>Keep the browser state in a file</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Delete any <codeph>sessions-pstate.json</codeph> that an earlier run left in the output folder.</cmd></step>
+      <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_pstate/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_pstate</codeph> cookie.</cmd></step>
+      <step><cmd>Save the browser state to <codeph>sessions-pstate.json</codeph>.</cmd></step>
+      <step><cmd>Sign out at <xref href="http://localhost:8092/cookies/set/sessions_pstate/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd></step>
+      <step><cmd>Load the browser state from <codeph>sessions-pstate.json</codeph>.</cmd></step>
+      <step><cmd>Open <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_pstate=signed-in</b>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

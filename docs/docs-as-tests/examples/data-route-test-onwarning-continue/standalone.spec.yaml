@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: data-route-test-onwarning-continue-api
+    onWarning:
+      - continue: true
+    steps:
+      - httpRequest:
+          url: http://localhost:8092/api/health
+          method: get
+  - testId: data-route-test-onwarning-continue-cart
+    steps:
+      - httpRequest:
+          url: http://localhost:8092/api/carts
+          method: get
+  - testId: data-route-test-onwarning-continue-products
+    steps:
+      - httpRequest:
+          url: http://localhost:8092/api/products
+          method: get

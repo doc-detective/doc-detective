@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-exitcodes">
+  <title>Expect a failing exit code</title>
+  <body>
+    <p>This script exits with code <codeph>1</codeph>:</p>
+    <codeblock outputclass="language-shell">node -e "process.exit(1)"</codeblock>
+  </body>
+</topic>

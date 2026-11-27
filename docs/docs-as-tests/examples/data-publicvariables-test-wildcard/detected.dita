@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-publicvariables-test-wildcard">
+  <title>List products and show the URL in reports</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-publicvariables-test-wildcard","publicVariables":["SHOP_*"],"detectSteps":true}'/>
+    <steps>
+      <step><cmd>Load the variables in <codeph>shop.env</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadVariables":"shop.env"}'/></info></step>
+      <step><cmd>List the products. Send a <codeph>GET</codeph> request to <codeph>$SHOP_URL/products</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"httpRequest":{"url":"$SHOP_URL/products","method":"get"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

@@ -1,0 +1,496 @@
+---
+title: Sessions and surfaces, written as tests
+sidebar-title: Sessions and surfaces
+description: Procedures that keep cookies and browser state, work across tabs, windows, browser sessions, processes, and apps, and choose where and how they run, shown as plain prose, detected tests, inline tests, and standalone specs in every supported format.
+---
+
+Each example shows one procedure as prose, as detected tests, as inline tests, and as a standalone spec. For what each tab holds, see [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+In a detected variant, a `step` statement holds each step that default detection can't produce, such as `saveCookie` or `startSurface`. Each of those statements also works on its own, because a run with detection off reads only the statements.
+
+The permutation sections, from [`saveCookie` and `loadCookie` permutations](#savecookie-and-loadcookie-permutations) on, vary one setting each. A **Varies** line names the setting, its value, and its effect.
+
+## Keep a session cookie
+
+This procedure uses [`saveCookie`](/docs/actions/savecookie) and [`loadCookie`](/docs/actions/loadcookie) in their name, file path, and object forms, with [`goTo`](/docs/actions/goto) and [`find`](/docs/actions/find).
+
+<Markdown src="examples/sessions-cookies/_variants.mdx" />
+
+### Forms in this example
+
+| Step | What it does |
+|---|---|
+| `"saveCookie": "sessions_demo"` | Saves the cookie to the `sessions_demo` environment variable. |
+| `"saveCookie": { "name", "variable" }` | Saves the cookie to the environment variable that `variable` names. |
+| `"saveCookie": { "name", "path", "overwrite" }` | Saves the cookie to a file in `outputDir`, replacing an earlier file. |
+| `"saveCookie": { "name", "path", "directory", "domain", "overwrite" }` | Saves only the cookie for `domain` to a file in `directory`. A relative `directory` resolves against the file that holds the test. |
+| `"loadCookie": "sessions_demo.txt"` | Loads the cookie named for the file from `outputDir`. |
+| `"loadCookie": { "name", "variable" }` | Loads the cookie from an environment variable. |
+| `"loadCookie": { "name", "path", "directory", "domain" }` | Loads the cookie for `domain` from a file in `directory`. |
+
+`"loadCookie": "sessions_demo"`, a bare cookie name, loads from the environment variable of that name.
+
+### Config for the detected run
+
+The detected variants run with this example's own config, which sets contexts for every test that has no `runOn` of its own. Here, `browsers` is an array of browser names, so the test runs in Firefox and then in Chrome:
+
+```json title="doc-detective.json"
+{
+  "detectSteps": true,
+  "runOn": [
+    {
+      "platforms": ["linux", "mac", "windows"],
+      "browsers": ["firefox", "chrome"]
+    }
+  ],
+  "browserFallback": "explicit",
+  "retries": 1
+}
+```
+
+`browserFallback` set to `explicit` falls back to another browser only for a context whose browser Doc Detective picked itself. `retries` re-runs a context once on a fresh session when its session breaks mid-run. A context's own `browserFallback` and `retries` override these. See [`config`](/reference/schemas/config).
+
+### What detection finds
+
+Each link becomes a `checkLink` step, and each link after "Go to" also becomes a `goTo` step. The bold `sessions_demo=signed-in` becomes a `find` step. The first link comes after `Sign in at`, which isn't a navigation verb, so detection only checks it, and a `goTo` statement opens it. No default rule produces `saveCookie` or `loadCookie`, so those are statements in every detected variant.
+
+## Reuse a signed-in browser state in two browsers
+
+This procedure uses [`saveState`](/docs/actions/savestate) and [`loadState`](/docs/actions/loadstate) in their object and string forms, and runs in two [contexts](/reference/schemas/context): headless Firefox with a set `window` and `viewport`, and headless Chrome.
+
+<Markdown src="examples/sessions-state/_variants.mdx" />
+
+### Where the contexts live
+
+The test statement carries `runOn` in the detected and inline variants, so it applies to that test. The standalone specs set `runOn` on the [spec](/reference/schemas/specification), where it applies to every test in the file. A test's own `runOn` overrides the spec's. Both shapes resolve to the same two contexts here.
+
+The Firefox context sets `browserFallback` to `off`, so a run without a working Firefox skips that context rather than running it in another browser. It also sets `retries` to `2`, so a session that breaks mid-run gets two fresh attempts.
+
+The platforms that don't match the host report `SKIPPED`, never `FAIL`.
+
+### Forms in this example
+
+- `saveState` with `path` and `overwrite` writes to `outputDir`. Adding `directory` writes next to the file that holds the test instead.
+- `loadState` takes a path in `outputDir` as a string, or an object with `path` and `directory`.
+- The string form of `saveState`, such as `"saveState": "sessions-state.json"`, never overwrites a file, so a second run into the same `outputDir` fails. Use the object form with `overwrite` for a test that runs more than once.
+
+### What detection finds
+
+As in the cookie example, each link becomes a `checkLink` step, the "Go to" links also become `goTo` steps, and the bold text becomes a `find` step. `saveState` and `loadState` are statements.
+
+## Compare pages in tabs, windows, and sessions
+
+This procedure uses [`goTo`](/docs/actions/goto) with `newTab`, `newWindow`, and `surface`, [`startSurface`](/docs/actions/startsurface) with an array of [browser descriptors](/reference/schemas/browser-descriptor), [`find`](/docs/actions/find) and [`type`](/docs/actions/type) with a [browser surface](/reference/schemas/browser-surface), and [`closeSurface`](/docs/actions/closesurface) with an array of surfaces.
+
+<Markdown src="examples/sessions-tabs/_variants.mdx" />
+
+### Opening tabs, windows, and sessions
+
+| Step | Opens |
+|---|---|
+| `"newTab": { "name": "report" }`, `"newTab": "notes"` | A tab with that name. |
+| `"newTab": true` | A tab with no name. |
+| `"newWindow": { "name": "settings", "tab": "general" }` | A window named `settings`, with its first tab named `general`. |
+| `"newWindow": "about"` | A window with that name. |
+| `"newWindow": true` | A window with no name. |
+| `"startSurface": [ … ]` | Each browser session in the array: `reviewer` with a set `viewport`, and `editor` with a set window `size`. |
+
+### Selecting a surface
+
+A `window` or `tab` selector takes a number, a name, or an object.
+
+| Selector | Picks |
+|---|---|
+| `"tab": 1`, `"tab": { "index": 1 }` | The tab at that position in creation order. |
+| `"tab": { "index": -1 }`, `"window": -1`, `"window": { "index": -1 }` | The newest tab or window. |
+| `"window": { "index": 0 }` | The first window. |
+| `"tab": "report"`, `"tab": { "name": "report" }` | The tab with that name. |
+| `"window": "settings"`, `"window": { "name": "settings" }` | The window with that name. |
+| `"tab": { "title": "…" }`, `"window": { "title": "…" }` | The tab or window whose title matches. |
+| `"tab": { "url": "…" }`, `"window": { "url": "…" }` | The tab or window whose URL matches. |
+| `"firefox"` | The default Firefox session, by engine name. |
+| `{ "browser": "firefox", "name": "reviewer" }`, `"reviewer"` | The session that `startSurface` named. |
+
+Browser surface selectors name the engine, so the test pins its context to headless Firefox with `browserFallback` set to `off`. Without Firefox, the test skips rather than addressing an engine that isn't running.
+
+### What detection finds
+
+Each link becomes a `checkLink` step. None of the links follows a navigation verb, so detection opens no pages, and statements hold every navigation, click, and surface step.
+
+## Check what the page sees in an emulated browser
+
+This procedure runs in one [context](/reference/schemas/context), named with `contextId`, whose Chrome [browser](/reference/schemas/browser) sets `colorScheme`, `locale`, `timezone`, `deviceScaleFactor`, `reducedMotion`, and `clock`. [`runBrowserScript`](/docs/actions/runbrowserscript) steps read each setting back from the page.
+
+<Markdown src="examples/sessions-contexts/_variants.mdx" />
+
+Chrome sets every one of these keys. Firefox sets all but `timezone` and `clock`, and skips a context that asks for either. See [Platforms and browsers](/docs/test-docs/platforms-and-browsers).
+
+### What detection finds
+
+The only link comes after `Start at`, which isn't a navigation verb, so detection adds a `checkLink` step, and a `goTo` statement opens the page.
+
+## Test pages on your own site
+
+This procedure gives [`goTo`](/docs/actions/goto) paths rather than full URLs. The config's `origin` supplies the scheme and host, and `originParams` adds query parameters to each URL it builds.
+
+<Markdown src="examples/sessions-origin/_variants.mdx" />
+
+### This example's config
+
+The example's folder holds a `doc-detective.json` and the `sessions.env` file it loads:
+
+```json title="doc-detective.json"
+{
+  "detectSteps": true,
+  "loadVariables": "sessions.env",
+  "origin": "$SESSIONS_ORIGIN",
+  "originParams": {
+    "from": "docs"
+  }
+}
+```
+
+```bash title="sessions.env"
+SESSIONS_ORIGIN=http://localhost:8092
+```
+
+`loadVariables` resolves against the config file's folder, and `origin` reads the variable the file sets. The `/api/echo` endpoint returns the query parameters it gets, so the last check passes only when the config adds `from=docs`.
+
+The test's context `requires` the `SESSIONS_ORIGIN` variable. A run with another config, which can't resolve the paths, skips the test rather than failing it.
+
+### What detection finds
+
+The paths are code, not links, so detection adds no steps. Statements hold every step.
+
+## Evaluate expressions in the Node.js REPL
+
+One procedure starts a process with [`runShell`](/docs/actions/runshell) and `background`. The others use [`startSurface`](/docs/actions/startsurface) with a [process descriptor](/reference/schemas/process-descriptor) (one of them passes an array of descriptors). Each then sends keys with [`type`](/docs/actions/type) to a [process surface](/reference/schemas/process-surface) and closes it with [`closeSurface`](/docs/actions/closesurface). The contexts use [`requires`](/reference/schemas/requirements) to skip a test where `node` isn't installed.
+
+<Markdown src="examples/sessions-process/_variants.mdx" />
+
+### Forms in this example
+
+- `requires` takes a command name (`"node"`), an array of command names (`["node", "npm"]`), or an object that lists `commands`, `files`, and `env` variables.
+- `tty` runs the process in a terminal: `true` for the default 120 by 30 size, or an object with `cols` and `rows`.
+- `waitUntil` holds the step until the process prints a match (`stdio`), a `port` accepts connections, an `httpGet` URL answers, or `delayMs` passes. Conditions in one object must all hold.
+- `workingDirectory` sets where the process starts. A relative path resolves against the file that holds the test.
+- `type` and `closeSurface` address a process by its name (`"sessions-repl"`) or with the object form (`{ "process": "sessions-bg-repl" }`).
+- The background test sets `autoRecord` to `false`. Its context drives no browser or app, so there's nothing to record.
+
+### What detection finds
+
+The prose has no links, bold text, or quoted text after `Type`, so detection adds no steps. Code spans aren't detected, which keeps `40 + 2` from turning into a `type` step without a surface.
+
+## Open a built-in app
+
+These procedures use [`startSurface`](/docs/actions/startsurface) with an [app descriptor](/reference/schemas/app-descriptor), [`click`](/docs/actions/click), [`find`](/docs/actions/find), and [`closeSurface`](/docs/actions/closesurface) with an [app surface](/reference/schemas/app-surface), on Windows, macOS, Android, and iOS. Each test's `runOn` names one platform.
+
+<Markdown src="examples/sessions-apps/_variants.mdx" />
+
+### Where each test runs
+
+| Test | Runs on | Elsewhere |
+|---|---|---|
+| Character Map | Windows | `SKIPPED` |
+| Calculator | macOS, with Accessibility permission for the process that runs Doc Detective | `SKIPPED` |
+| Android Settings | A host with the Android toolchain (`doc-detective install android`) | `SKIPPED` |
+| Your own Android app | A host with the Android toolchain and the app's `build/sessions-demo.apk` | `SKIPPED` |
+| iOS Settings | macOS with Xcode and Simulator tooling | `SKIPPED` |
+
+The Android app test needs your own app, so its context `requires` the APK file and skips without it.
+
+For setup on each platform, see the native app guides, starting with [Native Windows apps](/docs/test-docs/native-windows-apps).
+
+### Forms in this example
+
+- An app `window` selector takes a title as a string, `{ "title" }` or `{ "name" }` criteria, `-1` for the newest window, or a position such as `{ "index": 0 }`. Positions from the start work on macOS only.
+- `env` sets environment variables for a macOS app.
+- `install`, `activity`, and `driverOptions` install an Android app, open one of its activities, and pass options to the automation driver.
+- `device` on `startSurface` names the device as a string, or describes it as a [device descriptor](/reference/schemas/device-descriptor) with `platform`, `name`, `deviceType`, `osVersion`, and `headless`. The context's own `device` takes the same two forms and sets the default for the context.
+
+### What detection finds
+
+On Windows, `Click **Select**` becomes a `click` step and a `find` step for `Select`, and the bold `Copy`, `Internet`, and `About` become `find` steps. The mobile procedures say `Tap`, and a statement holds that click, because after the tap the screen no longer shows the entry's label. A detected `find` for the label would fail.
+
+In DITA, `<uicontrol>` marks the control to click, as in [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+## `saveCookie` and `loadCookie` permutations
+
+### `"saveCookie": "<name>"`
+
+**Varies:** `saveCookie and loadCookie` · **Value:** `"sessions_pname"` · **Effect:** a bare cookie name saves the cookie to, and loads it from, the environment variable of the same name.
+
+<Markdown src="examples/sessions-cookie-form-name/_variants.mdx" />
+
+### `"saveCookie": "<name>.txt"`
+
+**Varies:** `saveCookie and loadCookie` · **Value:** `"sessions_ptxt.txt"` · **Effect:** a path ending in `.txt` saves the cookie named for the file to that file in `outputDir`, and never overwrites one that exists.
+
+<Markdown src="examples/sessions-cookie-form-txt/_variants.mdx" />
+
+### `"overwrite": true`
+
+**Varies:** `saveCookie.overwrite` · **Value:** `true` · **Effect:** a second save to the same file replaces it, so the later value wins.
+
+<Markdown src="examples/sessions-cookie-overwrite-true/_variants.mdx" />
+
+### `"domain": "localhost"`
+
+**Varies:** `saveCookie.domain and loadCookie.domain` · **Value:** `"localhost"` · **Effect:** saves and loads only the cookie set for that domain.
+
+<Markdown src="examples/sessions-cookie-domain/_variants.mdx" />
+
+### `"variable": "SESSIONS_PVAR"`
+
+**Varies:** `saveCookie.variable and loadCookie.variable` · **Value:** `"SESSIONS_PVAR"` · **Effect:** the cookie goes to an environment variable whose name differs from the cookie's.
+
+<Markdown src="examples/sessions-cookie-variable/_variants.mdx" />
+
+## `saveState` and `loadState` permutations
+
+### `"saveState": "<file>.json"`
+
+**Varies:** `saveState and loadState` · **Value:** `"sessions-pstate.json"` · **Effect:** the string form saves to and loads from `outputDir`, and the save never overwrites a file that exists.
+
+<Markdown src="examples/sessions-state-form-string/_variants.mdx" />
+
+### `"overwrite": true`
+
+**Varies:** `saveState.overwrite` · **Value:** `true` · **Effect:** the object form with `overwrite` replaces an earlier file, so the test can run again into the same `outputDir`.
+
+<Markdown src="examples/sessions-state-overwrite-true/_variants.mdx" />
+
+## `runOn` `platforms` permutations
+
+### `"platforms": "windows"`
+
+**Varies:** `runOn[].platforms` · **Value:** `"windows"` · **Effect:** the test runs on Windows and reports `SKIPPED` on every other platform.
+
+<Markdown src="examples/sessions-runon-platforms-windows/_variants.mdx" />
+
+### `"platforms": ["linux", "mac"]`
+
+**Varies:** `runOn[].platforms` · **Value:** `["linux", "mac"]` · **Effect:** an array runs the test on each listed platform the host matches, and skips the rest.
+
+<Markdown src="examples/sessions-runon-platforms-array/_variants.mdx" />
+
+## `runOn` `browsers` permutations
+
+### `"browsers": "firefox"`
+
+**Varies:** `runOn[].browsers` · **Value:** `"firefox"` · **Effect:** a browser name runs the test in that browser, headless by default.
+
+<Markdown src="examples/sessions-runon-browsers-string/_variants.mdx" />
+
+### `"browsers": ["firefox", "chrome"]`
+
+**Varies:** `runOn[].browsers` · **Value:** `["firefox", "chrome"]` · **Effect:** an array runs the whole test once per browser.
+
+<Markdown src="examples/sessions-runon-browsers-array/_variants.mdx" />
+
+### `"headless": false`
+
+**Varies:** `runOn[].browsers.headless` · **Value:** `false` · **Effect:** the browser opens a visible window, so the context runs only where there's a display, here Windows and macOS.
+
+<Markdown src="examples/sessions-runon-browsers-headed/_variants.mdx" />
+
+## `runOn` browser option permutations
+
+### `"colorScheme": "dark"`
+
+**Varies:** `runOn[].browsers.colorScheme` · **Value:** `"dark"` · **Effect:** the page's `prefers-color-scheme` media query matches `dark`.
+
+<Markdown src="examples/sessions-runon-colorscheme/_variants.mdx" />
+
+### `"locale": "de-DE"`
+
+**Varies:** `runOn[].browsers.locale` · **Value:** `"de-DE"` · **Effect:** `navigator.language` and `Intl` formatting use German.
+
+<Markdown src="examples/sessions-runon-locale/_variants.mdx" />
+
+### `"timezone": "Europe/Berlin"`
+
+**Varies:** `runOn[].browsers.timezone` · **Value:** `"Europe/Berlin"` · **Effect:** `Date` and `Intl` use Berlin time.
+
+<Markdown src="examples/sessions-runon-timezone/_variants.mdx" />
+
+### `"deviceScaleFactor": 2`
+
+**Varies:** `runOn[].browsers.deviceScaleFactor` · **Value:** `2` · **Effect:** `devicePixelRatio` is `2`, as on a high-density display.
+
+<Markdown src="examples/sessions-runon-devicescalefactor/_variants.mdx" />
+
+### `"reducedMotion": "reduce"`
+
+**Varies:** `runOn[].browsers.reducedMotion` · **Value:** `"reduce"` · **Effect:** the page's `prefers-reduced-motion` media query matches `reduce`.
+
+<Markdown src="examples/sessions-runon-reducedmotion/_variants.mdx" />
+
+### `"clock": "2026-12-03T09:00:00Z"`
+
+**Varies:** `runOn[].browsers.clock` · **Value:** `"2026-12-03T09:00:00Z"` · **Effect:** `Date.now()` and `new Date()` stay at that instant.
+
+<Markdown src="examples/sessions-runon-clock/_variants.mdx" />
+
+## `runOn` `requires` permutations
+
+### `"requires": "node"`
+
+**Varies:** `runOn[].requires` · **Value:** `"node"` · **Effect:** a command name must be on `PATH`, or the context is `SKIPPED`.
+
+<Markdown src="examples/sessions-runon-requires-string/_variants.mdx" />
+
+### `"requires": ["node", "npm"]`
+
+**Varies:** `runOn[].requires` · **Value:** `["node", "npm"]` · **Effect:** every command in the array must be on `PATH`.
+
+<Markdown src="examples/sessions-runon-requires-array/_variants.mdx" />
+
+### `"requires": { "commands": [...], "env": [...] }`, unmet
+
+**Varies:** `runOn[].requires` · **Value:** `{ "commands": ["sessions-missing-tool"], "env": ["PATH"] }` · **Effect:** an object checks commands, files, and environment variables together, and one unmet entry skips the context instead of failing it.
+
+<Markdown src="examples/sessions-runon-requires-unmet/_variants.mdx" />
+
+## `runOn` `browserFallback` and `retries` permutations
+
+### `"browserFallback": "auto"`
+
+**Varies:** `runOn[].browserFallback` · **Value:** `"auto"` · **Effect:** without a working Firefox, the context runs in another available browser and reports `WARNING` instead of `PASS`.
+
+<Markdown src="examples/sessions-runon-fallback-auto/_variants.mdx" />
+
+### `"browserFallback": "explicit"` with `"retries": 0`
+
+**Varies:** `runOn[].browserFallback and runOn[].retries` · **Value:** `"explicit", 0` · **Effect:** without a working Firefox, the context is `SKIPPED`, because the test names Firefox. `retries: 0` also turns off re-runs after a broken session.
+
+<Markdown src="examples/sessions-runon-fallback-explicit/_variants.mdx" />
+
+### `"browserFallback": "off"`
+
+**Varies:** `runOn[].browserFallback` · **Value:** `"off"` · **Effect:** the context never falls back to another browser, and is `SKIPPED` without a working Firefox.
+
+<Markdown src="examples/sessions-runon-fallback-off/_variants.mdx" />
+
+## `goTo` `newTab` and `newWindow` permutations
+
+### `"newTab": true`, `"newWindow": true`
+
+**Varies:** `goTo.newTab and goTo.newWindow` · **Value:** `true` · **Effect:** each opens an unnamed tab or window and makes it active.
+
+<Markdown src="examples/sessions-goto-new-boolean/_variants.mdx" />
+
+### `"newTab": "notes"`, `"newWindow": "about"`
+
+**Varies:** `goTo.newTab and goTo.newWindow` · **Value:** `"notes", "about"` · **Effect:** a string names the new tab or window, so later steps can select it by that name.
+
+<Markdown src="examples/sessions-goto-new-string/_variants.mdx" />
+
+### `"newTab": { "name" }`, `"newWindow": { "name", "tab" }`
+
+**Varies:** `goTo.newTab and goTo.newWindow` · **Value:** `{ "name": "report" }, { "name": "settings", "tab": "general" }` · **Effect:** the object form names the tab, or names the window and its first tab.
+
+<Markdown src="examples/sessions-goto-new-object/_variants.mdx" />
+
+## Surface selector permutations
+
+### `"tab": 0`
+
+**Varies:** `surface.tab` · **Value:** `0` · **Effect:** a number selects the tab at that position in creation order, and `-1` selects the newest.
+
+<Markdown src="examples/sessions-select-tab-number/_variants.mdx" />
+
+### `"tab": "second"`
+
+**Varies:** `surface.tab` · **Value:** `"second"` · **Effect:** a string selects the tab with that name.
+
+<Markdown src="examples/sessions-select-tab-string/_variants.mdx" />
+
+### `"tab": { "index": -1 }`
+
+**Varies:** `surface.tab.index` · **Value:** `-1` · **Effect:** the `index` key works like a number, so `-1` selects the newest tab.
+
+<Markdown src="examples/sessions-select-tab-index/_variants.mdx" />
+
+### `"tab": { "title": "Multi-tab home" }`
+
+**Varies:** `surface.tab.title` · **Value:** `"Multi-tab home"` · **Effect:** the `title` key selects the tab whose title matches.
+
+<Markdown src="examples/sessions-select-tab-title/_variants.mdx" />
+
+### `"tab": { "url": "…" }`
+
+**Varies:** `surface.tab.url` · **Value:** `"http://localhost:8092/multi-tab-child.html?page=second"` · **Effect:** the `url` key selects the tab whose URL matches.
+
+<Markdown src="examples/sessions-select-tab-url/_variants.mdx" />
+
+### `"window": -1`
+
+**Varies:** `surface.window` · **Value:** `-1` · **Effect:** a number selects the window at that position in creation order, and `-1` selects the newest.
+
+<Markdown src="examples/sessions-select-window-number/_variants.mdx" />
+
+### `"window": { "name": "second" }`
+
+**Varies:** `surface.window.name` · **Value:** `"second"` · **Effect:** the `name` key, like a bare string, selects the window with that name.
+
+<Markdown src="examples/sessions-select-window-name/_variants.mdx" />
+
+### `"window": { "title": "Child second" }`
+
+**Varies:** `surface.window.title` · **Value:** `"Child second"` · **Effect:** the `title` key selects the window whose active tab has that title.
+
+<Markdown src="examples/sessions-select-window-title/_variants.mdx" />
+
+## `startSurface` and `closeSurface` permutations
+
+### Browser descriptor, closed by object
+
+**Varies:** `startSurface (browser descriptor) and closeSurface (object)` · **Value:** `{ "browser": "firefox", "name": "reviewer" }` · **Effect:** `startSurface` opens a second, named browser session, and `closeSurface` ends it by naming the engine and session.
+
+<Markdown src="examples/sessions-surface-browser/_variants.mdx" />
+
+### Process descriptor, closed by name
+
+**Varies:** `startSurface (process descriptor) and closeSurface (string)` · **Value:** `{ "process": "node", "args": ["-i"], "name": "sessions-prepl" }` · **Effect:** `startSurface` starts a process you can type into, and a bare name closes it.
+
+<Markdown src="examples/sessions-surface-process/_variants.mdx" />
+
+### Array of descriptors, closed by array
+
+**Varies:** `startSurface (array) and closeSurface (array)` · **Value:** `[{ "process": … }, { "process": … }]` · **Effect:** an array starts every surface in one step, and an array closes several at once, by name or by object.
+
+<Markdown src="examples/sessions-surface-array/_variants.mdx" />
+
+## Config `origin` and `originParams` permutations
+
+### `"origin": "http://localhost:8092"`
+
+**Varies:** `config.origin` · **Value:** `"http://localhost:8092"` · **Effect:** steps can give a path, and the config supplies the scheme and host.
+
+The example's own `doc-detective.json` sets:
+
+```json title="doc-detective.json"
+{
+  "origin": "http://localhost:8092"
+}
+```
+
+<Markdown src="examples/sessions-config-origin/_variants.mdx" />
+
+### `"originParams": { "from": "docs" }`
+
+**Varies:** `config.originParams` · **Value:** `{ "from": "docs" }` · **Effect:** every URL built from `origin` gets the query parameters, so the echo endpoint returns `from=docs`.
+
+The example's own `doc-detective.json` sets:
+
+```json title="doc-detective.json"
+{
+  "origin": "http://localhost:8092",
+  "originParams": {
+    "from": "docs"
+  }
+}
+```
+
+<Markdown src="examples/sessions-config-originparams/_variants.mdx" />

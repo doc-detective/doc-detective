@@ -1,0 +1,12 @@
+= Find an element by an image with a threshold
+
+// (test {"testId":"nav-find-elementimage-object","detectSteps":false})
+
+. Go to http://localhost:8092/find-image.html[the toolbar page].
++
+// (step {"goTo":"http://localhost:8092/find-image.html"})
+. Find the save icon in the toolbar.
++
+// (step {"find":{"elementImage":{"path":"save.svg","threshold":0.95}}})
+
+// (test end)

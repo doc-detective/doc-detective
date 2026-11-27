@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-devicescalefactor">
+  <title>Check the page on a 2x display</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd></step>
+      <step><cmd>Check that the device pixel ratio is <codeph>2</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

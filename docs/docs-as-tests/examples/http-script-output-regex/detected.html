@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Run a script in the page</title></head>
+<body>
+<!-- test {"testId":"http-script-output-regex","detectSteps":true} -->
+<h1>Run a script in the page</h1>
+<p>Open the test site at <code>http://localhost:8092/</code>.</p>
+<!-- step {"goTo":"http://localhost:8092/"} -->
+<p>Evaluate <code>window.location.href</code> in the console. It starts with the test site's address.</p>
+<!-- step {"runBrowserScript":{"script":"return window.location.href;","output":"/^http:\\/\\/localhost:8092/"}} -->
+<!-- test end -->
+</body>
+</html>

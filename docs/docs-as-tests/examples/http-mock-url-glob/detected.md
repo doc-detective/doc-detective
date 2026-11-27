@@ -1,0 +1,17 @@
+<!-- test {"testId":"http-mock-url-glob","detectSteps":true,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
+
+# Stub an API response
+
+Stub the plans endpoint.
+
+<!-- step {"mockRequest":{"url":"**/api/plans*","response":{"body":{"plan":"pro"}}}} -->
+
+Open the test site at `http://localhost:8092/`.
+
+<!-- step {"goTo":"http://localhost:8092/"} -->
+
+Fetch `/api/plans?page=1`. The response's plan is `pro`.
+
+<!-- step {"runBrowserScript":{"script":"return fetch('/api/plans?page=1').then((r) => r.json());","output":"pro"}} -->
+
+<!-- test end -->

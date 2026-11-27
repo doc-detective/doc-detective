@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-variables-stdio">
+  <title>Save the Node.js version</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-variables-stdio","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock>
+          <data name="doc-detective" value='step {"runShell":"node --version","variables":{"NODE_VERSION":"$$stdio.stdout"}}'/></info></step>
+      <step><cmd>Check that the saved version starts with <codeph>v</codeph>:</cmd>
+        <info><codeblock outputclass="language-shell">node -e "process.exit(process.env.NODE_VERSION.startsWith('v') ? 0 : 1)"</codeblock>
+          <data name="doc-detective" value='step {"runShell":"node -e \"process.exit(process.env.NODE_VERSION.startsWith(&apos;v&apos;) ? 0 : 1)\""}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

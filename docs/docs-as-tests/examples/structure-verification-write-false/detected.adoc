@@ -1,0 +1,10 @@
+= Check the demo pages
+
+// (meta {"verified-by":[{"tool":"doc-detective","check":"structure-verification-write-false"}]})
+
+// (test {"testId":"structure-verification-write-false","badge":true,"detectSteps":true})
+
+. Check that http://localhost:8092/index.html[the elements demo] loads.
+. Check that http://localhost:8092/type-echo.html[the type echo page] loads.
+
+// (test end)

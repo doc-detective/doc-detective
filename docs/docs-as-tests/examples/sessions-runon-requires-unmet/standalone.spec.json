@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-runon-requires-unmet",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac"
+          ],
+          "requires": {
+            "commands": [
+              "sessions-missing-tool"
+            ],
+            "env": [
+              "PATH"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "runShell": "sessions-missing-tool --version"
+        }
+      ]
+    }
+  ]
+}

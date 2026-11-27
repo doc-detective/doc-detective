@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-stdio-regex">
+  <title>Match command output</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-shell-stdio-regex","detectSteps":true}'/>
+    <p>Print the Node.js version. It starts with <codeph>v</codeph> and a number:</p>
+    <codeblock outputclass="language-shell">node --version</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node --version","stdio":"/^v\\d+\\./"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

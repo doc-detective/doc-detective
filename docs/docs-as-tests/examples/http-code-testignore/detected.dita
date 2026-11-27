@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-testignore">
+  <title>Show code without running it</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-code-testignore","detectSteps":true}'/>
+    <p>Run this code:</p>
+    <codeblock outputclass="language-bash">echo "ready"</codeblock>
+    <p>To install the tool for every project on your machine, run:</p>
+    <data name="doc-detective" value="test ignore start"/>
+    <codeblock outputclass="language-bash">npm install --global ./greeter</codeblock>
+    <data name="doc-detective" value="test ignore end"/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Print tool versions even if one fails</title></head>
+<body>
+<!-- test {"testId":"data-route-onfail-continue","detectSteps":true} -->
+<h1>Print tool versions even if one fails</h1>
+<ol>
+  <li>Print the Node.js version:
+    <pre><code class="language-shell">node --version</code></pre>
+    <!-- step {"runShell":"node --version","onFail":[{"continue":true}]} --></li>
+  <li>Print the npm version:
+    <pre><code class="language-shell">npm --version</code></pre>
+    <!-- step {"stepId":"npm","runShell":"npm --version"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

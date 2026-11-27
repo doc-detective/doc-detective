@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-visual-checks">
+  <title>Check pages for visual changes</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/mask.html" scope="external" format="html">the billing page</xref>.</cmd></step>
+      <step><cmd>The page shows the next invoice date and when the account last synced. Those times change on every visit.</cmd></step>
+      <step><cmd>The billing panel sits at the top of the page.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/screenshot-banner.html" scope="external" format="html">the banner page</xref>.</cmd></step>
+      <step><cmd>With the cookie banner hidden, the page shows only its content.</cmd></step>
+      <step><cmd>With the banner showing, it covers the bottom of the page.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/screenshot-tall.html" scope="external" format="html">the long page</xref>.</cmd></step>
+      <step><cmd>Scroll to the red box at the bottom of the page.</cmd></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/find-image.html" scope="external" format="html">the toolbar page</xref>.</cmd></step>
+      <step><cmd>Compare the sample chart with the published chart image.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

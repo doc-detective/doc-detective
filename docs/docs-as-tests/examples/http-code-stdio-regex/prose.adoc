@@ -1,0 +1,8 @@
+= Match code output
+
+This script prints a number:
+
+[source,js]
+----
+console.log(6 * 7);
+----

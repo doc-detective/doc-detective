@@ -1,0 +1,9 @@
+= Accept either success status
+
+// (test {"testId":"http-request-statuscodes-array","detectSteps":false})
+
+Send a `GET` request to `http://localhost:8092/status/201`. The status is `200` or `201`.
+
+// (step {"httpRequest":{"url":"http://localhost:8092/status/201","statusCodes":[200,201]}})
+
+// (test end)

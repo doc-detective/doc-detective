@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-locale">
+  <title>Check the page in German</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd></step>
+      <step><cmd>Check that the page's language is <codeph>de-DE</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

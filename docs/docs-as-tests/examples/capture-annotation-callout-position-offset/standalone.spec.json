@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "capture-annotation-callout-position-offset",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "screenshot": {
+            "path": "annotation-callout-position-offset.png",
+            "directory": ".dd-output",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "callout": "#username-input",
+                "label": "Your account name",
+                "position": {
+                  "offset": {
+                    "x": 0,
+                    "y": 20
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

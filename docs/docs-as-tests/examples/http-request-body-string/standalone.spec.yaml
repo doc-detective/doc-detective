@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-request-body-string
+    steps:
+      - httpRequest:
+          url: http://localhost:8093/api/users
+          method: post
+          request:
+            headers:
+              Content-Type: application/json
+            body: '{"name": "Ada"}'
+          response:
+            body:
+              name: Ada

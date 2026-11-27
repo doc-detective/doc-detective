@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-bg-stdio">
+  <title>Start a background process</title>
+  <body>
+    <p>Start the process:</p>
+    <codeblock outputclass="language-shell">node -e "console.log('Preview ready'); setInterval(() =&gt; {}, 1000)"</codeblock>
+    <p>Stop it when you're done.</p>
+  </body>
+</topic>

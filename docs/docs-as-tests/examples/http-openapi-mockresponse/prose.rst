@@ -1,0 +1,4 @@
+Preview an operation's response
+===============================
+
+Preview the ``getUser`` response from its ``ada`` example.

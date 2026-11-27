@@ -1,0 +1,14 @@
+= Find Node.js on Windows
+
+// (test {"testId":"data-if-test-platform","if":"$$platform == windows","detectSteps":false})
+
+. On Windows, find the Node.js executable:
++
+[source,shell]
+----
+where node
+----
++
+// (step {"runShell":"where node"})
+
+// (test end)

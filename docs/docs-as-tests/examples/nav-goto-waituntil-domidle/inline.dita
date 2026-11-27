@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-goto-waituntil-domidle">
+  <title>Wait for the page to stop changing</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-goto-waituntil-domidle","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/waitUntil-test-dom-mutations.html" scope="external" format="html">the DOM mutations page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/waitUntil-test-dom-mutations.html","waitUntil":{"domIdleTime":1000}}}'/></info></step>
+      <step><cmd>Check that the page shows <b>All mutations complete</b>.</cmd>
+        <info><data name="doc-detective" value='step {"find":"All mutations complete"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

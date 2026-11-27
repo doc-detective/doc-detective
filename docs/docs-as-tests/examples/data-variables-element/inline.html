@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Send the text a page shows</title></head>
+<body>
+<!-- test {"testId":"data-variables-element","detectSteps":false} -->
+<h1>Send the text a page shows</h1>
+<ol>
+  <li>Open <code>http://localhost:8092/type-echo.html</code>.
+    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
+  <li>Type <code>Wren</code> in the field.
+    <!-- step {"type":{"keys":"Wren","selector":"#type-input"}} --></li>
+  <li>Check that the page shows <code>Wren</code> below the field.
+    <!-- step {"find":{"selector":"#echo","elementText":"Wren"},"variables":{"ECHOED":"$$element.text"}} --></li>
+  <li>Send the text in a <code>POST</code> request to <code>http://localhost:8093/api/names</code>. The API returns it.
+    <!-- step {"httpRequest":{"url":"http://localhost:8093/api/names","method":"post","request":{"body":{"name":"$ECHOED"}},"response":{"body":{"name":"Wren"}}}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

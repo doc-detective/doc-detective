@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-goto-new-string">
+  <title>Open named tabs and windows</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-goto-new-string","detectSteps":true,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Load <xref href="http://localhost:8092/multi-tab-child.html?page=notes" scope="external" format="html">the notes page</xref> in a new tab named <codeph>notes</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=notes","newTab":"notes"}}'/></info></step>
+      <step><cmd>Check that the <codeph>notes</codeph> tab reads "PAGE notes".</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementText":"PAGE notes","surface":{"browser":"firefox","tab":"notes"}}}'/></info></step>
+      <step><cmd>Load <xref href="http://localhost:8092/multi-tab-child.html?page=about" scope="external" format="html">the about page</xref> in a new window named <codeph>about</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=about","newWindow":"about"}}'/></info></step>
+      <step><cmd>Check that the new window reads "PAGE about".</cmd>
+        <info><data name="doc-detective" value='step {"find":"PAGE about"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

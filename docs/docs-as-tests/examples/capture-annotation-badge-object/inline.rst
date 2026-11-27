@@ -1,0 +1,14 @@
+Mark the sign-in form
+=====================
+
+.. test {"testId":"capture-annotation-badge-object","detectSteps":false}
+
+#. Go to `the sample form <http://localhost:8092/enhanced-elements.html>`_.
+
+   .. step {"goTo":"http://localhost:8092/enhanced-elements.html"}
+
+#. The username field comes first.
+
+   .. step {"screenshot":{"path":"annotation-badge-object.png","directory":".dd-output","overwrite":"true","annotations":[{"badge":{"elementTestId":"password-field","timeout":10000},"label":"2"}]}}
+
+.. test end

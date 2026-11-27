@@ -1,0 +1,14 @@
+Compare a screenshot with low tolerance
+=======================================
+
+.. test {"testId":"capture-screenshot-maxvariation-low","detectSteps":false}
+
+#. Go to `the banner page <http://localhost:8092/screenshot-banner.html>`_.
+
+   .. step {"goTo":"http://localhost:8092/screenshot-banner.html"}
+
+#. The page opens with a cookie banner at the bottom.
+
+   .. step {"screenshot":{"path":"maxvariation-low.png","directory":".dd-output","maxVariation":0.01,"overwrite":"aboveVariation"}}
+
+.. test end

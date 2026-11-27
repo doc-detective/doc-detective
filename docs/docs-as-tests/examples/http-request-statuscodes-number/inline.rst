@@ -1,0 +1,10 @@
+Expect a 404 status
+===================
+
+.. test {"testId":"http-request-statuscodes-number","detectSteps":false}
+
+Send a ``GET`` request to ``http://localhost:8092/status/404``. The status is ``404``.
+
+.. step {"httpRequest":{"url":"http://localhost:8092/status/404","statusCodes":404}}
+
+.. test end

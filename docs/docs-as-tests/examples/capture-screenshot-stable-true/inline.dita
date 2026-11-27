@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-stable-true">
+  <title>Wait for a page to settle before the screenshot</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-screenshot-stable-true","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Open the page at <codeph>http://localhost:8092/screenshot-late-reveal.html</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/screenshot-late-reveal.html","waitUntil":{"networkIdleTime":0,"domIdleTime":0}}}'/></info></step>
+      <step><cmd>A loading bar fills, then the page shows its content.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"stable-true.png","directory":".dd-output","overwrite":"true","stable":true}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

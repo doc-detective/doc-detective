@@ -1,0 +1,16 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "outputDir": ".dd-output",
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "annotationDefaults": {
+    "color": "#E11D48",
+    "strokeWidth": 3
+  }
+}

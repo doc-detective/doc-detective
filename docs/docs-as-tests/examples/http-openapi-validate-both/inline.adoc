@@ -1,0 +1,9 @@
+= Validate against the description
+
+// (test {"testId":"http-openapi-validate-both","detectSteps":false,"openApi":[{"name":"users","descriptionPath":"../http-openapi/users.openapi.json"}]})
+
+Call the `createUser` operation with Ada as the user.
+
+// (step {"httpRequest":{"openApi":{"operationId":"createUser","validateAgainstSchema":"both"},"request":{"body":{"name":"Ada","job":"engineer"}}}})
+
+// (test end)

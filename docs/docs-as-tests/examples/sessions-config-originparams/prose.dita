@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-config-originparams">
+  <title>Tag every request with a query parameter</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <codeph>/api/echo</codeph> on the site.</cmd></step>
+      <step><cmd>Check that the response echoes <codeph>"from":"docs"</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

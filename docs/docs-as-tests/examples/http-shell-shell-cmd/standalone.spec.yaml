@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-shell-shell-cmd
+    runOn:
+      - platforms:
+          - windows
+    steps:
+      - runShell:
+          command: ver
+          shell: cmd
+          stdio: Windows

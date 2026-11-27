@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Search from the toolbar</title></head>
+<body>
+<!-- test {"testId":"nav-search-icons","detectSteps":true} -->
+<h1>Search from the toolbar</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/find-image.html">the toolbar page</a>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}} --></li>
+  <li>Click the magnifying-glass icon next to the search box.
+    <!-- step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}} --></li>
+  <li>Type "doc detective" and press Enter.</li>
+  <li>Check that the status bar shows <strong>doc detective</strong>.</li>
+  <li>Type "-docs" at the end of the search box.</li>
+  <li>Check that the status bar shows <strong>doc detective-docs</strong>.</li>
+  <li>Right-click the save icon and hold the button for half a second.
+    <!-- step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}} --></li>
+  <li>Check that the status bar records the right-click.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>

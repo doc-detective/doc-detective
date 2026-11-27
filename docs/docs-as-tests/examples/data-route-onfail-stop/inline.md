@@ -1,0 +1,18 @@
+<!-- test {"testId":"data-route-onfail-stop","detectSteps":false} -->
+
+# Stop when Node.js is missing
+
+1. Print the Node.js version:
+
+   ```shell
+   node --version
+   ```
+   <!-- step {"runShell":"node --version","onFail":[{"stop":"test"}]} -->
+2. Print the npm version:
+
+   ```shell
+   npm --version
+   ```
+   <!-- step {"stepId":"npm","runShell":"npm --version"} -->
+
+<!-- test end -->

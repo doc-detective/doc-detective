@@ -1,0 +1,19 @@
+= Record typing in a field
+
+// (test {"testId":"capture-record-stoprecord-name","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true}}]})
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
++
+// (step {"goTo":"http://localhost:8092/type-echo.html"})
+. Start recording.
++
+// (step {"record":{"path":"stoprecord-name.webm","directory":".dd-output","overwrite":"true","name":"typing"}})
+. Click *Type here:*.
+. Type "Hello".
+. Wait a moment, then stop the recording.
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":"typing"})
+
+// (test end)

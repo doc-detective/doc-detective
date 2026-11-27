@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="formats-dita-pi-yaml-multiline">
+  <title>Check the demo pages</title>
+  <body>
+    <?doc-detective test
+testId: formats-dita-pi-yaml-multiline
+detectSteps: false
+?>
+    <ol>
+      <li>Check that <xref href="http://localhost:8092/index.html" scope="external" format="html">the elements demo</xref> loads.
+        <?doc-detective step
+        checkLink: http://localhost:8092/index.html
+        ?></li>
+      <li>Check that <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref> loads.
+        <?doc-detective step
+        checkLink: http://localhost:8092/type-echo.html
+        ?></li>
+    </ol>
+    <?doc-detective test end ?>
+  </body>
+</topic>

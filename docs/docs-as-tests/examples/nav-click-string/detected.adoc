@@ -1,0 +1,9 @@
+= Click a button by its text
+
+// (test {"testId":"nav-click-string","detectSteps":true})
+
+. Go to http://localhost:8092/find-click.html[the click counter page].
+. Click *Count clicks*.
+. Check that the button counted the click.
+
+// (test end)

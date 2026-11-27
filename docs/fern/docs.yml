@@ -375,6 +375,39 @@ navigation:
               - page: install
                 path: pages/reference/cli/install.mdx
                 slug: install
+      - section: Docs as tests
+        slug: docs-as-tests
+        contents:
+          - page: Overview
+            path: pages/reference/docs-as-tests/index.mdx
+            slug: overview
+          - page: Examples by feature
+            path: pages/reference/docs-as-tests/feature-index.mdx
+            slug: feature-index
+          - page: Navigation and interaction
+            path: pages/reference/docs-as-tests/navigation-interaction.mdx
+            slug: navigation-interaction
+          - page: HTTP and code
+            path: pages/reference/docs-as-tests/http-code.mdx
+            slug: http-code
+          - page: Screenshots and recordings
+            path: pages/reference/docs-as-tests/capture.mdx
+            slug: capture
+          - page: Sessions and surfaces
+            path: pages/reference/docs-as-tests/sessions-surfaces.mdx
+            slug: sessions-surfaces
+          - page: Data and control flow
+            path: pages/reference/docs-as-tests/data-control-flow.mdx
+            slug: data-control-flow
+          - page: Test structure
+            path: pages/reference/docs-as-tests/structure.mdx
+            slug: structure
+          - page: Formats
+            path: pages/reference/docs-as-tests/formats.mdx
+            slug: formats
+          - page: Custom detection
+            path: pages/reference/docs-as-tests/custom-detection.mdx
+            slug: custom-detection
       - folder: pages/reference/schemas
         title: Schemas
 

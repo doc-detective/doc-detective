@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Echo a name on a page</title></head>
+<body>
+<!-- test {"testId":"data-context-retries-0","contexts":[{"retries":0}],"detectSteps":true} -->
+<h1>Echo a name on a page</h1>
+<ol>
+  <li>Open <code>http://localhost:8092/type-echo.html</code>.
+    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
+  <li>Type <code>Wren</code> in the field.
+    <!-- step {"type":{"keys":"Wren","selector":"#type-input"}} --></li>
+  <li>Check that the page shows <code>Wren</code>.
+    <!-- step {"find":{"selector":"#echo","elementText":"Wren"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

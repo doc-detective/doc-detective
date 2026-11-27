@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: capture-annotate-clear-true
+    steps:
+      - goTo: http://localhost:8092/enhanced-elements.html
+      - annotate:
+          add:
+            - id: step
+              badge: "#username-input"
+              label: "1"
+      - annotate:
+          clear: true
+      - screenshot:
+          path: annotate-clear-true.png
+          directory: .dd-output
+          overwrite: "true"

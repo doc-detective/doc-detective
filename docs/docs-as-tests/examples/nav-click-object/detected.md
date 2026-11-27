@@ -1,0 +1,11 @@
+<!-- test {"testId":"nav-click-object","detectSteps":true} -->
+
+# Click a button described by an object
+
+1. Go to [the click counter page](http://localhost:8092/find-click.html).
+   <!-- step {"goTo":"http://localhost:8092/find-click.html"} -->
+2. Click **Count clicks**.
+   <!-- step {"click":{"elementText":"Count clicks"}} -->
+3. Check that the button counted the click.
+
+<!-- test end -->

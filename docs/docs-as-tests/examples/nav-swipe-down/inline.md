@@ -1,0 +1,12 @@
+<!-- test {"testId":"nav-swipe-down","detectSteps":false} -->
+
+# Swipe down
+
+1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
+   <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} -->
+2. Swipe down on the page.
+   <!-- step {"swipe":"down"} -->
+3. Check that **Submit by ID** is still on the page.
+   <!-- step {"find":"Submit by ID"} -->
+
+<!-- test end -->
