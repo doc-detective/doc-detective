@@ -198,9 +198,10 @@ export interface BrowserViewport1 {
  */
 export interface Matrix {
   /**
-   * The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars.
+   * The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars. Or `{ "file": "<path>" }` to read the list from a file.
    */
   [k: string]:
+    | ValuesFromAFile
     | [string | number | boolean, ...(string | number | boolean)[]]
     | [
         {
@@ -210,6 +211,12 @@ export interface Matrix {
           [k: string]: string | number | boolean;
         }[],
       ];
+}
+export interface ValuesFromAFile {
+  /**
+   * Path of a `.json` file that holds the list, or of an `.xml` sitemap whose `<loc>` entries are the values. A relative path resolves against the file that declares this `runOn`, or the working directory with `relativePathBase: "cwd"`. Doc Detective reads it before any test runs.
+   */
+  file: string;
 }
 export interface Requirements {
   /**
