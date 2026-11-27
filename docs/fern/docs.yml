@@ -134,6 +134,11 @@ navigation:
           - page: Sample tests
             path: pages/docs/get-started/sample-tests.mdx
             slug: sample-tests
+          # Reachable by URL only: kept out of the sidebar on purpose.
+          - page: Cucumber and Doc Detective
+            path: pages/docs/get-started/cucumber-comparison.mdx
+            slug: cucumber-comparison
+            hidden: true
 
       - section: Test your docs
         slug: test-docs
