@@ -716,6 +716,15 @@ const cases = {
       return JSON.stringify(ran) === JSON.stringify(["doc.cjs: echo cjs", "doc.js: echo js"]) ? undefined : `steps ${JSON.stringify(ran)}`;
     },
   },
+  // `$1` takes the file's absolute path, backslashes and all on Windows. Single
+  // quotes keep the default bash shell from reading them as escapes.
+  "runshell-path": {
+    file: "doc.cjs",
+    run: true,
+    config: { fileTypes: [{ name: "node", extensions: ["cjs"], runShell: { command: "node", args: ["'$1'"] } }] },
+    content: 'require("fs").statSync(__filename);\n',
+    expect: ["node"],
+  },
   "reject-bad-pattern": {
     file: "doc.md",
     config: { fileTypes: [md({ markup: [{ link: { url: "(" }, actions: ["find"] }] })] },

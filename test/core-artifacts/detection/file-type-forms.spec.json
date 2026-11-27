@@ -16,6 +16,21 @@
           }
         }
       ]
+    },
+    {
+      "testId": "runshell-path",
+      "description": "A runShell fileType's `$1` takes the file's absolute path, including a Windows path's backslashes, and the command runs.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs runshell-path",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
     }
   ]
 }

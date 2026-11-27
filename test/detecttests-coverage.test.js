@@ -359,6 +359,18 @@ describe("detectTests coverage", function () {
       );
       assert.deepEqual(ran, { "run.cjs": "cjs", "run.js": "js" });
     });
+
+    it("substitutes a path with backslashes into a runShell fileType's `$1`", async function () {
+      // On Windows this is sub\run.task; elsewhere a file named `sub\run.task`.
+      const script = write("sub\\run.task", "");
+      const config = await makeConfig({
+        input: [script],
+        fileTypes: [{ name: "task", extensions: ["task"], runShell: { command: "echo", args: ["$1"] } }],
+      });
+      const specs = await parseTests({ config, files: [script] });
+      assert.equal(specs.length, 1);
+      assert.equal(specs[0].tests[0].steps[0].runShell.args[0], script);
+    });
   });
 
   describe("parseTests JSON/YAML branches", function () {
