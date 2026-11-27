@@ -42,7 +42,7 @@ Chosen option: **A**.
 - `$$matrix.<key>` refers to a scalar value, and `$$matrix.<key>.<field>` to an object leaf. A reference that is the
   whole string becomes the value and keeps its type. A reference inside a longer string is spliced in as text. A
   reference to a whole object value splices its leaf values joined with `-`.
-- References work in the context's own fields and in every step, including `before`/`after` steps. The six emulation
+- References work in the context's own fields and in every step, including the steps a `before` or `after` file adds. The six emulation
   fields on a context browser (`colorScheme`, `reducedMotion`, `locale`, `timezone`, `deviceScaleFactor`, `clock`)
   also accept a `$$matrix.…` string.
 - Values are substituted per context, on that context's copy of the steps. They never touch `process.env`.
@@ -77,7 +77,7 @@ No `include`/`exclude`: object values cover correlated dimensions.
   reference a key multiply.
 - Good, because per-context substitution keeps concurrent combinations isolated.
 - Bad, because `--test` matches test IDs, so it can't select one combination.
-- Bad, because a test-level `if` and `description` aren't substituted: a test runs or skips as a whole.
+- Bad, because a test-level `if` and `description`, and the `before`/`after` file paths, aren't substituted. A test runs or skips as a whole, and its setup files load before any context exists.
 
 ### Confirmation
 
