@@ -23,6 +23,17 @@ import {
   checkMatrixPaths,
 } from "../common/src/matrix.js";
 
+// Detection tags `before`/`after` steps with non-enumerable markers the runner
+// reads (`_fromAfter` hard-routes cleanup). Substitution copies only
+// enumerable keys, so carry the markers over.
+function keepMarkers(original: any, copy: any) {
+  for (const marker of ["_fromBefore", "_fromAfter"]) {
+    const descriptor = Object.getOwnPropertyDescriptor(original ?? {}, marker);
+    if (descriptor) Object.defineProperty(copy, marker, descriptor);
+  }
+  return copy;
+}
+
 // Expand one static context over its `matrix` (ADR 01227): one context per
 // combination of the keys its own fields or the test's steps reference, with
 // the combination substituted into the context and its copy of the steps.
@@ -61,7 +72,7 @@ function expandMatrix({ staticContext, matrix, test, authoredOnTest }: { staticC
       ...substituteMatrix(fields, combination),
       matrix: combination,
       matrixIdSuffix: suffix,
-      steps: substituteMatrix(test.steps, combination),
+      steps: test.steps.map((step: any) => keepMarkers(step, substituteMatrix(step, combination))),
     };
   });
 }
