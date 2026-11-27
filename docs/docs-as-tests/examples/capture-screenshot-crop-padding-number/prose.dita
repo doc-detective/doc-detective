@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-crop-padding-number">
+  <title>Save a screenshot of one button with even padding</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the sample form</xref>.</cmd></step>
+      <step><cmd>The <b>Submit by ID</b> button is at the top of the form.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

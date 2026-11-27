@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Remove one mark</title></head>
+<body>
+<!-- test {"testId":"capture-annotate-clear-ids","detectSteps":true} -->
+<h1>Remove one mark</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/enhanced-elements.html">the sample form</a>.
+    <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} --></li>
+  <li>The username field is marked 1, with a hint beside it.
+    <!-- step {"annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"},{"id":"hint","callout":"#username-input","label":"Your account name","position":"right"}]}} --></li>
+  <li>The hint goes away, and the mark stays.
+    <!-- step {"annotate":{"clear":["hint"]}} -->
+    <!-- step {"screenshot":{"path":"annotate-clear-ids.png","directory":".dd-output","overwrite":"true"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

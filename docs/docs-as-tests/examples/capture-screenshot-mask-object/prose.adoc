@@ -1,0 +1,4 @@
+= Compare a screenshot with an element mask
+
+. Go to http://localhost:8092/mask.html[the billing page].
+. The page shows the next invoice date and when the account last synced.

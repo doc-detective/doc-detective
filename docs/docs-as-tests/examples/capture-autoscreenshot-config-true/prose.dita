@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-autoscreenshot-config-true">
+  <title>Type text with autoScreenshot on in config</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd></step>
+      <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
+      <step><cmd>Type "Hello".</cmd></step>
+    </steps>
+  </taskbody>
+</task>

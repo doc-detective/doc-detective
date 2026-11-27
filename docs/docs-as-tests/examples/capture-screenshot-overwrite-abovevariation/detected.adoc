@@ -1,0 +1,12 @@
+= Save a screenshot with overwrite aboveVariation
+
+// (test {"testId":"capture-screenshot-overwrite-abovevariation","detectSteps":true})
+
+. Go to http://localhost:8092/screenshot-banner.html[the banner page].
++
+// (step {"goTo":"http://localhost:8092/screenshot-banner.html"})
+. The page opens with a cookie banner at the bottom.
++
+// (step {"screenshot":{"path":"overwrite-aboveVariation.png","directory":".dd-output","overwrite":"aboveVariation"}})
+
+// (test end)
