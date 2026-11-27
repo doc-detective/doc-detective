@@ -186,11 +186,13 @@ row. An Outline with no Examples emits no test and warns:
 
 ### Confirmation
 
-- `src/common/test/formats.test.js` covers the parser, `builtins.test.js` covers detection end to
-  end (Background order, Outline rows, tags, the merged `# test` comment, `detectSteps: false`, the
-  warnings, tables, and emulation), and `validate.test.js` covers the schema enums.
-- `test/core-artifacts/gherkin/` runs every phrase and construct through the real CLI. Every spec
-  resolves to PASS or SKIPPED.
+- `src/common/test/gherkin.test.js` covers the parser and detection end to end: Background order,
+  Outline rows, tags, the merged `# test` comment, `detectSteps: false`, the warnings, tables,
+  emulation, and every phrase. `validate.test.js` covers the schema enums.
+- `test/core-artifacts/gherkin/` runs every phrase and construct through the real CLI. The fixture
+  jobs' config turns step detection off, so `gherkin.spec.json` runs `run-feature.cjs`, which runs
+  each `.feature` file with detection on and checks each test's result and the warnings. Run
+  directly, the `.feature` files also cover detection off. Every spec resolves to PASS or SKIPPED.
 
 ## Pros and Cons of the Options
 
