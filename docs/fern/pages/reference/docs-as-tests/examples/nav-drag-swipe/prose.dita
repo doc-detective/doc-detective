@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
 <task id="nav-drag-swipe">
-  <title>Drag a widget and scroll the page</title>
+  <title>Drag widgets and scroll the page</title>
   <taskbody>
     <steps>
       <step><cmd>Go to <xref href="http://localhost:8092/drag-drop-test.html" scope="external" format="html">the drag and drop page</xref>.</cmd></step>
       <step><cmd>Drag <b>Table</b> onto <b>Drop Zone 1</b>.</cmd></step>
       <step><cmd>Check that <b>Table (dropped)</b> appears in the drop zone.</cmd></step>
       <step><cmd>Press and hold <b>Chart</b> for one second.</cmd></step>
+      <step><cmd>Drag <b>Chart</b> onto <b>Drop Zone 2</b>.</cmd></step>
+      <step><cmd>Check that <b>Chart (dropped)</b> appears in the second drop zone.</cmd></step>
       <step><cmd>Swipe up to scroll toward the bottom of the page.</cmd></step>
       <step><cmd>Swipe down a third of the screen to scroll back.</cmd></step>
       <step><cmd>Swipe from the middle of the page toward the top.</cmd></step>

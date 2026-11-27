@@ -11,7 +11,7 @@
       <step><cmd>Wait half a second for the action to finish.</cmd>
         <info><data name="doc-detective" value='step {"wait":500}'/></info></step>
       <step><cmd>Check that the page shows <b>Action complete!</b>.</cmd></step>
-      <step><cmd>Confirm that <xref href="http://localhost:8092/status/200" scope="external" format="html">the server's status endpoint</xref> responds.</cmd></step>
+      <step><cmd>Confirm that <xref href="http://localhost:8092/status/200" scope="external" format="html">the server's status endpoint</xref> and <xref href="http://localhost:8092/api/health" scope="external" format="html">the API health check</xref> respond.</cmd></step>
     </steps>
     <data name="doc-detective" value="test end"/>
   </taskbody>

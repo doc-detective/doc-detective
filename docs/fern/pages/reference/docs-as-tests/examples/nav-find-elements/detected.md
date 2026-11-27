@@ -1,12 +1,17 @@
 <!-- test {"testId":"nav-find-elements","detectSteps":true} -->
 
-# Find elements by their attributes
+# Fill in a form by element attributes
 
 1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
 2. Find the **Submit by ID** button near the top of the page.
 3. Click the username field and type "kittens".
-4. Check that the **Submit Order** button is enabled.
-5. Click **Save**.
-6. Confirm that the page shows **Operation successful**.
+4. Click the password field and type "hunter2".
+5. Click the contact email field and type "you@example.com".
+6. Type "-cat" at the end of the username.
+7. Type "docs" in the search field, and wait for the page to settle.
+8. Check that the **Submit Order** button is enabled.
+9. Click **Save**.
+10. Click **Login Submit**.
+11. Confirm that the page shows **Operation successful**.
 
 <!-- test end -->

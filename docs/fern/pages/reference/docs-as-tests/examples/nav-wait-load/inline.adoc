@@ -4,7 +4,7 @@
 
 . Go to http://localhost:8092/wait-delay.html[the wait delay page].
 +
-// (step {"goTo":{"url":"/wait-delay.html","origin":"http://localhost:8092","timeout":30000,"waitUntil":{"networkIdleTime":500,"domIdleTime":500,"find":{"selector":"#auto-message","elementText":"Loaded after 2 seconds"}}}})
+// (step {"goTo":{"url":"/wait-delay.html","origin":"http://localhost:8092","params":{"source":"docs"},"surface":"chrome","timeout":30000,"waitUntil":{"networkIdleTime":500,"domIdleTime":500,"find":{"selector":"p","elementId":"auto-message","elementText":"Loaded after 2 seconds"}}}})
 . Wait until the page shows *Loaded after 2 seconds*.
 +
 // (step {"find":{"selector":"#auto-message","elementText":"/^Loaded after \\d+ seconds$/","timeout":5000}})
@@ -17,8 +17,10 @@
 . Check that the page shows *Action complete!*.
 +
 // (step {"find":"Action complete!"})
-. Confirm that http://localhost:8092/status/200[the server's status endpoint] responds.
+. Confirm that http://localhost:8092/status/200[the server's status endpoint] and http://localhost:8092/api/health[the API health check] respond.
 +
 // (step {"checkLink":{"url":"http://localhost:8092/status/200","statusCodes":[200,204],"headers":{"Accept":"application/json"},"timeout":5000}})
++
+// (step {"checkLink":{"url":"/api/health","origin":"http://localhost:8092","params":{"source":"docs"},"statusCodes":200,"headers":"Accept: application/json\nX-Test: docs"}})
 
 // (test end)

@@ -5,4 +5,4 @@
 3. Click **Trigger delayed action**.
 4. Wait half a second for the action to finish.
 5. Check that the page shows **Action complete!**.
-6. Confirm that [the server's status endpoint](http://localhost:8092/status/200) responds.
+6. Confirm that [the server's status endpoint](http://localhost:8092/status/200) and [the API health check](http://localhost:8092/api/health) respond.

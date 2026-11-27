@@ -1,9 +1,14 @@
-Find elements by their attributes
-=================================
+Fill in a form by element attributes
+====================================
 
 #. Go to `the element test page <http://localhost:8092/enhanced-elements.html>`_.
 #. Find the **Submit by ID** button near the top of the page.
 #. Click the username field and type "kittens".
+#. Click the password field and type "hunter2".
+#. Click the contact email field and type "you@example.com".
+#. Type "-cat" at the end of the username.
+#. Type "docs" in the search field, and wait for the page to settle.
 #. Check that the **Submit Order** button is enabled.
 #. Click **Save**.
+#. Click **Login Submit**.
 #. Confirm that the page shows **Operation successful**.

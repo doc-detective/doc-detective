@@ -38,7 +38,9 @@ In DITA, the quoted text and the `<b>` element follow the shared rules, so DITA 
 
 ## Wait for a slow page to load
 
-This procedure uses the object form of [`goTo`](/docs/actions/goto) with `origin`, a relative `url`, `timeout`, and every [`waitUntil`](/reference/schemas/goto) condition. It also uses [`find`](/docs/actions/find) with a `/regex/` in `elementText`, [`wait`](/docs/actions/wait) with a number, and the object form of [`checkLink`](/docs/actions/checklink) with `statusCodes`, `headers`, and `timeout`.
+This procedure uses the object form of [`goTo`](/docs/actions/goto) with `origin`, a relative `url`, `params`, `surface`, `timeout`, and every [`waitUntil`](/reference/schemas/goto) condition. It also uses [`find`](/docs/actions/find) with a `/regex/` in `elementText`, and [`wait`](/docs/actions/wait) with a number.
+
+Two [`checkLink`](/docs/actions/checklink) steps show both shapes of each option. The first sets `statusCodes` as a list and `headers` as an object, with a `timeout`. The second sets `origin`, `params`, a single status code, and `headers` as a string with one `Name: value` header per line.
 
 <Markdown src="examples/nav-wait-load/_variants.mdx" />
 
@@ -53,39 +55,45 @@ No default rule detects a pause, so every detected variant carries a `step` stat
 | Click a bold phrase | `click` the phrase, then `find` the same phrase |
 | Any other link | `checkLink` the URL with the default status codes |
 
-Detected steps can't set `waitUntil`, a regular expression, or accepted status codes. Write a `step` statement, as the inline variants do, when a page loads slowly or a link returns a status outside the defaults.
+Detected steps can't set `waitUntil`, query parameters, a regular expression, or accepted status codes. Write a `step` statement, as the inline variants do, when a page loads slowly or a link returns a status outside the defaults.
 
-## Find elements by their attributes
+## Fill in a form by element attributes
 
-This procedure uses [`find`](/docs/actions/find) with the string shorthand and with the object fields `selector`, `elementText`, `elementId`, `elementTestId`, `elementAria`, `elementClass`, `elementAttribute`, `moveTo`, `click`, `type`, and `timeout`. It also uses the string form of [`click`](/docs/actions/click). For every field, see the [`find` schema](/reference/schemas/find).
+This procedure locates elements by their attributes, not only by a CSS selector: `elementText`, `elementId`, `elementTestId`, `elementAria`, `elementClass` (as a string and as a list), and `elementAttribute`. It uses them on three actions:
+
+- [`find`](/docs/actions/find) with `moveTo`, `timeout`, `surface`, `click` as `true` and as a button name, and `type` as an object, a list, and a string.
+- [`type`](/docs/actions/type) with a `surface` and a `waitUntil` that waits for the network and the DOM to go idle and for an element to appear.
+- [`click`](/docs/actions/click) with `timeout`, and `surface` as an engine name and as an object.
+
+For every field, see the [`find`](/reference/schemas/find), [`type`](/reference/schemas/type), and [`click`](/reference/schemas/click) schemas.
 
 <Markdown src="examples/nav-find-elements/_variants.mdx" />
 
 ### What detection finds
 
-Detection matches a bold phrase by its visible text, so it finds **Submit by ID** and **Submit Order**. It can't check an ID, a test ID, a class, or an attribute. `Type "kittens"` becomes a `type` step with no target, because the username field has no visible label to bold. The inline variants find the field by its test ID, click it, and type into it in one step.
+Detection matches a bold phrase by its visible text, so it finds **Submit by ID** and **Submit Order**. It can't check an ID, a test ID, a class, or an attribute. Each `Type "…"` becomes a `type` step with no target, because the fields have no visible label to bold. The inline variants find each field by its attributes and type into it.
 
 ## Search with toolbar icons
 
-This procedure finds icons by a picture of them, with `elementImage` on both [`click`](/docs/actions/click) and [`find`](/docs/actions/find). It sets `find.click` to an object with `button` and `duration`. It also uses [`type`](/docs/actions/type) with an array that ends in the `$ENTER$` key, and with an object that sets `keys`, `selector`, and `inputDelay`.
+This procedure finds icons by a picture of them, with `elementImage` on the `waitUntil.find` of [`goTo`](/docs/actions/goto), on [`click`](/docs/actions/click), and on [`find`](/docs/actions/find). The picture comes as `base64` with a `threshold`, as a `path` with a `color`, and as a path string. The `find` step sets `click` to an object with `button` and `duration`. It also uses [`type`](/docs/actions/type) with an array that ends in the `$ENTER$` key, and with an object that sets `keys`, `selector`, and `inputDelay`.
 
 <Markdown src="examples/nav-search-icons/_variants.mdx" />
 
-The icon pictures, `search.svg` and `save.svg`, sit in the example's folder. A relative `elementImage` path resolves against the file that holds the step. See [Find elements by image](/docs/test-docs/find-elements-by-image).
+The icon pictures, `search.svg` and `save.svg`, sit in the example's folder, and the `base64` value is `save.svg` encoded. A relative `elementImage` path resolves against the file that holds the step. See [Find elements by image](/docs/test-docs/find-elements-by-image).
 
 ### What detection finds
 
 No default rule matches an icon by its picture, so every detected variant carries `step` statements for the two icon steps. It also carries a `goTo` statement, so those steps open the page even when detection is off. Detection turns each `Type "…"` into a `type` step and each bold phrase into a `find` step. The detected `type` steps send the quoted text only, without the `$ENTER$` key or the input delay.
 
-## Drag a widget and scroll the page
+## Drag widgets and scroll the page
 
-This procedure uses [`dragAndDrop`](/docs/actions/draganddrop) with a text `source`, an object `target`, and a `duration`. It also uses [`click`](/docs/actions/click) with `selector`, `button`, and a `duration` that holds the press. [`swipe`](/docs/actions/swipe) appears in all three forms: a direction, an object with `direction`, `distance`, and `duration`, and a point-to-point object with `from` and `to`.
+This procedure uses [`dragAndDrop`](/docs/actions/draganddrop) twice. The first drag sets a text `source`, an object `target` with a `timeout`, and a `duration`. The second sets an object `source` located by text, class, and attributes, a selector string `target`, and a `surface`. It also uses [`click`](/docs/actions/click) with `selector`, `button`, and a `duration` that holds the press. [`swipe`](/docs/actions/swipe) appears in all three forms: a direction, an object with `direction`, `distance`, and `duration`, and a point-to-point object with `from` and `to`. The two object forms also name the `surface` to swipe.
 
 <Markdown src="examples/nav-drag-swipe/_variants.mdx" />
 
 ### What detection finds
 
-No default rule detects a drag, a press and hold, or a swipe, so every detected variant carries `step` statements for them. A `goTo` statement opens the page even when detection is off. Detection adds a `find` step for each bold phrase. Those steps confirm that **Table**, **Drop Zone 1**, and **Chart** are on the page before the steps that use them.
+No default rule detects a drag, a press and hold, or a swipe, so every detected variant carries `step` statements for them. A `goTo` statement opens the page even when detection is off. Detection adds a `find` step for each bold phrase. Those steps confirm that **Table**, **Drop Zone 1**, **Chart**, and **Drop Zone 2** are on the page before the steps that use them.
 
 ## Enter text in a DITA task
 

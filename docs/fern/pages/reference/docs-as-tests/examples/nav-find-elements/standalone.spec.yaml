@@ -17,6 +17,39 @@ tests:
               - kittens
           timeout: 10000
       - find:
+          elementTestId: password-field
+          elementClass: form-control
+          click: left
+          type: hunter2
+          surface: chrome
+      - find:
+          elementId: contact-email
+          elementAttribute:
+            data-validation: email-regex-validator
+          click: true
+          type:
+            - you@example.com
+      - type:
+          keys: -cat
+          elementId: username-input
+          elementTestId: username-field
+          elementAttribute:
+            placeholder: Username
+      - type:
+          keys:
+            - docs
+          elementAria: Search input field
+          elementClass:
+            - form-control
+          surface: chrome
+          timeout: 5000
+          waitUntil:
+            networkIdleTime: 100
+            domIdleTime: 100
+            find:
+              elementTestId: result-display
+              elementText: Operation successful
+      - find:
           selector: button
           elementText: /^Submit Ord/
           elementTestId: checkout-button
@@ -26,5 +59,18 @@ tests:
           elementAttribute:
             data-enabled: "true"
             disabled: false
-      - click: Save
+      - click:
+          elementText: Save
+          elementAttribute:
+            aria-label: Save document button
+          elementClass: btn-primary
+          timeout: 5000
+          surface: chrome
+      - click:
+          elementTestId: login-form-submit
+          elementClass:
+            - btn
+            - btn-large
+          surface:
+            browser: chrome
       - find: Operation successful

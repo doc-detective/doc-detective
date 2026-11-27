@@ -6,4 +6,4 @@ Wait for a slow page
 #. Click **Trigger delayed action**.
 #. Wait half a second for the action to finish.
 #. Check that the page shows **Action complete!**.
-#. Confirm that `the server's status endpoint <http://localhost:8092/status/200>`_ responds.
+#. Confirm that `the server's status endpoint <http://localhost:8092/status/200>``_ and ``the API health check <http://localhost:8092/api/health>`_ respond.

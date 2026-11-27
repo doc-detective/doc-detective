@@ -1,5 +1,5 @@
-Drag a widget and scroll the page
-=================================
+Drag widgets and scroll the page
+================================
 
 .. test {"testId":"nav-drag-swipe","detectSteps":false}
 
@@ -9,7 +9,7 @@ Drag a widget and scroll the page
 
 #. Drag **Table** onto **Drop Zone 1**.
 
-   .. step {"dragAndDrop":{"source":"Table","target":{"selector":".drop-zone","elementText":"Drop Zone 1"},"duration":500}}
+   .. step {"dragAndDrop":{"source":"Table","target":{"selector":".drop-zone","elementText":"Drop Zone 1","timeout":5000},"duration":500}}
 
 #. Check that **Table (dropped)** appears in the drop zone.
 
@@ -19,16 +19,24 @@ Drag a widget and scroll the page
 
    .. step {"click":{"selector":".draggable[data-widget=\"chart\"]","button":"left","duration":1000}}
 
+#. Drag **Chart** onto **Drop Zone 2**.
+
+   .. step {"dragAndDrop":{"source":{"elementText":"Chart","elementClass":"draggable","elementAttribute":{"data-widget":"chart","draggable":"true"},"timeout":5000},"target":".drop-zone[data-drop=\"zone2\"]","surface":"chrome"}}
+
+#. Check that **Chart (dropped)** appears in the second drop zone.
+
+   .. step {"find":{"selector":".drop-zone[data-drop=\"zone2\"] .dropped-item","elementText":"Chart (dropped)"}}
+
 #. Swipe up to scroll toward the bottom of the page.
 
    .. step {"swipe":"up"}
 
 #. Swipe down a third of the screen to scroll back.
 
-   .. step {"swipe":{"direction":"down","distance":0.3,"duration":300}}
+   .. step {"swipe":{"direction":"down","distance":0.3,"duration":300,"surface":"chrome"}}
 
 #. Swipe from the middle of the page toward the top.
 
-   .. step {"swipe":{"from":{"x":400,"y":400},"to":{"x":400,"y":250},"duration":300}}
+   .. step {"swipe":{"from":{"x":400,"y":400},"to":{"x":400,"y":250},"duration":300,"surface":{"browser":"chrome"}}}
 
 .. test end

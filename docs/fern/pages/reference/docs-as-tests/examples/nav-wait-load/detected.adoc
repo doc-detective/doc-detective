@@ -9,6 +9,6 @@
 +
 // (step {"wait":500})
 . Check that the page shows *Action complete!*.
-. Confirm that http://localhost:8092/status/200[the server's status endpoint] responds.
+. Confirm that http://localhost:8092/status/200[the server's status endpoint] and http://localhost:8092/api/health[the API health check] respond.
 
 // (test end)

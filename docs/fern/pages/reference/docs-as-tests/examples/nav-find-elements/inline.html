@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><title>Find elements by their attributes</title></head>
+<head><title>Fill in a form by element attributes</title></head>
 <body>
 <!-- test {"testId":"nav-find-elements","detectSteps":false} -->
-<h1>Find elements by their attributes</h1>
+<h1>Fill in a form by element attributes</h1>
 <ol>
   <li>Go to <a href="http://localhost:8092/enhanced-elements.html">the element test page</a>.
     <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} --></li>
@@ -11,10 +11,20 @@
     <!-- step {"find":{"elementId":"submit-button","elementText":"Submit by ID","elementAria":"Submit form button","moveTo":true}} --></li>
   <li>Click the username field and type "kittens".
     <!-- step {"find":{"selector":"input","elementTestId":"username-field","click":true,"type":{"keys":["kittens"]},"timeout":10000}} --></li>
+  <li>Click the password field and type "hunter2".
+    <!-- step {"find":{"elementTestId":"password-field","elementClass":"form-control","click":"left","type":"hunter2","surface":"chrome"}} --></li>
+  <li>Click the contact email field and type "you@example.com".
+    <!-- step {"find":{"elementId":"contact-email","elementAttribute":{"data-validation":"email-regex-validator"},"click":true,"type":["you@example.com"]}} --></li>
+  <li>Type "-cat" at the end of the username.
+    <!-- step {"type":{"keys":"-cat","elementId":"username-input","elementTestId":"username-field","elementAttribute":{"placeholder":"Username"}}} --></li>
+  <li>Type "docs" in the search field, and wait for the page to settle.
+    <!-- step {"type":{"keys":["docs"],"elementAria":"Search input field","elementClass":["form-control"],"surface":"chrome","timeout":5000,"waitUntil":{"networkIdleTime":100,"domIdleTime":100,"find":{"elementTestId":"result-display","elementText":"Operation successful"}}}} --></li>
   <li>Check that the <strong>Submit Order</strong> button is enabled.
     <!-- step {"find":{"selector":"button","elementText":"/^Submit Ord/","elementTestId":"checkout-button","elementClass":["btn","/^btn-prim/"],"elementAttribute":{"data-enabled":"true","disabled":false}}} --></li>
   <li>Click <strong>Save</strong>.
-    <!-- step {"click":"Save"} --></li>
+    <!-- step {"click":{"elementText":"Save","elementAttribute":{"aria-label":"Save document button"},"elementClass":"btn-primary","timeout":5000,"surface":"chrome"}} --></li>
+  <li>Click <strong>Login Submit</strong>.
+    <!-- step {"click":{"elementTestId":"login-form-submit","elementClass":["btn","btn-large"],"surface":{"browser":"chrome"}}} --></li>
   <li>Confirm that the page shows <strong>Operation successful</strong>.
     <!-- step {"find":"Operation successful"} --></li>
 </ol>

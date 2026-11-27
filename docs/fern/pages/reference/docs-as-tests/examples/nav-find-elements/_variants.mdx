@@ -6,41 +6,56 @@
       <Tab title="Markdown">
 
 ```markdown title="prose.md"
-# Find elements by their attributes
+# Fill in a form by element attributes
 
 1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
 2. Find the **Submit by ID** button near the top of the page.
 3. Click the username field and type "kittens".
-4. Check that the **Submit Order** button is enabled.
-5. Click **Save**.
-6. Confirm that the page shows **Operation successful**.
+4. Click the password field and type "hunter2".
+5. Click the contact email field and type "you@example.com".
+6. Type "-cat" at the end of the username.
+7. Type "docs" in the search field, and wait for the page to settle.
+8. Check that the **Submit Order** button is enabled.
+9. Click **Save**.
+10. Click **Login Submit**.
+11. Confirm that the page shows **Operation successful**.
 ```
 
       </Tab>
       <Tab title="MDX">
 
 ```mdx title="prose.mdx"
-# Find elements by their attributes
+# Fill in a form by element attributes
 
 1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
 2. Find the **Submit by ID** button near the top of the page.
 3. Click the username field and type "kittens".
-4. Check that the **Submit Order** button is enabled.
-5. Click **Save**.
-6. Confirm that the page shows **Operation successful**.
+4. Click the password field and type "hunter2".
+5. Click the contact email field and type "you@example.com".
+6. Type "-cat" at the end of the username.
+7. Type "docs" in the search field, and wait for the page to settle.
+8. Check that the **Submit Order** button is enabled.
+9. Click **Save**.
+10. Click **Login Submit**.
+11. Confirm that the page shows **Operation successful**.
 ```
 
       </Tab>
       <Tab title="AsciiDoc">
 
 ```asciidoc title="prose.adoc"
-= Find elements by their attributes
+= Fill in a form by element attributes
 
 . Go to http://localhost:8092/enhanced-elements.html[the element test page].
 . Find the *Submit by ID* button near the top of the page.
 . Click the username field and type "kittens".
+. Click the password field and type "hunter2".
+. Click the contact email field and type "you@example.com".
+. Type "-cat" at the end of the username.
+. Type "docs" in the search field, and wait for the page to settle.
 . Check that the *Submit Order* button is enabled.
 . Click *Save*.
+. Click *Login Submit*.
 . Confirm that the page shows *Operation successful*.
 ```
 
@@ -50,15 +65,20 @@
 ```html title="prose.html"
 <!DOCTYPE html>
 <html lang="en">
-<head><title>Find elements by their attributes</title></head>
+<head><title>Fill in a form by element attributes</title></head>
 <body>
-<h1>Find elements by their attributes</h1>
+<h1>Fill in a form by element attributes</h1>
 <ol>
   <li>Go to <a href="http://localhost:8092/enhanced-elements.html">the element test page</a>.</li>
   <li>Find the <strong>Submit by ID</strong> button near the top of the page.</li>
   <li>Click the username field and type "kittens".</li>
+  <li>Click the password field and type "hunter2".</li>
+  <li>Click the contact email field and type "you@example.com".</li>
+  <li>Type "-cat" at the end of the username.</li>
+  <li>Type "docs" in the search field, and wait for the page to settle.</li>
   <li>Check that the <strong>Submit Order</strong> button is enabled.</li>
   <li>Click <strong>Save</strong>.</li>
+  <li>Click <strong>Login Submit</strong>.</li>
   <li>Confirm that the page shows <strong>Operation successful</strong>.</li>
 </ol>
 </body>
@@ -69,14 +89,19 @@
       <Tab title="reStructuredText">
 
 ```rst title="prose.rst"
-Find elements by their attributes
-=================================
+Fill in a form by element attributes
+====================================
 
 #. Go to `the element test page <http://localhost:8092/enhanced-elements.html>`_.
 #. Find the **Submit by ID** button near the top of the page.
 #. Click the username field and type "kittens".
+#. Click the password field and type "hunter2".
+#. Click the contact email field and type "you@example.com".
+#. Type "-cat" at the end of the username.
+#. Type "docs" in the search field, and wait for the page to settle.
 #. Check that the **Submit Order** button is enabled.
 #. Click **Save**.
+#. Click **Login Submit**.
 #. Confirm that the page shows **Operation successful**.
 ```
 
@@ -87,14 +112,19 @@ Find elements by their attributes
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
 <task id="nav-find-elements">
-  <title>Find elements by their attributes</title>
+  <title>Fill in a form by element attributes</title>
   <taskbody>
     <steps>
       <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the element test page</xref>.</cmd></step>
       <step><cmd>Find the <b>Submit by ID</b> button near the top of the page.</cmd></step>
       <step><cmd>Click the username field and type "kittens".</cmd></step>
+      <step><cmd>Click the password field and type "hunter2".</cmd></step>
+      <step><cmd>Click the contact email field and type "you@example.com".</cmd></step>
+      <step><cmd>Type "-cat" at the end of the username.</cmd></step>
+      <step><cmd>Type "docs" in the search field, and wait for the page to settle.</cmd></step>
       <step><cmd>Check that the <b>Submit Order</b> button is enabled.</cmd></step>
       <step><cmd>Click <b>Save</b>.</cmd></step>
+      <step><cmd>Click <b>Login Submit</b>.</cmd></step>
       <step><cmd>Confirm that the page shows <b>Operation successful</b>.</cmd></step>
     </steps>
   </taskbody>
@@ -111,14 +141,19 @@ Find elements by their attributes
 ```markdown title="detected.md"
 <!-- test {"testId":"nav-find-elements","detectSteps":true} -->
 
-# Find elements by their attributes
+# Fill in a form by element attributes
 
 1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
 2. Find the **Submit by ID** button near the top of the page.
 3. Click the username field and type "kittens".
-4. Check that the **Submit Order** button is enabled.
-5. Click **Save**.
-6. Confirm that the page shows **Operation successful**.
+4. Click the password field and type "hunter2".
+5. Click the contact email field and type "you@example.com".
+6. Type "-cat" at the end of the username.
+7. Type "docs" in the search field, and wait for the page to settle.
+8. Check that the **Submit Order** button is enabled.
+9. Click **Save**.
+10. Click **Login Submit**.
+11. Confirm that the page shows **Operation successful**.
 
 <!-- test end -->
 ```
@@ -129,14 +164,19 @@ Find elements by their attributes
 ```mdx title="detected.mdx"
 {/* test {"testId":"nav-find-elements","detectSteps":true} */}
 
-# Find elements by their attributes
+# Fill in a form by element attributes
 
 1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
 2. Find the **Submit by ID** button near the top of the page.
 3. Click the username field and type "kittens".
-4. Check that the **Submit Order** button is enabled.
-5. Click **Save**.
-6. Confirm that the page shows **Operation successful**.
+4. Click the password field and type "hunter2".
+5. Click the contact email field and type "you@example.com".
+6. Type "-cat" at the end of the username.
+7. Type "docs" in the search field, and wait for the page to settle.
+8. Check that the **Submit Order** button is enabled.
+9. Click **Save**.
+10. Click **Login Submit**.
+11. Confirm that the page shows **Operation successful**.
 
 {/* test end */}
 ```
@@ -145,15 +185,20 @@ Find elements by their attributes
       <Tab title="AsciiDoc">
 
 ```asciidoc title="detected.adoc"
-= Find elements by their attributes
+= Fill in a form by element attributes
 
 // (test {"testId":"nav-find-elements","detectSteps":true})
 
 . Go to http://localhost:8092/enhanced-elements.html[the element test page].
 . Find the *Submit by ID* button near the top of the page.
 . Click the username field and type "kittens".
+. Click the password field and type "hunter2".
+. Click the contact email field and type "you@example.com".
+. Type "-cat" at the end of the username.
+. Type "docs" in the search field, and wait for the page to settle.
 . Check that the *Submit Order* button is enabled.
 . Click *Save*.
+. Click *Login Submit*.
 . Confirm that the page shows *Operation successful*.
 
 // (test end)
@@ -165,16 +210,21 @@ Find elements by their attributes
 ```html title="detected.html"
 <!DOCTYPE html>
 <html lang="en">
-<head><title>Find elements by their attributes</title></head>
+<head><title>Fill in a form by element attributes</title></head>
 <body>
 <!-- test {"testId":"nav-find-elements","detectSteps":true} -->
-<h1>Find elements by their attributes</h1>
+<h1>Fill in a form by element attributes</h1>
 <ol>
   <li>Go to <a href="http://localhost:8092/enhanced-elements.html">the element test page</a>.</li>
   <li>Find the <strong>Submit by ID</strong> button near the top of the page.</li>
   <li>Click the username field and type "kittens".</li>
+  <li>Click the password field and type "hunter2".</li>
+  <li>Click the contact email field and type "you@example.com".</li>
+  <li>Type "-cat" at the end of the username.</li>
+  <li>Type "docs" in the search field, and wait for the page to settle.</li>
   <li>Check that the <strong>Submit Order</strong> button is enabled.</li>
   <li>Click <strong>Save</strong>.</li>
+  <li>Click <strong>Login Submit</strong>.</li>
   <li>Confirm that the page shows <strong>Operation successful</strong>.</li>
 </ol>
 <!-- test end -->
@@ -186,16 +236,21 @@ Find elements by their attributes
       <Tab title="reStructuredText">
 
 ```rst title="detected.rst"
-Find elements by their attributes
-=================================
+Fill in a form by element attributes
+====================================
 
 .. test {"testId":"nav-find-elements","detectSteps":true}
 
 #. Go to `the element test page <http://localhost:8092/enhanced-elements.html>`_.
 #. Find the **Submit by ID** button near the top of the page.
 #. Click the username field and type "kittens".
+#. Click the password field and type "hunter2".
+#. Click the contact email field and type "you@example.com".
+#. Type "-cat" at the end of the username.
+#. Type "docs" in the search field, and wait for the page to settle.
 #. Check that the **Submit Order** button is enabled.
 #. Click **Save**.
+#. Click **Login Submit**.
 #. Confirm that the page shows **Operation successful**.
 
 .. test end
@@ -208,15 +263,20 @@ Find elements by their attributes
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
 <task id="nav-find-elements">
-  <title>Find elements by their attributes</title>
+  <title>Fill in a form by element attributes</title>
   <taskbody>
     <data name="doc-detective" value='test {"testId":"nav-find-elements","detectSteps":true}'/>
     <steps>
       <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the element test page</xref>.</cmd></step>
       <step><cmd>Find the <b>Submit by ID</b> button near the top of the page.</cmd></step>
       <step><cmd>Click the username field and type "kittens".</cmd></step>
+      <step><cmd>Click the password field and type "hunter2".</cmd></step>
+      <step><cmd>Click the contact email field and type "you@example.com".</cmd></step>
+      <step><cmd>Type "-cat" at the end of the username.</cmd></step>
+      <step><cmd>Type "docs" in the search field, and wait for the page to settle.</cmd></step>
       <step><cmd>Check that the <b>Submit Order</b> button is enabled.</cmd></step>
       <step><cmd>Click <b>Save</b>.</cmd></step>
+      <step><cmd>Click <b>Login Submit</b>.</cmd></step>
       <step><cmd>Confirm that the page shows <b>Operation successful</b>.</cmd></step>
     </steps>
     <data name="doc-detective" value="test end"/>
@@ -234,7 +294,7 @@ Find elements by their attributes
 ```markdown title="inline.md"
 <!-- test {"testId":"nav-find-elements","detectSteps":false} -->
 
-# Find elements by their attributes
+# Fill in a form by element attributes
 
 1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
    <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} -->
@@ -242,11 +302,21 @@ Find elements by their attributes
    <!-- step {"find":{"elementId":"submit-button","elementText":"Submit by ID","elementAria":"Submit form button","moveTo":true}} -->
 3. Click the username field and type "kittens".
    <!-- step {"find":{"selector":"input","elementTestId":"username-field","click":true,"type":{"keys":["kittens"]},"timeout":10000}} -->
-4. Check that the **Submit Order** button is enabled.
+4. Click the password field and type "hunter2".
+   <!-- step {"find":{"elementTestId":"password-field","elementClass":"form-control","click":"left","type":"hunter2","surface":"chrome"}} -->
+5. Click the contact email field and type "you@example.com".
+   <!-- step {"find":{"elementId":"contact-email","elementAttribute":{"data-validation":"email-regex-validator"},"click":true,"type":["you@example.com"]}} -->
+6. Type "-cat" at the end of the username.
+   <!-- step {"type":{"keys":"-cat","elementId":"username-input","elementTestId":"username-field","elementAttribute":{"placeholder":"Username"}}} -->
+7. Type "docs" in the search field, and wait for the page to settle.
+   <!-- step {"type":{"keys":["docs"],"elementAria":"Search input field","elementClass":["form-control"],"surface":"chrome","timeout":5000,"waitUntil":{"networkIdleTime":100,"domIdleTime":100,"find":{"elementTestId":"result-display","elementText":"Operation successful"}}}} -->
+8. Check that the **Submit Order** button is enabled.
    <!-- step {"find":{"selector":"button","elementText":"/^Submit Ord/","elementTestId":"checkout-button","elementClass":["btn","/^btn-prim/"],"elementAttribute":{"data-enabled":"true","disabled":false}}} -->
-5. Click **Save**.
-   <!-- step {"click":"Save"} -->
-6. Confirm that the page shows **Operation successful**.
+9. Click **Save**.
+   <!-- step {"click":{"elementText":"Save","elementAttribute":{"aria-label":"Save document button"},"elementClass":"btn-primary","timeout":5000,"surface":"chrome"}} -->
+10. Click **Login Submit**.
+   <!-- step {"click":{"elementTestId":"login-form-submit","elementClass":["btn","btn-large"],"surface":{"browser":"chrome"}}} -->
+11. Confirm that the page shows **Operation successful**.
    <!-- step {"find":"Operation successful"} -->
 
 <!-- test end -->
@@ -258,7 +328,7 @@ Find elements by their attributes
 ```mdx title="inline.mdx"
 {/* test {"testId":"nav-find-elements","detectSteps":false} */}
 
-# Find elements by their attributes
+# Fill in a form by element attributes
 
 1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
    {/* step {"goTo":"http://localhost:8092/enhanced-elements.html"} */}
@@ -266,11 +336,21 @@ Find elements by their attributes
    {/* step {"find":{"elementId":"submit-button","elementText":"Submit by ID","elementAria":"Submit form button","moveTo":true}} */}
 3. Click the username field and type "kittens".
    {/* step {"find":{"selector":"input","elementTestId":"username-field","click":true,"type":{"keys":["kittens"]},"timeout":10000}} */}
-4. Check that the **Submit Order** button is enabled.
+4. Click the password field and type "hunter2".
+   {/* step {"find":{"elementTestId":"password-field","elementClass":"form-control","click":"left","type":"hunter2","surface":"chrome"}} */}
+5. Click the contact email field and type "you@example.com".
+   {/* step {"find":{"elementId":"contact-email","elementAttribute":{"data-validation":"email-regex-validator"},"click":true,"type":["you@example.com"]}} */}
+6. Type "-cat" at the end of the username.
+   {/* step {"type":{"keys":"-cat","elementId":"username-input","elementTestId":"username-field","elementAttribute":{"placeholder":"Username"}}} */}
+7. Type "docs" in the search field, and wait for the page to settle.
+   {/* step {"type":{"keys":["docs"],"elementAria":"Search input field","elementClass":["form-control"],"surface":"chrome","timeout":5000,"waitUntil":{"networkIdleTime":100,"domIdleTime":100,"find":{"elementTestId":"result-display","elementText":"Operation successful"}}}} */}
+8. Check that the **Submit Order** button is enabled.
    {/* step {"find":{"selector":"button","elementText":"/^Submit Ord/","elementTestId":"checkout-button","elementClass":["btn","/^btn-prim/"],"elementAttribute":{"data-enabled":"true","disabled":false}}} */}
-5. Click **Save**.
-   {/* step {"click":"Save"} */}
-6. Confirm that the page shows **Operation successful**.
+9. Click **Save**.
+   {/* step {"click":{"elementText":"Save","elementAttribute":{"aria-label":"Save document button"},"elementClass":"btn-primary","timeout":5000,"surface":"chrome"}} */}
+10. Click **Login Submit**.
+   {/* step {"click":{"elementTestId":"login-form-submit","elementClass":["btn","btn-large"],"surface":{"browser":"chrome"}}} */}
+11. Confirm that the page shows **Operation successful**.
    {/* step {"find":"Operation successful"} */}
 
 {/* test end */}
@@ -280,7 +360,7 @@ Find elements by their attributes
       <Tab title="AsciiDoc">
 
 ```asciidoc title="inline.adoc"
-= Find elements by their attributes
+= Fill in a form by element attributes
 
 // (test {"testId":"nav-find-elements","detectSteps":false})
 
@@ -293,12 +373,27 @@ Find elements by their attributes
 . Click the username field and type "kittens".
 +
 // (step {"find":{"selector":"input","elementTestId":"username-field","click":true,"type":{"keys":["kittens"]},"timeout":10000}})
+. Click the password field and type "hunter2".
++
+// (step {"find":{"elementTestId":"password-field","elementClass":"form-control","click":"left","type":"hunter2","surface":"chrome"}})
+. Click the contact email field and type "you@example.com".
++
+// (step {"find":{"elementId":"contact-email","elementAttribute":{"data-validation":"email-regex-validator"},"click":true,"type":["you@example.com"]}})
+. Type "-cat" at the end of the username.
++
+// (step {"type":{"keys":"-cat","elementId":"username-input","elementTestId":"username-field","elementAttribute":{"placeholder":"Username"}}})
+. Type "docs" in the search field, and wait for the page to settle.
++
+// (step {"type":{"keys":["docs"],"elementAria":"Search input field","elementClass":["form-control"],"surface":"chrome","timeout":5000,"waitUntil":{"networkIdleTime":100,"domIdleTime":100,"find":{"elementTestId":"result-display","elementText":"Operation successful"}}}})
 . Check that the *Submit Order* button is enabled.
 +
 // (step {"find":{"selector":"button","elementText":"/^Submit Ord/","elementTestId":"checkout-button","elementClass":["btn","/^btn-prim/"],"elementAttribute":{"data-enabled":"true","disabled":false}}})
 . Click *Save*.
 +
-// (step {"click":"Save"})
+// (step {"click":{"elementText":"Save","elementAttribute":{"aria-label":"Save document button"},"elementClass":"btn-primary","timeout":5000,"surface":"chrome"}})
+. Click *Login Submit*.
++
+// (step {"click":{"elementTestId":"login-form-submit","elementClass":["btn","btn-large"],"surface":{"browser":"chrome"}}})
 . Confirm that the page shows *Operation successful*.
 +
 // (step {"find":"Operation successful"})
@@ -312,10 +407,10 @@ Find elements by their attributes
 ```html title="inline.html"
 <!DOCTYPE html>
 <html lang="en">
-<head><title>Find elements by their attributes</title></head>
+<head><title>Fill in a form by element attributes</title></head>
 <body>
 <!-- test {"testId":"nav-find-elements","detectSteps":false} -->
-<h1>Find elements by their attributes</h1>
+<h1>Fill in a form by element attributes</h1>
 <ol>
   <li>Go to <a href="http://localhost:8092/enhanced-elements.html">the element test page</a>.
     <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} --></li>
@@ -323,10 +418,20 @@ Find elements by their attributes
     <!-- step {"find":{"elementId":"submit-button","elementText":"Submit by ID","elementAria":"Submit form button","moveTo":true}} --></li>
   <li>Click the username field and type "kittens".
     <!-- step {"find":{"selector":"input","elementTestId":"username-field","click":true,"type":{"keys":["kittens"]},"timeout":10000}} --></li>
+  <li>Click the password field and type "hunter2".
+    <!-- step {"find":{"elementTestId":"password-field","elementClass":"form-control","click":"left","type":"hunter2","surface":"chrome"}} --></li>
+  <li>Click the contact email field and type "you@example.com".
+    <!-- step {"find":{"elementId":"contact-email","elementAttribute":{"data-validation":"email-regex-validator"},"click":true,"type":["you@example.com"]}} --></li>
+  <li>Type "-cat" at the end of the username.
+    <!-- step {"type":{"keys":"-cat","elementId":"username-input","elementTestId":"username-field","elementAttribute":{"placeholder":"Username"}}} --></li>
+  <li>Type "docs" in the search field, and wait for the page to settle.
+    <!-- step {"type":{"keys":["docs"],"elementAria":"Search input field","elementClass":["form-control"],"surface":"chrome","timeout":5000,"waitUntil":{"networkIdleTime":100,"domIdleTime":100,"find":{"elementTestId":"result-display","elementText":"Operation successful"}}}} --></li>
   <li>Check that the <strong>Submit Order</strong> button is enabled.
     <!-- step {"find":{"selector":"button","elementText":"/^Submit Ord/","elementTestId":"checkout-button","elementClass":["btn","/^btn-prim/"],"elementAttribute":{"data-enabled":"true","disabled":false}}} --></li>
   <li>Click <strong>Save</strong>.
-    <!-- step {"click":"Save"} --></li>
+    <!-- step {"click":{"elementText":"Save","elementAttribute":{"aria-label":"Save document button"},"elementClass":"btn-primary","timeout":5000,"surface":"chrome"}} --></li>
+  <li>Click <strong>Login Submit</strong>.
+    <!-- step {"click":{"elementTestId":"login-form-submit","elementClass":["btn","btn-large"],"surface":{"browser":"chrome"}}} --></li>
   <li>Confirm that the page shows <strong>Operation successful</strong>.
     <!-- step {"find":"Operation successful"} --></li>
 </ol>
@@ -339,8 +444,8 @@ Find elements by their attributes
       <Tab title="reStructuredText">
 
 ```rst title="inline.rst"
-Find elements by their attributes
-=================================
+Fill in a form by element attributes
+====================================
 
 .. test {"testId":"nav-find-elements","detectSteps":false}
 
@@ -356,13 +461,33 @@ Find elements by their attributes
 
    .. step {"find":{"selector":"input","elementTestId":"username-field","click":true,"type":{"keys":["kittens"]},"timeout":10000}}
 
+#. Click the password field and type "hunter2".
+
+   .. step {"find":{"elementTestId":"password-field","elementClass":"form-control","click":"left","type":"hunter2","surface":"chrome"}}
+
+#. Click the contact email field and type "you@example.com".
+
+   .. step {"find":{"elementId":"contact-email","elementAttribute":{"data-validation":"email-regex-validator"},"click":true,"type":["you@example.com"]}}
+
+#. Type "-cat" at the end of the username.
+
+   .. step {"type":{"keys":"-cat","elementId":"username-input","elementTestId":"username-field","elementAttribute":{"placeholder":"Username"}}}
+
+#. Type "docs" in the search field, and wait for the page to settle.
+
+   .. step {"type":{"keys":["docs"],"elementAria":"Search input field","elementClass":["form-control"],"surface":"chrome","timeout":5000,"waitUntil":{"networkIdleTime":100,"domIdleTime":100,"find":{"elementTestId":"result-display","elementText":"Operation successful"}}}}
+
 #. Check that the **Submit Order** button is enabled.
 
    .. step {"find":{"selector":"button","elementText":"/^Submit Ord/","elementTestId":"checkout-button","elementClass":["btn","/^btn-prim/"],"elementAttribute":{"data-enabled":"true","disabled":false}}}
 
 #. Click **Save**.
 
-   .. step {"click":"Save"}
+   .. step {"click":{"elementText":"Save","elementAttribute":{"aria-label":"Save document button"},"elementClass":"btn-primary","timeout":5000,"surface":"chrome"}}
+
+#. Click **Login Submit**.
+
+   .. step {"click":{"elementTestId":"login-form-submit","elementClass":["btn","btn-large"],"surface":{"browser":"chrome"}}}
 
 #. Confirm that the page shows **Operation successful**.
 
@@ -378,7 +503,7 @@ Find elements by their attributes
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
 <task id="nav-find-elements">
-  <title>Find elements by their attributes</title>
+  <title>Fill in a form by element attributes</title>
   <taskbody>
     <data name="doc-detective" value='test {"testId":"nav-find-elements","detectSteps":false}'/>
     <steps>
@@ -388,10 +513,20 @@ Find elements by their attributes
         <info><data name="doc-detective" value='step {"find":{"elementId":"submit-button","elementText":"Submit by ID","elementAria":"Submit form button","moveTo":true}}'/></info></step>
       <step><cmd>Click the username field and type "kittens".</cmd>
         <info><data name="doc-detective" value='step {"find":{"selector":"input","elementTestId":"username-field","click":true,"type":{"keys":["kittens"]},"timeout":10000}}'/></info></step>
+      <step><cmd>Click the password field and type "hunter2".</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementTestId":"password-field","elementClass":"form-control","click":"left","type":"hunter2","surface":"chrome"}}'/></info></step>
+      <step><cmd>Click the contact email field and type "you@example.com".</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementId":"contact-email","elementAttribute":{"data-validation":"email-regex-validator"},"click":true,"type":["you@example.com"]}}'/></info></step>
+      <step><cmd>Type "-cat" at the end of the username.</cmd>
+        <info><data name="doc-detective" value='step {"type":{"keys":"-cat","elementId":"username-input","elementTestId":"username-field","elementAttribute":{"placeholder":"Username"}}}'/></info></step>
+      <step><cmd>Type "docs" in the search field, and wait for the page to settle.</cmd>
+        <info><data name="doc-detective" value='step {"type":{"keys":["docs"],"elementAria":"Search input field","elementClass":["form-control"],"surface":"chrome","timeout":5000,"waitUntil":{"networkIdleTime":100,"domIdleTime":100,"find":{"elementTestId":"result-display","elementText":"Operation successful"}}}}'/></info></step>
       <step><cmd>Check that the <b>Submit Order</b> button is enabled.</cmd>
         <info><data name="doc-detective" value='step {"find":{"selector":"button","elementText":"/^Submit Ord/","elementTestId":"checkout-button","elementClass":["btn","/^btn-prim/"],"elementAttribute":{"data-enabled":"true","disabled":false}}}'/></info></step>
       <step><cmd>Click <b>Save</b>.</cmd>
-        <info><data name="doc-detective" value='step {"click":"Save"}'/></info></step>
+        <info><data name="doc-detective" value='step {"click":{"elementText":"Save","elementAttribute":{"aria-label":"Save document button"},"elementClass":"btn-primary","timeout":5000,"surface":"chrome"}}'/></info></step>
+      <step><cmd>Click <b>Login Submit</b>.</cmd>
+        <info><data name="doc-detective" value='step {"click":{"elementTestId":"login-form-submit","elementClass":["btn","btn-large"],"surface":{"browser":"chrome"}}}'/></info></step>
       <step><cmd>Confirm that the page shows <b>Operation successful</b>.</cmd>
         <info><data name="doc-detective" value='step {"find":"Operation successful"}'/></info></step>
     </steps>
@@ -440,6 +575,58 @@ Find elements by their attributes
         },
         {
           "find": {
+            "elementTestId": "password-field",
+            "elementClass": "form-control",
+            "click": "left",
+            "type": "hunter2",
+            "surface": "chrome"
+          }
+        },
+        {
+          "find": {
+            "elementId": "contact-email",
+            "elementAttribute": {
+              "data-validation": "email-regex-validator"
+            },
+            "click": true,
+            "type": [
+              "you@example.com"
+            ]
+          }
+        },
+        {
+          "type": {
+            "keys": "-cat",
+            "elementId": "username-input",
+            "elementTestId": "username-field",
+            "elementAttribute": {
+              "placeholder": "Username"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "docs"
+            ],
+            "elementAria": "Search input field",
+            "elementClass": [
+              "form-control"
+            ],
+            "surface": "chrome",
+            "timeout": 5000,
+            "waitUntil": {
+              "networkIdleTime": 100,
+              "domIdleTime": 100,
+              "find": {
+                "elementTestId": "result-display",
+                "elementText": "Operation successful"
+              }
+            }
+          }
+        },
+        {
+          "find": {
             "selector": "button",
             "elementText": "/^Submit Ord/",
             "elementTestId": "checkout-button",
@@ -454,7 +641,27 @@ Find elements by their attributes
           }
         },
         {
-          "click": "Save"
+          "click": {
+            "elementText": "Save",
+            "elementAttribute": {
+              "aria-label": "Save document button"
+            },
+            "elementClass": "btn-primary",
+            "timeout": 5000,
+            "surface": "chrome"
+          }
+        },
+        {
+          "click": {
+            "elementTestId": "login-form-submit",
+            "elementClass": [
+              "btn",
+              "btn-large"
+            ],
+            "surface": {
+              "browser": "chrome"
+            }
+          }
         },
         {
           "find": "Operation successful"
@@ -488,6 +695,39 @@ tests:
               - kittens
           timeout: 10000
       - find:
+          elementTestId: password-field
+          elementClass: form-control
+          click: left
+          type: hunter2
+          surface: chrome
+      - find:
+          elementId: contact-email
+          elementAttribute:
+            data-validation: email-regex-validator
+          click: true
+          type:
+            - you@example.com
+      - type:
+          keys: -cat
+          elementId: username-input
+          elementTestId: username-field
+          elementAttribute:
+            placeholder: Username
+      - type:
+          keys:
+            - docs
+          elementAria: Search input field
+          elementClass:
+            - form-control
+          surface: chrome
+          timeout: 5000
+          waitUntil:
+            networkIdleTime: 100
+            domIdleTime: 100
+            find:
+              elementTestId: result-display
+              elementText: Operation successful
+      - find:
           selector: button
           elementText: /^Submit Ord/
           elementTestId: checkout-button
@@ -497,7 +737,20 @@ tests:
           elementAttribute:
             data-enabled: "true"
             disabled: false
-      - click: Save
+      - click:
+          elementText: Save
+          elementAttribute:
+            aria-label: Save document button
+          elementClass: btn-primary
+          timeout: 5000
+          surface: chrome
+      - click:
+          elementTestId: login-form-submit
+          elementClass:
+            - btn
+            - btn-large
+          surface:
+            browser: chrome
       - find: Operation successful
 ```
 

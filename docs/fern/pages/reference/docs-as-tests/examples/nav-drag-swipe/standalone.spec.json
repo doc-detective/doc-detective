@@ -12,7 +12,8 @@
             "source": "Table",
             "target": {
               "selector": ".drop-zone",
-              "elementText": "Drop Zone 1"
+              "elementText": "Drop Zone 1",
+              "timeout": 5000
             },
             "duration": 500
           }
@@ -31,13 +32,35 @@
           }
         },
         {
+          "dragAndDrop": {
+            "source": {
+              "elementText": "Chart",
+              "elementClass": "draggable",
+              "elementAttribute": {
+                "data-widget": "chart",
+                "draggable": "true"
+              },
+              "timeout": 5000
+            },
+            "target": ".drop-zone[data-drop=\"zone2\"]",
+            "surface": "chrome"
+          }
+        },
+        {
+          "find": {
+            "selector": ".drop-zone[data-drop=\"zone2\"] .dropped-item",
+            "elementText": "Chart (dropped)"
+          }
+        },
+        {
           "swipe": "up"
         },
         {
           "swipe": {
             "direction": "down",
             "distance": 0.3,
-            "duration": 300
+            "duration": 300,
+            "surface": "chrome"
           }
         },
         {
@@ -50,7 +73,10 @@
               "x": 400,
               "y": 250
             },
-            "duration": 300
+            "duration": 300,
+            "surface": {
+              "browser": "chrome"
+            }
           }
         }
       ]

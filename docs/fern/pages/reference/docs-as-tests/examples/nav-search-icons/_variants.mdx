@@ -126,15 +126,15 @@ Search from the toolbar
 # Search from the toolbar
 
 1. Go to [the toolbar page](http://localhost:8092/find-image.html).
-   <!-- step {"goTo":"http://localhost:8092/find-image.html"} -->
+   <!-- step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}} -->
 2. Click the magnifying-glass icon next to the search box.
-   <!-- step {"click":{"elementImage":"search.svg"}} -->
+   <!-- step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}} -->
 3. Type "doc detective" and press Enter.
 4. Check that the status bar shows **doc detective**.
 5. Type "-docs" at the end of the search box.
 6. Check that the status bar shows **doc detective-docs**.
 7. Right-click the save icon and hold the button for half a second.
-   <!-- step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}} -->
+   <!-- step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}} -->
 8. Check that the status bar records the right-click.
 
 <!-- test end -->
@@ -149,15 +149,15 @@ Search from the toolbar
 # Search from the toolbar
 
 1. Go to [the toolbar page](http://localhost:8092/find-image.html).
-   {/* step {"goTo":"http://localhost:8092/find-image.html"} */}
+   {/* step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}} */}
 2. Click the magnifying-glass icon next to the search box.
-   {/* step {"click":{"elementImage":"search.svg"}} */}
+   {/* step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}} */}
 3. Type "doc detective" and press Enter.
 4. Check that the status bar shows **doc detective**.
 5. Type "-docs" at the end of the search box.
 6. Check that the status bar shows **doc detective-docs**.
 7. Right-click the save icon and hold the button for half a second.
-   {/* step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}} */}
+   {/* step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}} */}
 8. Check that the status bar records the right-click.
 
 {/* test end */}
@@ -173,17 +173,17 @@ Search from the toolbar
 
 . Go to http://localhost:8092/find-image.html[the toolbar page].
 +
-// (step {"goTo":"http://localhost:8092/find-image.html"})
+// (step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}})
 . Click the magnifying-glass icon next to the search box.
 +
-// (step {"click":{"elementImage":"search.svg"}})
+// (step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}})
 . Type "doc detective" and press Enter.
 . Check that the status bar shows *doc detective*.
 . Type "-docs" at the end of the search box.
 . Check that the status bar shows *doc detective-docs*.
 . Right-click the save icon and hold the button for half a second.
 +
-// (step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}})
+// (step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}})
 . Check that the status bar records the right-click.
 
 // (test end)
@@ -201,15 +201,15 @@ Search from the toolbar
 <h1>Search from the toolbar</h1>
 <ol>
   <li>Go to <a href="http://localhost:8092/find-image.html">the toolbar page</a>.
-    <!-- step {"goTo":"http://localhost:8092/find-image.html"} --></li>
+    <!-- step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}} --></li>
   <li>Click the magnifying-glass icon next to the search box.
-    <!-- step {"click":{"elementImage":"search.svg"}} --></li>
+    <!-- step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}} --></li>
   <li>Type "doc detective" and press Enter.</li>
   <li>Check that the status bar shows <strong>doc detective</strong>.</li>
   <li>Type "-docs" at the end of the search box.</li>
   <li>Check that the status bar shows <strong>doc detective-docs</strong>.</li>
   <li>Right-click the save icon and hold the button for half a second.
-    <!-- step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}} --></li>
+    <!-- step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}} --></li>
   <li>Check that the status bar records the right-click.</li>
 </ol>
 <!-- test end -->
@@ -228,11 +228,11 @@ Search from the toolbar
 
 #. Go to `the toolbar page <http://localhost:8092/find-image.html>`_.
 
-   .. step {"goTo":"http://localhost:8092/find-image.html"}
+   .. step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}}
 
 #. Click the magnifying-glass icon next to the search box.
 
-   .. step {"click":{"elementImage":"search.svg"}}
+   .. step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}}
 
 #. Type "doc detective" and press Enter.
 #. Check that the status bar shows **doc detective**.
@@ -240,7 +240,7 @@ Search from the toolbar
 #. Check that the status bar shows **doc detective-docs**.
 #. Right-click the save icon and hold the button for half a second.
 
-   .. step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}}
+   .. step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}}
 
 #. Check that the status bar records the right-click.
 
@@ -259,15 +259,15 @@ Search from the toolbar
     <data name="doc-detective" value='test {"testId":"nav-search-icons","detectSteps":true}'/>
     <steps>
       <step><cmd>Go to <xref href="http://localhost:8092/find-image.html" scope="external" format="html">the toolbar page</xref>.</cmd>
-        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/find-image.html"}'/></info></step>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}}'/></info></step>
       <step><cmd>Click the magnifying-glass icon next to the search box.</cmd>
-        <info><data name="doc-detective" value='step {"click":{"elementImage":"search.svg"}}'/></info></step>
+        <info><data name="doc-detective" value='step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}}'/></info></step>
       <step><cmd>Type "doc detective" and press Enter.</cmd></step>
       <step><cmd>Check that the status bar shows <b>doc detective</b>.</cmd></step>
       <step><cmd>Type "-docs" at the end of the search box.</cmd></step>
       <step><cmd>Check that the status bar shows <b>doc detective-docs</b>.</cmd></step>
       <step><cmd>Right-click the save icon and hold the button for half a second.</cmd>
-        <info><data name="doc-detective" value='step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}}'/></info></step>
+        <info><data name="doc-detective" value='step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}}'/></info></step>
       <step><cmd>Check that the status bar records the right-click.</cmd></step>
     </steps>
     <data name="doc-detective" value="test end"/>
@@ -288,9 +288,9 @@ Search from the toolbar
 # Search from the toolbar
 
 1. Go to [the toolbar page](http://localhost:8092/find-image.html).
-   <!-- step {"goTo":"http://localhost:8092/find-image.html"} -->
+   <!-- step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}} -->
 2. Click the magnifying-glass icon next to the search box.
-   <!-- step {"click":{"elementImage":"search.svg"}} -->
+   <!-- step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}} -->
 3. Type "doc detective" and press Enter.
    <!-- step {"type":["doc detective","$ENTER$"]} -->
 4. Check that the status bar shows **doc detective**.
@@ -300,7 +300,7 @@ Search from the toolbar
 6. Check that the status bar shows **doc detective-docs**.
    <!-- step {"find":{"selector":"#echo","elementText":"doc detective-docs"}} -->
 7. Right-click the save icon and hold the button for half a second.
-   <!-- step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}} -->
+   <!-- step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}} -->
 8. Check that the status bar records the right-click.
    <!-- step {"find":{"selector":"#log","elementText":"/^click button=2/"}} -->
 
@@ -316,9 +316,9 @@ Search from the toolbar
 # Search from the toolbar
 
 1. Go to [the toolbar page](http://localhost:8092/find-image.html).
-   {/* step {"goTo":"http://localhost:8092/find-image.html"} */}
+   {/* step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}} */}
 2. Click the magnifying-glass icon next to the search box.
-   {/* step {"click":{"elementImage":"search.svg"}} */}
+   {/* step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}} */}
 3. Type "doc detective" and press Enter.
    {/* step {"type":["doc detective","$ENTER$"]} */}
 4. Check that the status bar shows **doc detective**.
@@ -328,7 +328,7 @@ Search from the toolbar
 6. Check that the status bar shows **doc detective-docs**.
    {/* step {"find":{"selector":"#echo","elementText":"doc detective-docs"}} */}
 7. Right-click the save icon and hold the button for half a second.
-   {/* step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}} */}
+   {/* step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}} */}
 8. Check that the status bar records the right-click.
    {/* step {"find":{"selector":"#log","elementText":"/^click button=2/"}} */}
 
@@ -345,10 +345,10 @@ Search from the toolbar
 
 . Go to http://localhost:8092/find-image.html[the toolbar page].
 +
-// (step {"goTo":"http://localhost:8092/find-image.html"})
+// (step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}})
 . Click the magnifying-glass icon next to the search box.
 +
-// (step {"click":{"elementImage":"search.svg"}})
+// (step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}})
 . Type "doc detective" and press Enter.
 +
 // (step {"type":["doc detective","$ENTER$"]})
@@ -363,7 +363,7 @@ Search from the toolbar
 // (step {"find":{"selector":"#echo","elementText":"doc detective-docs"}})
 . Right-click the save icon and hold the button for half a second.
 +
-// (step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}})
+// (step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}})
 . Check that the status bar records the right-click.
 +
 // (step {"find":{"selector":"#log","elementText":"/^click button=2/"}})
@@ -383,9 +383,9 @@ Search from the toolbar
 <h1>Search from the toolbar</h1>
 <ol>
   <li>Go to <a href="http://localhost:8092/find-image.html">the toolbar page</a>.
-    <!-- step {"goTo":"http://localhost:8092/find-image.html"} --></li>
+    <!-- step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}} --></li>
   <li>Click the magnifying-glass icon next to the search box.
-    <!-- step {"click":{"elementImage":"search.svg"}} --></li>
+    <!-- step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}} --></li>
   <li>Type "doc detective" and press Enter.
     <!-- step {"type":["doc detective","$ENTER$"]} --></li>
   <li>Check that the status bar shows <strong>doc detective</strong>.
@@ -395,7 +395,7 @@ Search from the toolbar
   <li>Check that the status bar shows <strong>doc detective-docs</strong>.
     <!-- step {"find":{"selector":"#echo","elementText":"doc detective-docs"}} --></li>
   <li>Right-click the save icon and hold the button for half a second.
-    <!-- step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}} --></li>
+    <!-- step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}} --></li>
   <li>Check that the status bar records the right-click.
     <!-- step {"find":{"selector":"#log","elementText":"/^click button=2/"}} --></li>
 </ol>
@@ -415,11 +415,11 @@ Search from the toolbar
 
 #. Go to `the toolbar page <http://localhost:8092/find-image.html>`_.
 
-   .. step {"goTo":"http://localhost:8092/find-image.html"}
+   .. step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}}
 
 #. Click the magnifying-glass icon next to the search box.
 
-   .. step {"click":{"elementImage":"search.svg"}}
+   .. step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}}
 
 #. Type "doc detective" and press Enter.
 
@@ -439,7 +439,7 @@ Search from the toolbar
 
 #. Right-click the save icon and hold the button for half a second.
 
-   .. step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}}
+   .. step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}}
 
 #. Check that the status bar records the right-click.
 
@@ -460,9 +460,9 @@ Search from the toolbar
     <data name="doc-detective" value='test {"testId":"nav-search-icons","detectSteps":false}'/>
     <steps>
       <step><cmd>Go to <xref href="http://localhost:8092/find-image.html" scope="external" format="html">the toolbar page</xref>.</cmd>
-        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/find-image.html"}'/></info></step>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/find-image.html","waitUntil":{"find":{"elementImage":{"base64":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==","threshold":0.9}}}}}'/></info></step>
       <step><cmd>Click the magnifying-glass icon next to the search box.</cmd>
-        <info><data name="doc-detective" value='step {"click":{"elementImage":"search.svg"}}'/></info></step>
+        <info><data name="doc-detective" value='step {"click":{"elementImage":{"path":"search.svg","color":"#444444"},"elementId":"search-icon"}}'/></info></step>
       <step><cmd>Type "doc detective" and press Enter.</cmd>
         <info><data name="doc-detective" value='step {"type":["doc detective","$ENTER$"]}'/></info></step>
       <step><cmd>Check that the status bar shows <b>doc detective</b>.</cmd>
@@ -472,7 +472,7 @@ Search from the toolbar
       <step><cmd>Check that the status bar shows <b>doc detective-docs</b>.</cmd>
         <info><data name="doc-detective" value='step {"find":{"selector":"#echo","elementText":"doc detective-docs"}}'/></info></step>
       <step><cmd>Right-click the save icon and hold the button for half a second.</cmd>
-        <info><data name="doc-detective" value='step {"find":{"elementImage":{"path":"save.svg","threshold":0.95},"click":{"button":"right","duration":500}}}'/></info></step>
+        <info><data name="doc-detective" value='step {"find":{"elementImage":"save.svg","click":{"button":"right","duration":500}}}'/></info></step>
       <step><cmd>Check that the status bar records the right-click.</cmd>
         <info><data name="doc-detective" value='step {"find":{"selector":"#log","elementText":"/^click button=2/"}}'/></info></step>
     </steps>
@@ -496,11 +496,25 @@ Search from the toolbar
       "testId": "nav-search-icons",
       "steps": [
         {
-          "goTo": "http://localhost:8092/find-image.html"
+          "goTo": {
+            "url": "http://localhost:8092/find-image.html",
+            "waitUntil": {
+              "find": {
+                "elementImage": {
+                  "base64": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==",
+                  "threshold": 0.9
+                }
+              }
+            }
+          }
         },
         {
           "click": {
-            "elementImage": "search.svg"
+            "elementImage": {
+              "path": "search.svg",
+              "color": "#444444"
+            },
+            "elementId": "search-icon"
           }
         },
         {
@@ -530,10 +544,7 @@ Search from the toolbar
         },
         {
           "find": {
-            "elementImage": {
-              "path": "save.svg",
-              "threshold": 0.95
-            },
+            "elementImage": "save.svg",
             "click": {
               "button": "right",
               "duration": 500
@@ -560,9 +571,18 @@ Search from the toolbar
 tests:
   - testId: nav-search-icons
     steps:
-      - goTo: http://localhost:8092/find-image.html
+      - goTo:
+          url: http://localhost:8092/find-image.html
+          waitUntil:
+            find:
+              elementImage:
+                base64: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==
+                threshold: 0.9
       - click:
-          elementImage: search.svg
+          elementImage:
+            path: search.svg
+            color: "#444444"
+          elementId: search-icon
       - type:
           - doc detective
           - $ENTER$
@@ -577,9 +597,7 @@ tests:
           selector: "#echo"
           elementText: doc detective-docs
       - find:
-          elementImage:
-            path: save.svg
-            threshold: 0.95
+          elementImage: save.svg
           click:
             button: right
             duration: 500

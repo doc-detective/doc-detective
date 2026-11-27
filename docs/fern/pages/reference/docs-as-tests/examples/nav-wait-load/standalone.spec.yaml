@@ -5,12 +5,16 @@ tests:
       - goTo:
           url: /wait-delay.html
           origin: http://localhost:8092
+          params:
+            source: docs
+          surface: chrome
           timeout: 30000
           waitUntil:
             networkIdleTime: 500
             domIdleTime: 500
             find:
-              selector: "#auto-message"
+              selector: p
+              elementId: auto-message
               elementText: Loaded after 2 seconds
       - find:
           selector: "#auto-message"
@@ -27,3 +31,12 @@ tests:
           headers:
             Accept: application/json
           timeout: 5000
+      - checkLink:
+          url: /api/health
+          origin: http://localhost:8092
+          params:
+            source: docs
+          statusCodes: 200
+          headers: |-
+            Accept: application/json
+            X-Test: docs
