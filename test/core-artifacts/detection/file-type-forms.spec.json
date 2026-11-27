@@ -31,6 +31,21 @@
           }
         }
       ]
+    },
+    {
+      "testId": "string-actions",
+      "description": "A markup definition's `actions` as a string detects one step.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs string-actions",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
     }
   ]
 }

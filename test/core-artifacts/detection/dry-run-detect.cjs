@@ -725,6 +725,12 @@ const cases = {
     content: 'require("fs").statSync(__filename);\n',
     expect: ["node"],
   },
+  "string-actions": {
+    file: "doc.md",
+    config: { fileTypes: [md({ markup: [{ strong: {}, actions: "find" }] })] },
+    content: "Click **Save**.\n",
+    expect: [[{ find: "Save" }]],
+  },
   "reject-bad-pattern": {
     file: "doc.md",
     config: { fileTypes: [md({ markup: [{ link: { url: "(" }, actions: ["find"] }] })] },
