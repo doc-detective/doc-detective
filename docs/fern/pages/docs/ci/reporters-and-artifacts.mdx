@@ -72,7 +72,7 @@ Or set them in your config file so every run uses the same combination:
 }
 ```
 
-To keep the defaults, leave `reporters` out of your config. An empty list, `"reporters": []`, runs no reporters you choose, so the run prints no summary. While `autoScreenshot` or `autoRecord` is on, the run folder still archives the results. Set both to `false` to write nothing.
+To keep the defaults, leave `reporters` out of your config. An empty list, `"reporters": []`, runs no reporters you choose, so the run prints no summary. While `autoScreenshot` or `autoRecord` is on, or a `checkFile` step sets `download`, the run folder still archives the results. Otherwise, the run writes nothing.
 
 Each name must match one of the six built-in reporters exactly, in your config or in `--reporters`. Any other name, such as `"JSON"` or `"htm"`, stops the run with exit code `2` and an error that lists the allowed names. In a config file, the error looks like this:
 
@@ -418,12 +418,13 @@ The `runFolder` reporter archives each run into its own folder so you can attach
     └── tests/<testId>/
         └── contexts/<contextId>/
             ├── screenshots/<NN>-<action>-<stepId>.png
-            └── recordings/<contextId>.mp4
+            ├── recordings/<contextId>.mp4
+            └── downloads/
 ```
 
-The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. By default, every run captures a screenshot after each UI step and a video of each context. They land beside the results in the same folder. When a `screenshot` step's `path` is a URL, its new screenshot goes in the context's `screenshots/` folder too. It's named `<stepId>_<timestamp>_` plus the URL's filename. That name has a timestamp in it, so it differs between runs. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
+The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. By default, every run captures a screenshot after each UI step and a video of each context. They land beside the results in the same folder. When a `screenshot` step's `path` is a URL, its new screenshot goes in the context's `screenshots/` folder too. It's named `<stepId>_<timestamp>_` plus the URL's filename. That name has a timestamp in it, so it differs between runs. In desktop Chrome and Firefox, files a test downloads land in the context's `downloads/` folder, where a [`checkFile`](/docs/actions/checkfile#check-a-download) step can check them. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
 
-Run folders add up: Doc Detective keeps every one and never deletes them. Keep them out of commits by adding `.doc-detective/` to `.gitignore`, or your `outputDir` if you set one. Clear old ones out when you no longer need them. To stop writing screenshots and recordings, set `autoScreenshot` and `autoRecord` to `false`.
+Run folders add up: Doc Detective keeps every one and never deletes them. Keep them out of commits by adding `.doc-detective/` to `.gitignore`, or your `outputDir` if you set one. Clear old ones out when you no longer need them. To stop writing screenshots and recordings, set `autoScreenshot` and `autoRecord` to `false`. Even with both set to `false`, a run with a `checkFile` step that sets `download` still writes a run folder, to hold the downloads.
 
 ```bash
 echo ".doc-detective/" >> .gitignore
