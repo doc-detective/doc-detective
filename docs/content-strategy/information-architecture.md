@@ -136,6 +136,7 @@ author; the rest are existing pages being moved or retitled.
 | Create your first test | W1 | ★ | Inline or standalone first test, run, read results. |
 | How testing works | W1 | ★ | Standalone vs. inline vs. detected, the three test sources. |
 | Sample tests | W1 | | Worked examples. |
+| Cucumber and Doc Detective (`get-started/cucumber-comparison`) | D1, W1 | | **Unlisted** (`hidden: true` in `docs.yml`): reachable by URL, not in the sidebar. Compares the two for docs, screenshot, and recording work, and links to the Gherkin format, the Cucumber recipe, and the `cucumber` reporter. |
 
 ### Test your docs: Wren (UI) plus Diego (CLI/code/API), in `docs/test-docs/`
 
