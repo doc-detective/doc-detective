@@ -52,6 +52,7 @@ import {
   isRetryableSessionError,
   classifyStepFailure,
   classifyContextRetry,
+  goToTargetOf,
   guardBlankDocumentNavigation,
   applyBrowserSize,
   BIDI_BROWSERS,
@@ -4859,10 +4860,18 @@ async function runContext({
   // session was found dead mid-run. The caller (runContextWithRetries) reads
   // this off the returned report to decide whether to retry on a fresh session.
   let sessionDiedMidRun = false;
+  // The goTo targets of the step reports, read before masking, for the retry
+  // probe (ADR 01233).
+  const goToTargets: string[] = [];
+  const recordGoToTarget = (rep: any) => {
+    const target = goToTargetOf(rep);
+    if (target !== null) goToTargets.push(target);
+  };
   // Every step report goes through this. The step loop below replaces it with
   // the full version; this one serves the cleanup sweep in `finally` when the
   // context threw before the loop began.
   let pushStepReport = (rep: any) => {
+    recordGoToTarget(rep);
     contextReport.steps.push(maskDeep(rep));
   };
   if (driverRequired && !appiumPool) {
@@ -5448,6 +5457,7 @@ async function runContext({
       Object.assign(rep, classifyStepFailure(rep));
       // The report gets a masked copy; routing, `$$`, and `variables` keep
       // reading the real outputs (ADR 01178).
+      recordGoToTarget(rep);
       contextReport.steps.push(maskDeep(rep));
     };
     // A routing failure belongs to the step that routed (ADR 01186). Its report
@@ -5875,12 +5885,9 @@ async function runContext({
       // retry warning the wrapper already logs. The alive-but-unusable cases do,
       // because "the session responded and we retried anyway" is otherwise
       // surprising in a log.
-      const goToUrls = contextReport.steps
-        .filter((s: any) => s.goTo !== undefined && s.result !== "SKIPPED")
-        .map((s: any) => String(s.goTo?.url ?? s.goTo).trim().toLowerCase());
       const retryReason = await classifyContextRetry(probeDrivers, {
-        navigated: goToUrls.length > 0,
-        aboutBlankIsInitial: !goToUrls.includes("about:blank"),
+        navigated: goToTargets.length > 0,
+        aboutBlankIsInitial: !goToTargets.includes("about:blank"),
       });
       if (retryReason) {
         sessionDiedMidRun = true;

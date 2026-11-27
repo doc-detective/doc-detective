@@ -36,6 +36,7 @@ import {
   probeStuckOnBlankDocument,
   guardBlankDocumentNavigation,
   classifyContextRetry,
+  goToTargetOf,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -1491,6 +1492,15 @@ describe("core/utils coverage", function () {
         }),
         null
       );
+    });
+
+    it("reads a goTo step's target, normalized, unless the step was skipped", function () {
+      // Read from the unmasked step report, so a target that equals a secret
+      // value still reads as `about:blank`.
+      assert.equal(goToTargetOf({ goTo: { url: " About:Blank " }, result: "FAIL" }), "about:blank");
+      assert.equal(goToTargetOf({ goTo: "http://localhost:8092/", result: "PASS" }), "http://localhost:8092/");
+      assert.equal(goToTargetOf({ goTo: "about:blank", result: "SKIPPED" }), null);
+      assert.equal(goToTargetOf({ find: "x", result: "PASS" }), null);
     });
 
     it("prefers a dead session over an unnavigated primary", async function () {

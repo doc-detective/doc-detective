@@ -144,6 +144,7 @@ export {
   probeStuckOnBlankDocument,
   guardBlankDocumentNavigation,
   classifyContextRetry,
+  goToTargetOf,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -1189,6 +1190,14 @@ export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
 // See adrs/01082-retries-mid-session-context-retry.md,
 // adrs/01084-retry-unnavigated-context.md and
 // adrs/01119-no-unnavigated-retry-without-navigation.md.
+// A step report's goTo target, trimmed and lowercased, or null for another
+// action or a skipped goTo. Read it before the report is masked: a target
+// equal to a secret value would otherwise read as the mask (ADR 01233).
+function goToTargetOf(rep: any): string | null {
+  if (rep?.goTo === undefined || rep.result === "SKIPPED") return null;
+  return String(rep.goTo?.url ?? rep.goTo).trim().toLowerCase();
+}
+
 //
 //   • `aboutBlankIsInitial`: the caller found no goTo that targeted
 //     `about:blank`, so a primary still on it never left its initial document.
