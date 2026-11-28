@@ -8178,7 +8178,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -11440,7 +11440,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -13228,7 +13228,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -14904,7 +14904,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -16506,7 +16506,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -18188,7 +18188,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -19990,7 +19990,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -21948,7 +21948,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -23340,7 +23340,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "structure-users",
@@ -23618,7 +23618,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "structure-users",
@@ -23766,7 +23766,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "structure-users",
@@ -23968,7 +23968,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -24132,7 +24132,7 @@
   "httpRequest.response.schema": [
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     }
   ],
   "httpRequest.statusCodes (array)": [
@@ -24448,7 +24448,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -29830,7 +29830,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -34238,7 +34238,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -37528,7 +37528,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -39788,7 +39788,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
@@ -41578,7 +41578,7 @@
     },
     {
       "example": "http-request-response-schema",
-      "page": null
+      "page": "/reference/docs-as-tests/http-code#responseschema"
     },
     {
       "example": "http-request-response-string",
