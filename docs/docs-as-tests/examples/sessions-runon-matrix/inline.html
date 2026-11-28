@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the page in two languages</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-matrix","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"locale":"$$matrix.locale"},"matrix":{"locale":["en-US","de-DE"]}}]} -->
+<h1>Check the page in two languages</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Check that the page's language is the locale under test, <code>en-US</code> or <code>de-DE</code>.
+    <!-- step {"runBrowserScript":{"script":"return navigator.language;","output":"$$matrix.locale"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>
