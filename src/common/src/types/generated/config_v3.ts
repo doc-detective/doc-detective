@@ -9,7 +9,7 @@
  */
 export type LoadVariables = string;
 export type DeviceByName = string;
-export type FileTypePredefined = "markdown" | "asciidoc" | "html" | "dita" | "rst";
+export type FileTypePredefined = "markdown" | "asciidoc" | "html" | "dita" | "rst" | "gherkin";
 export type FileTypeCustom = (
   | {
       [k: string]: unknown;
@@ -25,7 +25,7 @@ export type FileTypeCustom = (
   /**
    * Base template to extend. A file whose extension no parser handles is parsed as this format.
    */
-  extends?: "markdown" | "asciidoc" | "html" | "dita" | "rst";
+  extends?: "markdown" | "asciidoc" | "html" | "dita" | "rst" | "gherkin";
   /**
    * File extensions to use with type.
    */
@@ -723,13 +723,17 @@ export interface Config {
    */
   output?: string;
   /**
-   * Path of the folder that holds the run folder and the html, junit, and markdown reports.
+   * Path of the folder that holds the run folder and the html, junit, markdown, and cucumber reports.
    */
   outputDir?: string;
   /**
-   * Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), and `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.
+   * The earlier run's results to compare this run's with, so each failing context reads as new or already failing, and each passing context that failed before reads as fixed. `previous` compares with the newest other run folder under `<outputDir>/.doc-detective/runs/` that holds `testResults.json`. A path names a results JSON file, or a folder that holds `testResults.json`. `false` turns comparison off. Contexts match by spec ID, test ID, and context ID, and only between runs of the same Doc Detective major version. Defaults to `previous`.
    */
-  reporters?: ("terminal" | "json" | "html" | "runFolder" | "junit" | "markdown")[];
+  compareTo?: false | string;
+  /**
+   * Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory), and `cucumber` (Cucumber JSON for test-management tools such as Xray and Allure, written as `cucumber.json` in the output directory). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.
+   */
+  reporters?: ("terminal" | "json" | "html" | "runFolder" | "junit" | "markdown" | "cucumber")[];
   /**
    * Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI. Each entry must contain at least one non-whitespace character.
    */
@@ -841,6 +845,10 @@ export interface Config {
    */
   exitOnFail?: boolean;
   /**
+   * Which failures make the CLI exit `1`. `any`: any failed spec exits `1`. `new`: the run exits `1` only when a failure is new since the run it was compared with (see `compareTo`). With no comparison, every failure counts as new. `exitOnFail: false` still wins. The report lists every failure either way.
+   */
+  failOn?: "any" | "new";
+  /**
    * Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.
    */
   shell?: "bash" | "cmd" | "powershell";
@@ -892,6 +900,7 @@ export interface Context {
    * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context. Not the same as a step's routing `retry.limit`, which re-runs one step on the same session, and whose runs the step's `attempts` result field counts.
    */
   retries?: number;
+  matrix?: Matrix;
   /**
    * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
    */
@@ -924,27 +933,27 @@ export interface Browser {
   window?: BrowserWindow;
   viewport?: BrowserViewport;
   /**
-   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  colorScheme?: "light" | "dark";
+  colorScheme?: ("light" | "dark") | string;
   /**
-   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
   locale?: string;
   /**
-   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.
    */
   timezone?: string;
   /**
-   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  deviceScaleFactor?: number;
+  deviceScaleFactor?: number | string;
   /**
-   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  reducedMotion?: "reduce" | "no-preference";
+  reducedMotion?: ("reduce" | "no-preference") | string;
   /**
-   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.
    */
   clock?: string;
 }
@@ -997,27 +1006,27 @@ export interface Browser1 {
   window?: BrowserWindow1;
   viewport?: BrowserViewport1;
   /**
-   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  colorScheme?: "light" | "dark";
+  colorScheme?: ("light" | "dark") | string;
   /**
-   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
   locale?: string;
   /**
-   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.
    */
   timezone?: string;
   /**
-   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  deviceScaleFactor?: number;
+  deviceScaleFactor?: number | string;
   /**
-   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.
    */
-  reducedMotion?: "reduce" | "no-preference";
+  reducedMotion?: ("reduce" | "no-preference") | string;
   /**
-   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.
    */
   clock?: string;
 }
@@ -1046,6 +1055,31 @@ export interface BrowserViewport1 {
    * Height of the viewport in pixels.
    */
   height?: number;
+}
+/**
+ * Values to run this context once per combination of. Each key names a list of values. Reference a value in the context's fields or in the test's steps as `$$matrix.<key>`, or `$$matrix.<key>.<field>` for a field of an object value. The context runs once per combination of the keys it references, and each combination's context ID ends in `~<key>=<value>`. A reference that is the whole string keeps the value's type; one inside a longer string is spliced in as text. A key that the test doesn't reference doesn't multiply its contexts, but on a `runOn` the test sets itself, an unreferenced key is an error.
+ */
+export interface Matrix {
+  /**
+   * The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars. Or `{ "file": "<path>" }` to read the list from a file.
+   */
+  [k: string]:
+    | ValuesFromAFile
+    | [string | number | boolean, ...(string | number | boolean)[]]
+    | [
+        {
+          [k: string]: string | number | boolean;
+        },
+        ...{
+          [k: string]: string | number | boolean;
+        }[],
+      ];
+}
+export interface ValuesFromAFile {
+  /**
+   * Path of a `.json` file that holds the list, or of an `.xml` sitemap whose `<loc>` entries are the values. A relative path resolves against the file that declares this `runOn`, or the working directory with `relativePathBase: "cwd"`. Doc Detective reads it before any test runs.
+   */
+  file: string;
 }
 export interface Requirements {
   /**

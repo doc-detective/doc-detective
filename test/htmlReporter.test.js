@@ -354,14 +354,15 @@ describe("HTML Reporter media and view", function () {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  async function pageFunctions(hrefs = {}, { esc = String, escAttr = String } = {}) {
+  async function pageFunctions(hrefs = {}, { esc = String, escAttr = String } = {}, view = {}) {
     const outputFile = path.join(tmpDir, "fns.html");
     await outputResults({ logLevel: "silent" }, outputFile, sampleResults, { reporters: ["html"] });
     const html = fs.readFileSync(outputFile, "utf-8");
     // Each function ends at the first `}` in column 0, so these functions must
     // keep their closing brace there and no other line may start with `}`.
     const fn = (name) => new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`).exec(html)?.[0];
-    const source = ["mediaHref", "collectMedia", "autoRecordingPanel", "contextLabel", "resultNote"].map(fn);
+    const names = ["mediaHref", "collectMedia", "autoRecordingPanel", "contextLabel", "resultNote", "failureTag", "comparisonNote"];
+    const source = names.map(fn);
     expect(source.every(Boolean), "the page defines the media functions").to.equal(true);
     return new Function(
       "VIEW",
@@ -369,9 +370,34 @@ describe("HTML Reporter media and view", function () {
       "esc",
       "escAttr",
       "statusIcon",
-      `${source.join("\n")}; return { collectMedia, autoRecordingPanel, contextLabel, resultNote };`
-    )({ hrefs }, (status) => `<badge ${status}>`, esc, escAttr, () => "<icon>");
+      "tag",
+      `${source.join("\n")}; return { collectMedia, autoRecordingPanel, contextLabel, resultNote, failureTag, comparisonNote };`
+    )({ hrefs, ...view }, (status) => `<badge ${status}>`, esc, escAttr, () => "<icon>", (text) => `<tag ${text}>`);
   }
+
+  describe("the comparison (ADR 01244)", function () {
+    it("tags a context new, already failing, or fixed, and nothing else", async function () {
+      const { failureTag } = await pageFunctions();
+      expect(failureTag({ failureStatus: "new" })).to.equal("<tag new>");
+      expect(failureTag({ failureStatus: "existing" })).to.equal("<tag already failing>");
+      expect(failureTag({ failureStatus: "fixed" })).to.equal("<tag fixed>");
+      expect(failureTag({})).to.equal("");
+      expect(failureTag({ failureStatus: "toString" })).to.equal("");
+    });
+
+    it("notes the sentence and the fixed contexts under the verdict, escaped", async function () {
+      const comparison = { line: "Compared with run `r0`: 0 new, 0 already failing, 2 fixed.", fixed: ["s › a", "<b>"] };
+      const esc = (s) => String(s).replace(/</g, "&lt;");
+      const { comparisonNote } = await pageFunctions({}, { esc }, { comparison });
+      expect(comparisonNote()).to.equal(
+        '<div class="note">Compared with run `r0`: 0 new, 0 already failing, 2 fixed.</div>' +
+          '<div class="note">Fixed (2): s › a, &lt;b></div>'
+      );
+      const none = await pageFunctions({}, {}, { comparison: { line: "x.", fixed: [] } });
+      expect(none.comparisonNote()).to.equal('<div class="note">x.</div>');
+      expect((await pageFunctions()).comparisonNote()).to.equal("");
+    });
+  });
 
   const viewOf = (html) =>
     JSON.parse(/<script id="dd-report-view" type="application\/json">(.*?)<\/script>/s.exec(html)[1]);
@@ -640,6 +666,19 @@ describe("HTML Reporter media and view", function () {
         path.join(tmpDir, "x.html")
       );
       expect(html).to.not.include("</script><script>alert(1)");
+    });
+
+    // ADR 01244: the view carries what the comparison found, only when there was one.
+    it("puts the comparison's sentence and fixed contexts in the view", function () {
+      const report = {
+        comparison: { previous: { runId: "r0" }, summary: { new: 0, existing: 0, fixed: 1 } },
+        specs: [{ specId: "s", tests: [{ testId: "t", contexts: [{ contextId: "c", result: "PASS", failureStatus: "fixed" }] }] }],
+      };
+      expect(viewOf(buildHtml(report)).comparison).to.deep.equal({
+        line: "Compared with run `r0`: 0 new, 0 already failing, 1 fixed.",
+        fixed: ["s › t › c"],
+      });
+      expect(viewOf(buildHtml({ specs: [] }))).to.not.have.property("comparison");
     });
 
     it("gives a path on another Windows drive a file:/// URL", function () {

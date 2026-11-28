@@ -1,0 +1,76 @@
+{
+  "specId": "matrix-files",
+  "description": "`matrix` keys take their values from a JSON file and from a sitemap, relative to this spec (ADR 01241).",
+  "tests": [
+    {
+      "testId": "values-from-json",
+      "description": "`data/pages.json` lists two pages, so the test runs twice.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ],
+          "matrix": {
+            "page": {
+              "file": "data/pages.json"
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/$$matrix.page"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return location.pathname;",
+            "output": "/$$matrix.page$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "values-from-sitemap",
+      "description": "`data/sitemap.xml` has two `<loc>` entries, so the test runs once per URL.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ],
+          "matrix": {
+            "url": {
+              "file": "data/sitemap.xml"
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "$$matrix.url"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return location.href;",
+            "output": "$$matrix.url"
+          }
+        }
+      ]
+    }
+  ]
+}

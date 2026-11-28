@@ -55,7 +55,7 @@ function parseConcurrentRunners(value: string): string {
   throw new InvalidArgumentError("Expected a positive whole number, or auto.");
 }
 
-export const REPORTER_NAMES = ["terminal", "json", "html", "runFolder", "junit", "markdown"];
+export const REPORTER_NAMES = ["terminal", "json", "html", "runFolder", "junit", "markdown", "cucumber"];
 
 // A list option takes one comma-separated value, given once (ADR 01166). A
 // repeat would otherwise silently keep only the last. Returns the raw value:
@@ -151,7 +151,7 @@ export function addRunOptions(command: Command): Command {
       grouped(
         RUN_GROUP,
         "-r, --reporters <names>",
-        "Use these, comma-separated: terminal, json, html, runFolder, junit, markdown [terminal,runFolder]"
+        "Use these, comma-separated: terminal, json, html, runFolder, junit, markdown, cucumber [terminal,runFolder]"
       ).argParser(commaList(REPORTER_NAMES))
     )
     .addOption(
@@ -171,7 +171,26 @@ export function addRunOptions(command: Command): Command {
     "Print the resolved test plan as JSON and stop",
     "--no-dry-run"
   );
-  command.addOption(grouped(RUN_GROUP, "--plain", "Print one tab-separated line per test context"));
+  addBooleanPair(
+    command,
+    RUN_GROUP,
+    "--compare-to <path>",
+    "Compare failures with an earlier run's results: a file, a run folder, or previous [previous]",
+    "--no-compare-to"
+  );
+  // Commander keeps only the last of the pair, so setConfig can't see both
+  // without this mark.
+  const compareForms = new Set<string>();
+  for (const form of ["compare-to", "no-compare-to"]) {
+    command.on(`option:${form}`, () => {
+      compareForms.add(form);
+      if (compareForms.size === 2) command.setOptionValue("compareToConflict", true);
+    });
+  }
+  command.addOption(
+    grouped(RUN_GROUP, "--fail-on <which>", "Exit 1 on any failure, or only on new ones [any]").choices(["any", "new"])
+  );
+  command.addOption(grouped(RUN_GROUP, "--plain","Print one tab-separated line per test context"));
   command.addOption(grouped(RUN_GROUP, "--no-exit-on-fail", "Exit 0 even when tests fail"));
 
   addBooleanPair(

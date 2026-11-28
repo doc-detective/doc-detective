@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-devicescalefactor-matrix">
+  <title>Check the page at two pixel densities</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-runon-devicescalefactor-matrix","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"deviceScaleFactor":"$$matrix.dpr"},"matrix":{"dpr":[1,2]}}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Check that the device pixel ratio is the density under test, <codeph>1</codeph> or <codeph>2</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"runBrowserScript":{"script":"return String(devicePixelRatio);","output":"/^$$matrix.dpr$/"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

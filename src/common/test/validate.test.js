@@ -1429,6 +1429,40 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.include("set `body` or `bodyPath`, not both.");
       });
+
+      // ADR 01242: answer in sequence, or replay a HAR file.
+      it("accepts a responses sequence", function () {
+        const result = check({ url: "**/jobs/1", responses: [{ body: { status: "running" } }, { statusCode: 404, bodyPath: "done.json" }] });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a harPath with or without a url filter and a method", function () {
+        expect(check({ harPath: "app.har" }).valid).to.be.true;
+        expect(check({ harPath: "app.har", url: "**/api/**", method: "GET" }).valid).to.be.true;
+      });
+
+      it("rejects an empty responses list and a bad entry", function () {
+        expect(check({ url: "**/x", responses: [] }).valid).to.be.false;
+        expect(check({ url: "**/x", responses: [{ body: "a", bodyPath: "a.json" }] }).valid).to.be.false;
+      });
+
+      it("rejects more than one of response, responses, and harPath", function () {
+        for (const mock of [
+          { url: "**/x", response: {}, responses: [{}] },
+          { url: "**/x", response: {}, harPath: "a.har" },
+          { url: "**/x", responses: [{}], harPath: "a.har" },
+        ]) {
+          const result = check(mock);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("set one of `response`, `responses`, or `harPath`.");
+        }
+      });
+
+      it("rejects a step with neither url nor harPath", function () {
+        const result = check({ responses: [{ body: "x" }] });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("set `url` or `harPath`.");
+      });
     });
 
     // ADR 01231: checkFile waits for a finished file or download.
@@ -1461,6 +1495,76 @@ import { schemas } from "../dist/index.js";
         expect(check({ download: "" }).valid).to.be.false;
         expect(check({ path: "a", timeout: 0 }).valid).to.be.false;
         expect(check({ path: "a", bogus: true }).valid).to.be.false;
+      });
+    });
+
+    describe("runOn matrix (ADR 01240)", function () {
+      const check = (context) => validate({ schemaKey: "context_v3", object: context });
+
+      it("accepts scalar and object values, and references in emulation fields", function () {
+        const result = check({
+          browsers: {
+            name: "chrome",
+            colorScheme: "$$matrix.variant.theme",
+            deviceScaleFactor: "$$matrix.variant.dpr",
+            locale: "$$matrix.locale",
+            timezone: "$$matrix.tz",
+            reducedMotion: "$$matrix.motion",
+            clock: "$$matrix.clock",
+          },
+          matrix: {
+            locale: ["en-US", "de-DE"],
+            n: [1, 2],
+            flag: [true, false],
+            variant: [{ theme: "light", dpr: 1 }, { theme: "dark", dpr: 2 }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      for (const [name, matrix] of [
+        ["an empty array", { a: [] }],
+        ["duplicate items", { a: ["x", "x"] }],
+        ["mixed scalars and objects", { a: ["x", { b: 1 }] }],
+        ["a nested array", { a: [["x"]] }],
+        ["an object with a non-scalar leaf", { a: [{ b: [1] }] }],
+        ["a key with a dot", { "a.b": ["x"] }],
+      ]) {
+        it(`rejects ${name}`, function () {
+          expect(check({ matrix }).valid).to.be.false;
+        });
+      }
+
+      it("accepts values from a file (ADR 01241)", function () {
+        expect(check({ matrix: { page: { file: "pages.json" }, url: { file: "sitemap.xml" } } }).valid).to.be.true;
+      });
+
+      it("rejects a file object with another key, or an empty path (ADR 01241)", function () {
+        expect(check({ matrix: { page: { file: "pages.json", url: "x" } } }).valid).to.be.false;
+        expect(check({ matrix: { page: { file: "" } } }).valid).to.be.false;
+      });
+
+      it("accepts a goTo URL that starts with a matrix reference (ADR 01241)", function () {
+        for (const goTo of ["$$matrix.url", { url: "$$matrix.url" }]) {
+          const result = validate({ schemaKey: "step_v3", object: { goTo } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+        expect(validate({ schemaKey: "step_v3", object: { goTo: "$$matrix" } }).valid).to.be.false;
+      });
+
+      it("still rejects a bad emulation value that isn't a reference", function () {
+        expect(check({ browsers: { name: "chrome", colorScheme: "$$matrix" } }).valid).to.be.false;
+      });
+
+      it("accepts a resolved context's combination in a test", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            steps: [{ goTo: "https://example.com" }],
+            contexts: [{ contextId: "default~a=1", matrix: { a: 1, v: { t: "x" } }, steps: [] }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
       });
     });
 
@@ -1760,7 +1864,7 @@ import { schemas } from "../dist/index.js";
           for (const object of [{ goTo: url }, { checkLink: { url } }, { httpRequest: url }, { httpRequest: { url } }]) {
             const result = step(object);
             expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
-            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)"');
+            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)"');
           }
         }
       });
@@ -2459,12 +2563,12 @@ import { schemas } from "../dist/index.js";
       });
     });
 
-    // ADR 01166: config `reporters` takes the six public names, exactly.
+    // ADR 01166: config `reporters` takes the seven public names, exactly.
     describe("config reporters", function () {
       const reporters = (list) => validate({ schemaKey: "config_v3", object: { reporters: list } }).valid;
 
       it("accepts each public reporter name", function () {
-        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown"])).to.be.true;
+        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown", "cucumber"])).to.be.true;
       });
 
       it("rejects other spellings and internal reporters", function () {
@@ -3244,6 +3348,108 @@ import { schemas } from "../dist/index.js";
           expect(keys.reduce((value, key) => value[key], result.object)).to.deep.equal(expected);
         });
       }
+    });
+
+    describe("config_v3 compareTo", function () {
+      for (const value of ["previous", "./results/testResults.json", false]) {
+        it(`should accept compareTo ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { compareTo: value } });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.compareTo).to.equal(value);
+        });
+      }
+
+      for (const value of [true, "", "  "]) {
+        it(`should reject compareTo ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { compareTo: value } });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("compareTo");
+        });
+      }
+
+      it("should leave compareTo unset when it's absent", function () {
+        const result = validate({ schemaKey: "config_v3", object: {} });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object).to.not.have.property("compareTo");
+      });
+    });
+
+    describe("config_v3 failOn", function () {
+      for (const value of ["any", "new"]) {
+        it(`should accept failOn ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { failOn: value } });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.failOn).to.equal(value);
+        });
+      }
+
+      for (const value of ["x", true]) {
+        it(`should reject failOn ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { failOn: value } });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("failOn");
+        });
+      }
+
+      it("should default failOn to any", function () {
+        const result = validate({ schemaKey: "config_v3", object: {} });
+        expect(result.object.failOn).to.equal("any");
+      });
+    });
+
+    describe("report_v3 comparison", function () {
+      const comparedReport = () => ({
+        comparison: {
+          previous: {
+            runId: "2026-11-06T02-33-28-631Z",
+            startedAt: "2026-11-06T02:33:28.631Z",
+            docDetectiveVersion: "5.4.0",
+            path: "/repo/.doc-detective/runs/2026-11-06T02-33-28-631Z/testResults.json",
+          },
+          summary: { new: 1, existing: 0, fixed: 1 },
+        },
+        summary: Object.fromEntries(
+          ["specs", "tests", "contexts", "steps"].map((level) => [
+            level,
+            { pass: 1, fail: 1, warning: 0, skipped: 0 },
+          ])
+        ),
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  { contextId: "a", result: "FAIL", failureStatus: "new", steps: [{ runShell: "exit 1" }] },
+                  { contextId: "b", result: "PASS", failureStatus: "fixed", steps: [{ runShell: "exit 0" }] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      it("should validate a comparison and each context's failureStatus", function () {
+        const result = validate({ schemaKey: "report_v3", object: comparedReport() });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.comparison.summary).to.deep.equal({ new: 1, existing: 0, fixed: 1 });
+        expect(result.object.specs[0].tests[0].contexts[1].failureStatus).to.equal("fixed");
+      });
+
+      it("should reject an unknown failureStatus", function () {
+        const object = comparedReport();
+        object.specs[0].tests[0].contexts[0].failureStatus = "flaky";
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("failureStatus");
+      });
+
+      it("should reject a comparison without a summary", function () {
+        const object = comparedReport();
+        delete object.comparison.summary;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("summary");
+      });
     });
 
     describe("report_v3 run metadata", function () {
@@ -4112,11 +4318,26 @@ import { schemas } from "../dist/index.js";
           expect(result.valid, result.errors).to.be.true;
         }
         const defaults = validate({ schemaKey: "config_v3", object: {} });
-        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst"]);
+        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst", "gherkin"]);
       });
 
       it("rejects restructuredtext as a predefined fileType or extends base", function () {
         for (const fileTypes of [["restructuredtext"], [{ extends: "restructuredtext", extensions: ["txt"] }]]) {
+          expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
+        }
+      });
+    });
+
+    describe("config_v3 gherkin fileType", function () {
+      it("accepts gherkin as a predefined fileType and as an extends base", function () {
+        for (const fileTypes of [["gherkin"], [{ extends: "gherkin", extensions: ["story"] }]]) {
+          const result = validate({ schemaKey: "config_v3", object: { fileTypes } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+      });
+
+      it("rejects cucumber as a predefined fileType or extends base", function () {
+        for (const fileTypes of [["cucumber"], [{ extends: "cucumber", extensions: ["story"] }]]) {
           expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
         }
       });

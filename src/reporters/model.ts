@@ -4,8 +4,11 @@ import path from "node:path";
 // Never import src/utils.ts here: it imports this file.
 import { log } from "../core/utils.js";
 
+// How a failed item reads against an earlier run (ADR 01244).
+const FAILURE_TAGS: Readonly<Record<string, string>> = Object.freeze({ new: "new", existing: "already failing" });
+
 export { verdict } from "../cliOutput.js";
-export { nonPassItems, existingFile, mediaPath, environmentLine, writeReport };
+export { present, nonPassItems, existingFile, mediaPath, environmentLine, writeReport, fixedPaths, comparisonLine, FAILURE_TAGS };
 
 const NON_PASS = ["FAIL", "WARNING", "SKIPPED"];
 
@@ -80,6 +83,7 @@ function nonPassItems(results: any): any[] {
         const video = own.length > 0 ? existing(recording?.recordingPath) : undefined;
         for (const item of own) {
           if (video) item.recording = video;
+          if (item.status === "FAIL" && Object.hasOwn(FAILURE_TAGS, context.failureStatus ?? "")) item.failureStatus = context.failureStatus;
           if (item.skippedAfter > 0) {
             item.skippedNote = `${item.skippedAfter} more ${item.skippedAfter === 1 ? "step" : "steps"} skipped after the failure.`;
           }
@@ -89,6 +93,31 @@ function nonPassItems(results: any): any[] {
     }
   }
   return NON_PASS.flatMap((status) => items.filter((item) => item.status === status));
+}
+
+// The ID path of each context the comparison marked fixed, in report order.
+function fixedPaths(results: any): string[] {
+  const paths: string[] = [];
+  for (const [spec, specNumber] of present(results?.specs)) {
+    for (const [test, testNumber] of present(spec.tests)) {
+      for (const [context, contextNumber] of present(test.contexts)) {
+        if (context.failureStatus !== "fixed") continue;
+        paths.push(
+          [spec.specId || `spec ${specNumber}`, test.testId || `test ${testNumber}`, context.contextId || `context ${contextNumber}`].join(" › ")
+        );
+      }
+    }
+  }
+  return paths;
+}
+
+// What the comparison found, as one sentence, or null when there was none.
+function comparisonLine(results: any): string | null {
+  const comparison = results?.comparison;
+  if (!comparison) return null;
+  const { new: fresh = 0, existing = 0, fixed = 0 } = comparison.summary ?? {};
+  const run = comparison.previous?.runId ?? comparison.previous?.path;
+  return `Compared with run \`${run}\`: ${fresh} new, ${existing} already failing, ${fixed} fixed.`;
 }
 
 // A stored path as seen from `fromDir`, with forward slashes. A relative path

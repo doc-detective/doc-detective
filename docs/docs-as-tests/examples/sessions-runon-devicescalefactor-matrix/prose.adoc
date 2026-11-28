@@ -1,0 +1,4 @@
+= Check the page at two pixel densities
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
+. Check that the device pixel ratio is the density under test, `1` or `2`.

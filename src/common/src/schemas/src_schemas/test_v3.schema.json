@@ -177,6 +177,12 @@
             "description": "Why this context had its outcome. Doc Detective populates it. You never set it yourself.",
             "readOnly": true
           },
+          "failureStatus": {
+            "type": "string",
+            "enum": ["new", "existing", "fixed"],
+            "description": "How this context's result compares with the earlier run named in the report's `comparison`. `new` is a failure the earlier run didn't have, `existing` is a failure the earlier run also had, and `fixed` is a pass that failed in the earlier run. The same spec ID, test ID, and context ID identify a context across runs. Present only in test results that were compared with an earlier run, and only on `FAIL` contexts and on fixed `PASS` contexts. System-populated.",
+            "readOnly": true
+          },
           "durationMs": {
             "type": "integer",
             "minimum": 0,
@@ -307,7 +313,18 @@
           },
           "contextId": {
             "type": "string",
-            "description": "Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one."
+            "description": "Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one. A `matrix` combination adds `~<key>=<value>` for each key, such as `linux-chrome~locale=de-DE`."
+          },
+          "matrix": {
+            "type": "object",
+            "description": "The `matrix` values this context ran with, one per key the test references. System-populated.",
+            "additionalProperties": {
+              "anyOf": [
+                { "$ref": "matrix_v3.schema.json#/components/schemas/scalar" },
+                { "type": "object", "additionalProperties": { "$ref": "matrix_v3.schema.json#/components/schemas/scalar" } }
+              ]
+            },
+            "readOnly": true
           },
           "unsafe": {
             "type": "boolean",

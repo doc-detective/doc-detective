@@ -225,6 +225,71 @@
         }
       }
     },
+    "comparison": {
+      "type": "object",
+      "description": "The earlier run this run was compared with, and how many failures are new, already failing, or fixed. Each context in `specs` then carries a `failureStatus`. Present only when a comparison happened, which `compareTo` controls. System-populated.",
+      "readOnly": true,
+      "additionalProperties": false,
+      "required": [
+        "previous",
+        "summary"
+      ],
+      "properties": {
+        "previous": {
+          "type": "object",
+          "description": "The earlier run's results this run was compared with.",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "runId": {
+              "type": "string",
+              "description": "The earlier run's `runId`."
+            },
+            "startedAt": {
+              "type": "string",
+              "description": "The earlier run's `startedAt`."
+            },
+            "docDetectiveVersion": {
+              "type": "string",
+              "description": "The Doc Detective version that produced the earlier run."
+            },
+            "path": {
+              "type": "string",
+              "description": "Absolute path to the earlier run's results file."
+            }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "description": "Counts of contexts by `failureStatus`.",
+          "additionalProperties": false,
+          "required": [
+            "new",
+            "existing",
+            "fixed"
+          ],
+          "properties": {
+            "new": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Failing contexts that the earlier run didn't fail."
+            },
+            "existing": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Failing contexts that the earlier run also failed."
+            },
+            "fixed": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Passing contexts that the earlier run failed."
+            }
+          }
+        }
+      }
+    },
     "specs": {
       "description": "Test specifications that were performed. Empty when a filter matched nothing.",
       "type": "array",
@@ -422,17 +487,35 @@
                                   "title": "Browser Viewport"
                                 },
                                 "colorScheme": {
-                                  "type": "string",
-                                  "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                                  "enum": [
-                                    "light",
-                                    "dark"
+                                  "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "light",
+                                        "dark"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                    }
                                   ]
                                 },
                                 "locale": {
-                                  "type": "string",
-                                  "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                                  "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                  "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                                    },
+                                    {
+                                      "type": "string",
+                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                    }
+                                  ],
                                   "examples": [
                                     "de-DE",
                                     "fr",
@@ -440,9 +523,18 @@
                                   ]
                                 },
                                 "timezone": {
-                                  "type": "string",
-                                  "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                                  "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                  "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                                    },
+                                    {
+                                      "type": "string",
+                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                    }
+                                  ],
                                   "examples": [
                                     "Europe/Berlin",
                                     "America/New_York",
@@ -450,23 +542,50 @@
                                   ]
                                 },
                                 "deviceScaleFactor": {
-                                  "type": "number",
-                                  "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                                  "minimum": 0.5,
-                                  "maximum": 4
+                                  "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                  "anyOf": [
+                                    {
+                                      "type": "number",
+                                      "minimum": 0.5,
+                                      "maximum": 4
+                                    },
+                                    {
+                                      "type": "string",
+                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                    }
+                                  ]
                                 },
                                 "reducedMotion": {
-                                  "type": "string",
-                                  "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                                  "enum": [
-                                    "reduce",
-                                    "no-preference"
+                                  "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "reduce",
+                                        "no-preference"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                    }
                                   ]
                                 },
                                 "clock": {
-                                  "type": "string",
-                                  "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                                  "format": "date-time"
+                                  "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    {
+                                      "type": "string",
+                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                    }
+                                  ]
                                 }
                               },
                               "examples": [
@@ -568,17 +687,35 @@
                                         "title": "Browser Viewport"
                                       },
                                       "colorScheme": {
-                                        "type": "string",
-                                        "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                                        "enum": [
-                                          "light",
-                                          "dark"
+                                        "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "light",
+                                              "dark"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                          }
                                         ]
                                       },
                                       "locale": {
-                                        "type": "string",
-                                        "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                                        "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                        "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                                          },
+                                          {
+                                            "type": "string",
+                                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                          }
+                                        ],
                                         "examples": [
                                           "de-DE",
                                           "fr",
@@ -586,9 +723,18 @@
                                         ]
                                       },
                                       "timezone": {
-                                        "type": "string",
-                                        "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                                        "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                        "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                                          },
+                                          {
+                                            "type": "string",
+                                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                          }
+                                        ],
                                         "examples": [
                                           "Europe/Berlin",
                                           "America/New_York",
@@ -596,23 +742,50 @@
                                         ]
                                       },
                                       "deviceScaleFactor": {
-                                        "type": "number",
-                                        "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                                        "minimum": 0.5,
-                                        "maximum": 4
+                                        "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                        "anyOf": [
+                                          {
+                                            "type": "number",
+                                            "minimum": 0.5,
+                                            "maximum": 4
+                                          },
+                                          {
+                                            "type": "string",
+                                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                          }
+                                        ]
                                       },
                                       "reducedMotion": {
-                                        "type": "string",
-                                        "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                                        "enum": [
-                                          "reduce",
-                                          "no-preference"
+                                        "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "reduce",
+                                              "no-preference"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                          }
                                         ]
                                       },
                                       "clock": {
-                                        "type": "string",
-                                        "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                                        "format": "date-time"
+                                        "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "format": "date-time"
+                                          },
+                                          {
+                                            "type": "string",
+                                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                          }
+                                        ]
                                       }
                                     },
                                     "examples": [
@@ -651,6 +824,107 @@
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 10
+                        },
+                        "matrix": {
+                          "$schema": "http://json-schema.org/draft-07/schema#",
+                          "title": "matrix",
+                          "type": "object",
+                          "description": "Values to run this context once per combination of. Each key names a list of values. Reference a value in the context's fields or in the test's steps as `$$matrix.<key>`, or `$$matrix.<key>.<field>` for a field of an object value. The context runs once per combination of the keys it references, and each combination's context ID ends in `~<key>=<value>`. A reference that is the whole string keeps the value's type; one inside a longer string is spliced in as text. A key that the test doesn't reference doesn't multiply its contexts, but on a `runOn` the test sets itself, an unreferenced key is an error.",
+                          "minProperties": 1,
+                          "propertyNames": {
+                            "pattern": "^[A-Za-z0-9_]+$"
+                          },
+                          "additionalProperties": {
+                            "description": "The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars. Or `{ \"file\": \"<path>\" }` to read the list from a file.",
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "title": "Values from a file",
+                                "required": [
+                                  "file"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "file": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Path of a `.json` file that holds the list, or of an `.xml` sitemap whose `<loc>` entries are the values. A relative path resolves against the file that declares this `runOn`, or the working directory with `relativePathBase: \"cwd\"`. Doc Detective reads it before any test runs."
+                                  }
+                                }
+                              },
+                              {
+                                "type": "array",
+                                "minItems": 1,
+                                "uniqueItems": true,
+                                "items": {
+                                  "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                  ]
+                                }
+                              },
+                              {
+                                "type": "array",
+                                "minItems": 1,
+                                "uniqueItems": true,
+                                "items": {
+                                  "type": "object",
+                                  "minProperties": 1,
+                                  "propertyNames": {
+                                    "pattern": "^[A-Za-z0-9_]+$"
+                                  },
+                                  "additionalProperties": {
+                                    "type": [
+                                      "string",
+                                      "number",
+                                      "boolean"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "components": {
+                            "schemas": {
+                              "scalar": {
+                                "type": [
+                                  "string",
+                                  "number",
+                                  "boolean"
+                                ]
+                              },
+                              "reference": {
+                                "type": "string",
+                                "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                              }
+                            }
+                          },
+                          "examples": [
+                            {
+                              "locale": [
+                                "en-US",
+                                "de-DE"
+                              ]
+                            },
+                            {
+                              "locale": [
+                                "en-US",
+                                "de-DE"
+                              ],
+                              "variant": [
+                                {
+                                  "theme": "light",
+                                  "dpr": 1
+                                },
+                                {
+                                  "theme": "dark",
+                                  "dpr": 2
+                                }
+                              ]
+                            }
+                          ]
                         },
                         "requires": {
                           "description": "Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.",
@@ -929,17 +1203,35 @@
                                 "title": "Browser Viewport"
                               },
                               "colorScheme": {
-                                "type": "string",
-                                "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                                "enum": [
-                                  "light",
-                                  "dark"
+                                "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "light",
+                                      "dark"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                    "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                  }
                                 ]
                               },
                               "locale": {
-                                "type": "string",
-                                "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                    "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                  }
+                                ],
                                 "examples": [
                                   "de-DE",
                                   "fr",
@@ -947,9 +1239,18 @@
                                 ]
                               },
                               "timezone": {
-                                "type": "string",
-                                "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                    "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                  }
+                                ],
                                 "examples": [
                                   "Europe/Berlin",
                                   "America/New_York",
@@ -957,23 +1258,50 @@
                                 ]
                               },
                               "deviceScaleFactor": {
-                                "type": "number",
-                                "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                                "minimum": 0.5,
-                                "maximum": 4
+                                "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                "anyOf": [
+                                  {
+                                    "type": "number",
+                                    "minimum": 0.5,
+                                    "maximum": 4
+                                  },
+                                  {
+                                    "type": "string",
+                                    "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                    "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                  }
+                                ]
                               },
                               "reducedMotion": {
-                                "type": "string",
-                                "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                                "enum": [
-                                  "reduce",
-                                  "no-preference"
+                                "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "reduce",
+                                      "no-preference"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                    "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                  }
                                 ]
                               },
                               "clock": {
-                                "type": "string",
-                                "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                                "format": "date-time"
+                                "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                    "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                  }
+                                ]
                               }
                             },
                             "examples": [
@@ -2647,17 +2975,35 @@
                                             "title": "Browser Viewport"
                                           },
                                           "colorScheme": {
-                                            "type": "string",
-                                            "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                                            "enum": [
-                                              "light",
-                                              "dark"
+                                            "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "light",
+                                                  "dark"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                              }
                                             ]
                                           },
                                           "locale": {
-                                            "type": "string",
-                                            "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                                            "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                            "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                                              },
+                                              {
+                                                "type": "string",
+                                                "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                              }
+                                            ],
                                             "examples": [
                                               "de-DE",
                                               "fr",
@@ -2665,9 +3011,18 @@
                                             ]
                                           },
                                           "timezone": {
-                                            "type": "string",
-                                            "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                                            "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                            "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                                              },
+                                              {
+                                                "type": "string",
+                                                "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                              }
+                                            ],
                                             "examples": [
                                               "Europe/Berlin",
                                               "America/New_York",
@@ -2675,23 +3030,50 @@
                                             ]
                                           },
                                           "deviceScaleFactor": {
-                                            "type": "number",
-                                            "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                                            "minimum": 0.5,
-                                            "maximum": 4
+                                            "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                            "anyOf": [
+                                              {
+                                                "type": "number",
+                                                "minimum": 0.5,
+                                                "maximum": 4
+                                              },
+                                              {
+                                                "type": "string",
+                                                "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                              }
+                                            ]
                                           },
                                           "reducedMotion": {
-                                            "type": "string",
-                                            "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                                            "enum": [
-                                              "reduce",
-                                              "no-preference"
+                                            "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "reduce",
+                                                  "no-preference"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                              }
                                             ]
                                           },
                                           "clock": {
-                                            "type": "string",
-                                            "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                                            "format": "date-time"
+                                            "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "format": "date-time"
+                                              },
+                                              {
+                                                "type": "string",
+                                                "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                              }
+                                            ]
                                           }
                                         },
                                         "examples": [
@@ -2793,17 +3175,35 @@
                                                   "title": "Browser Viewport"
                                                 },
                                                 "colorScheme": {
-                                                  "type": "string",
-                                                  "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                                                  "enum": [
-                                                    "light",
-                                                    "dark"
+                                                  "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "light",
+                                                        "dark"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "string",
+                                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                                    }
                                                   ]
                                                 },
                                                 "locale": {
-                                                  "type": "string",
-                                                  "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                                                  "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                                  "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string",
+                                                      "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                                                    },
+                                                    {
+                                                      "type": "string",
+                                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                                    }
+                                                  ],
                                                   "examples": [
                                                     "de-DE",
                                                     "fr",
@@ -2811,9 +3211,18 @@
                                                   ]
                                                 },
                                                 "timezone": {
-                                                  "type": "string",
-                                                  "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                                                  "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                                  "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string",
+                                                      "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                                                    },
+                                                    {
+                                                      "type": "string",
+                                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                                    }
+                                                  ],
                                                   "examples": [
                                                     "Europe/Berlin",
                                                     "America/New_York",
@@ -2821,23 +3230,50 @@
                                                   ]
                                                 },
                                                 "deviceScaleFactor": {
-                                                  "type": "number",
-                                                  "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                                                  "minimum": 0.5,
-                                                  "maximum": 4
+                                                  "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "number",
+                                                      "minimum": 0.5,
+                                                      "maximum": 4
+                                                    },
+                                                    {
+                                                      "type": "string",
+                                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                                    }
+                                                  ]
                                                 },
                                                 "reducedMotion": {
-                                                  "type": "string",
-                                                  "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                                                  "enum": [
-                                                    "reduce",
-                                                    "no-preference"
+                                                  "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "reduce",
+                                                        "no-preference"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "string",
+                                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                                    }
                                                   ]
                                                 },
                                                 "clock": {
-                                                  "type": "string",
-                                                  "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                                                  "format": "date-time"
+                                                  "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string",
+                                                      "format": "date-time"
+                                                    },
+                                                    {
+                                                      "type": "string",
+                                                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                                    }
+                                                  ]
                                                 }
                                               },
                                               "examples": [
@@ -2876,6 +3312,107 @@
                                     "type": "integer",
                                     "minimum": 0,
                                     "maximum": 10
+                                  },
+                                  "matrix": {
+                                    "$schema": "http://json-schema.org/draft-07/schema#",
+                                    "title": "matrix",
+                                    "type": "object",
+                                    "description": "Values to run this context once per combination of. Each key names a list of values. Reference a value in the context's fields or in the test's steps as `$$matrix.<key>`, or `$$matrix.<key>.<field>` for a field of an object value. The context runs once per combination of the keys it references, and each combination's context ID ends in `~<key>=<value>`. A reference that is the whole string keeps the value's type; one inside a longer string is spliced in as text. A key that the test doesn't reference doesn't multiply its contexts, but on a `runOn` the test sets itself, an unreferenced key is an error.",
+                                    "minProperties": 1,
+                                    "propertyNames": {
+                                      "pattern": "^[A-Za-z0-9_]+$"
+                                    },
+                                    "additionalProperties": {
+                                      "description": "The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars. Or `{ \"file\": \"<path>\" }` to read the list from a file.",
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "title": "Values from a file",
+                                          "required": [
+                                            "file"
+                                          ],
+                                          "additionalProperties": false,
+                                          "properties": {
+                                            "file": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Path of a `.json` file that holds the list, or of an `.xml` sitemap whose `<loc>` entries are the values. A relative path resolves against the file that declares this `runOn`, or the working directory with `relativePathBase: \"cwd\"`. Doc Detective reads it before any test runs."
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": [
+                                              "string",
+                                              "number",
+                                              "boolean"
+                                            ]
+                                          }
+                                        },
+                                        {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": "object",
+                                            "minProperties": 1,
+                                            "propertyNames": {
+                                              "pattern": "^[A-Za-z0-9_]+$"
+                                            },
+                                            "additionalProperties": {
+                                              "type": [
+                                                "string",
+                                                "number",
+                                                "boolean"
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    "components": {
+                                      "schemas": {
+                                        "scalar": {
+                                          "type": [
+                                            "string",
+                                            "number",
+                                            "boolean"
+                                          ]
+                                        },
+                                        "reference": {
+                                          "type": "string",
+                                          "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                          "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                        }
+                                      }
+                                    },
+                                    "examples": [
+                                      {
+                                        "locale": [
+                                          "en-US",
+                                          "de-DE"
+                                        ]
+                                      },
+                                      {
+                                        "locale": [
+                                          "en-US",
+                                          "de-DE"
+                                        ],
+                                        "variant": [
+                                          {
+                                            "theme": "light",
+                                            "dpr": 1
+                                          },
+                                          {
+                                            "theme": "dark",
+                                            "dpr": 2
+                                          }
+                                        ]
+                                      }
+                                    ]
                                   },
                                   "requires": {
                                     "description": "Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.",
@@ -3154,17 +3691,35 @@
                                           "title": "Browser Viewport"
                                         },
                                         "colorScheme": {
-                                          "type": "string",
-                                          "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                                          "enum": [
-                                            "light",
-                                            "dark"
+                                          "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "light",
+                                                "dark"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                              "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                            }
                                           ]
                                         },
                                         "locale": {
-                                          "type": "string",
-                                          "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                                          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                          "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                                            },
+                                            {
+                                              "type": "string",
+                                              "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                              "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                            }
+                                          ],
                                           "examples": [
                                             "de-DE",
                                             "fr",
@@ -3172,9 +3727,18 @@
                                           ]
                                         },
                                         "timezone": {
-                                          "type": "string",
-                                          "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                                          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                          "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                                            },
+                                            {
+                                              "type": "string",
+                                              "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                              "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                            }
+                                          ],
                                           "examples": [
                                             "Europe/Berlin",
                                             "America/New_York",
@@ -3182,23 +3746,50 @@
                                           ]
                                         },
                                         "deviceScaleFactor": {
-                                          "type": "number",
-                                          "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                                          "minimum": 0.5,
-                                          "maximum": 4
+                                          "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                          "anyOf": [
+                                            {
+                                              "type": "number",
+                                              "minimum": 0.5,
+                                              "maximum": 4
+                                            },
+                                            {
+                                              "type": "string",
+                                              "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                              "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                            }
+                                          ]
                                         },
                                         "reducedMotion": {
-                                          "type": "string",
-                                          "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                                          "enum": [
-                                            "reduce",
-                                            "no-preference"
+                                          "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "reduce",
+                                                "no-preference"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                              "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                            }
                                           ]
                                         },
                                         "clock": {
-                                          "type": "string",
-                                          "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                                          "format": "date-time"
+                                          "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "format": "date-time"
+                                            },
+                                            {
+                                              "type": "string",
+                                              "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                              "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                            }
+                                          ]
                                         }
                                       },
                                       "examples": [
@@ -7777,7 +8368,7 @@
                                             "title": "Check link (simple)",
                                             "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                             "type": "string",
-                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                             "transform": [
                                               "trim"
                                             ]
@@ -7793,9 +8384,9 @@
                                             "properties": {
                                               "url": {
                                                 "title": "Target URL",
-                                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                 "type": "string",
-                                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                 "transform": [
                                                   "trim"
                                                 ]
@@ -7873,7 +8464,7 @@
                                               "title": "Check link (simple)",
                                               "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                               "type": "string",
-                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -7889,9 +8480,9 @@
                                               "properties": {
                                                 "url": {
                                                   "title": "Target URL",
-                                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                   "type": "string",
-                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -21506,9 +22097,9 @@
                                         "anyOf": [
                                           {
                                             "title": "Go to URL (simple)",
-                                            "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                            "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.",
                                             "type": "string",
-                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                             "transform": [
                                               "trim"
                                             ]
@@ -21751,9 +22342,9 @@
                                                   },
                                                   "url": {
                                                     "title": "Target URL",
-                                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                     "type": "string",
-                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                     "transform": [
                                                       "trim"
                                                     ]
@@ -22156,18 +22747,18 @@
                                           "schemas": {
                                             "url": {
                                               "title": "Target URL",
-                                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                               "type": "string",
-                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                               "transform": [
                                                 "trim"
                                               ]
                                             },
                                             "string": {
                                               "title": "Go to URL (simple)",
-                                              "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                              "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.",
                                               "type": "string",
-                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -22410,9 +23001,9 @@
                                                     },
                                                     "url": {
                                                       "title": "Target URL",
-                                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                       "type": "string",
-                                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                       "transform": [
                                                         "trim"
                                                       ]
@@ -23704,7 +24295,7 @@
                                             "title": "HTTP request (simple)",
                                             "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                             "type": "string",
-                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                             "transform": [
                                               "trim"
                                             ]
@@ -23728,9 +24319,9 @@
                                             "properties": {
                                               "url": {
                                                 "title": "Target URL",
-                                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                 "type": "string",
-                                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                 "transform": [
                                                   "trim"
                                                 ]
@@ -24124,7 +24715,7 @@
                                               "title": "HTTP request (simple)",
                                               "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                               "type": "string",
-                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -24165,9 +24756,9 @@
                                               "properties": {
                                                 "url": {
                                                   "title": "Target URL",
-                                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                   "type": "string",
-                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -59879,21 +60470,56 @@
                                       "mockRequest": {
                                         "$schema": "http://json-schema.org/draft-07/schema#",
                                         "title": "mockRequest",
-                                        "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
+                                        "description": "Answer matching browser requests with a fixed response, a sequence of responses, or the responses recorded in a HAR file, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                         "type": "object",
                                         "additionalProperties": false,
-                                        "required": [
-                                          "url"
+                                        "anyOf": [
+                                          {
+                                            "required": [
+                                              "url"
+                                            ]
+                                          },
+                                          {
+                                            "required": [
+                                              "harPath"
+                                            ]
+                                          }
                                         ],
+                                        "not": {
+                                          "anyOf": [
+                                            {
+                                              "required": [
+                                                "response",
+                                                "responses"
+                                              ]
+                                            },
+                                            {
+                                              "required": [
+                                                "response",
+                                                "harPath"
+                                              ]
+                                            },
+                                            {
+                                              "required": [
+                                                "responses",
+                                                "harPath"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "errorMessage": {
+                                          "anyOf": "set `url` or `harPath`.",
+                                          "not": "set one of `response`, `responses`, or `harPath`."
+                                        },
                                         "properties": {
                                           "url": {
                                             "type": "string",
                                             "minLength": 1,
-                                            "description": "Glob for the request URLs to answer. `*` matches any characters. A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`. Any other pattern matches the URL's path, such as `**/api/invoices*`."
+                                            "description": "Glob for the request URLs to answer. `*` matches any characters. A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`. Any other pattern matches the URL's path, such as `**/api/invoices*`. Required unless `harPath` is set. With `harPath`, keeps only the HAR entries whose URL matches."
                                           },
                                           "method": {
                                             "type": "string",
-                                            "description": "HTTP method to answer. Omit to answer every method.",
+                                            "description": "HTTP method to answer. Omit to answer every method. With `harPath`, keeps only the HAR entries with this method.",
                                             "enum": [
                                               "GET",
                                               "POST",
@@ -59905,50 +60531,165 @@
                                             ]
                                           },
                                           "response": {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "description": "The response to send. Omit to send an empty `200` response.",
-                                            "not": {
-                                              "required": [
-                                                "body",
-                                                "bodyPath"
-                                              ]
-                                            },
-                                            "errorMessage": {
-                                              "not": "set `body` or `bodyPath`, not both."
-                                            },
-                                            "properties": {
-                                              "statusCode": {
-                                                "type": "integer",
-                                                "description": "HTTP status code of the response. Omit to send `200`.",
-                                                "minimum": 100,
-                                                "maximum": 599
-                                              },
-                                              "headers": {
+                                            "allOf": [
+                                              {
                                                 "type": "object",
-                                                "description": "Response headers, as header names and string values.",
-                                                "additionalProperties": {
-                                                  "type": "string"
-                                                }
-                                              },
-                                              "body": {
-                                                "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
-                                                "anyOf": [
-                                                  {
-                                                    "type": "string"
+                                                "additionalProperties": false,
+                                                "description": "A response to send.",
+                                                "not": {
+                                                  "required": [
+                                                    "body",
+                                                    "bodyPath"
+                                                  ]
+                                                },
+                                                "errorMessage": {
+                                                  "not": "set `body` or `bodyPath`, not both."
+                                                },
+                                                "properties": {
+                                                  "statusCode": {
+                                                    "type": "integer",
+                                                    "description": "HTTP status code of the response. Omit to send `200`.",
+                                                    "minimum": 100,
+                                                    "maximum": 599
                                                   },
-                                                  {
-                                                    "type": "object"
+                                                  "headers": {
+                                                    "type": "object",
+                                                    "description": "Response headers, as header names and string values.",
+                                                    "additionalProperties": {
+                                                      "type": "string"
+                                                    }
                                                   },
-                                                  {
-                                                    "type": "array"
+                                                  "body": {
+                                                    "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "object"
+                                                      },
+                                                      {
+                                                        "type": "array"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "bodyPath": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
                                                   }
+                                                }
+                                              }
+                                            ],
+                                            "description": "The response to send. Omit to send an empty `200` response. Set one of `response`, `responses`, or `harPath`."
+                                          },
+                                          "responses": {
+                                            "type": "array",
+                                            "minItems": 1,
+                                            "description": "Responses to send in order. The first matching request gets the first entry, the next request gets the next entry, and the last entry answers every later request. Set one of `response`, `responses`, or `harPath`.",
+                                            "items": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "description": "A response to send.",
+                                              "not": {
+                                                "required": [
+                                                  "body",
+                                                  "bodyPath"
                                                 ]
                                               },
-                                              "bodyPath": {
-                                                "type": "string",
-                                                "minLength": 1,
-                                                "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                              "errorMessage": {
+                                                "not": "set `body` or `bodyPath`, not both."
+                                              },
+                                              "properties": {
+                                                "statusCode": {
+                                                  "type": "integer",
+                                                  "description": "HTTP status code of the response. Omit to send `200`.",
+                                                  "minimum": 100,
+                                                  "maximum": 599
+                                                },
+                                                "headers": {
+                                                  "type": "object",
+                                                  "description": "Response headers, as header names and string values.",
+                                                  "additionalProperties": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "body": {
+                                                  "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "object"
+                                                    },
+                                                    {
+                                                      "type": "array"
+                                                    }
+                                                  ]
+                                                },
+                                                "bodyPath": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "harPath": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "HAR 1.2 file whose recorded responses answer matching requests, relative to the spec file. Each recorded URL and method is matched exactly, query string included. Repeated requests are answered in recorded order. Requests that aren't in the file reach the network. Set one of `response`, `responses`, or `harPath`."
+                                          }
+                                        },
+                                        "components": {
+                                          "schemas": {
+                                            "response": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "description": "A response to send.",
+                                              "not": {
+                                                "required": [
+                                                  "body",
+                                                  "bodyPath"
+                                                ]
+                                              },
+                                              "errorMessage": {
+                                                "not": "set `body` or `bodyPath`, not both."
+                                              },
+                                              "properties": {
+                                                "statusCode": {
+                                                  "type": "integer",
+                                                  "description": "HTTP status code of the response. Omit to send `200`.",
+                                                  "minimum": 100,
+                                                  "maximum": 599
+                                                },
+                                                "headers": {
+                                                  "type": "object",
+                                                  "description": "Response headers, as header names and string values.",
+                                                  "additionalProperties": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "body": {
+                                                  "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "object"
+                                                    },
+                                                    {
+                                                      "type": "array"
+                                                    }
+                                                  ]
+                                                },
+                                                "bodyPath": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                }
                                               }
                                             }
                                           }
@@ -59972,6 +60713,25 @@
                                               },
                                               "bodyPath": "fixtures/user.json"
                                             }
+                                          },
+                                          {
+                                            "url": "**/api/jobs/1",
+                                            "responses": [
+                                              {
+                                                "body": {
+                                                  "status": "running"
+                                                }
+                                              },
+                                              {
+                                                "body": {
+                                                  "status": "done"
+                                                }
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "harPath": "fixtures/app.har",
+                                            "url": "**/api/**"
                                           }
                                         ]
                                       }
@@ -72599,6 +73359,16 @@
                                 "description": "Why this context had its outcome. Doc Detective populates it. You never set it yourself.",
                                 "readOnly": true
                               },
+                              "failureStatus": {
+                                "type": "string",
+                                "enum": [
+                                  "new",
+                                  "existing",
+                                  "fixed"
+                                ],
+                                "description": "How this context's result compares with the earlier run named in the report's `comparison`. `new` is a failure the earlier run didn't have, `existing` is a failure the earlier run also had, and `fixed` is a pass that failed in the earlier run. The same spec ID, test ID, and context ID identify a context across runs. Present only in test results that were compared with an earlier run, and only on `FAIL` contexts and on fixed `PASS` contexts. System-populated.",
+                                "readOnly": true
+                              },
                               "durationMs": {
                                 "type": "integer",
                                 "minimum": 0,
@@ -72790,17 +73560,35 @@
                                     "title": "Browser Viewport"
                                   },
                                   "colorScheme": {
-                                    "type": "string",
-                                    "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                                    "enum": [
-                                      "light",
-                                      "dark"
+                                    "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "light",
+                                          "dark"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                        "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                      }
                                     ]
                                   },
                                   "locale": {
-                                    "type": "string",
-                                    "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                    "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                        "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                      }
+                                    ],
                                     "examples": [
                                       "de-DE",
                                       "fr",
@@ -72808,9 +73596,18 @@
                                     ]
                                   },
                                   "timezone": {
-                                    "type": "string",
-                                    "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                    "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                        "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                      }
+                                    ],
                                     "examples": [
                                       "Europe/Berlin",
                                       "America/New_York",
@@ -72818,23 +73615,50 @@
                                     ]
                                   },
                                   "deviceScaleFactor": {
-                                    "type": "number",
-                                    "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                                    "minimum": 0.5,
-                                    "maximum": 4
+                                    "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                    "anyOf": [
+                                      {
+                                        "type": "number",
+                                        "minimum": 0.5,
+                                        "maximum": 4
+                                      },
+                                      {
+                                        "type": "string",
+                                        "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                        "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                      }
+                                    ]
                                   },
                                   "reducedMotion": {
-                                    "type": "string",
-                                    "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                                    "enum": [
-                                      "reduce",
-                                      "no-preference"
+                                    "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "reduce",
+                                          "no-preference"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                        "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                      }
                                     ]
                                   },
                                   "clock": {
-                                    "type": "string",
-                                    "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                                    "format": "date-time"
+                                    "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                        "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                      }
+                                    ]
                                   }
                                 },
                                 "examples": [
@@ -76337,7 +77161,7 @@
                                                   "title": "Check link (simple)",
                                                   "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                                   "type": "string",
-                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -76353,9 +77177,9 @@
                                                   "properties": {
                                                     "url": {
                                                       "title": "Target URL",
-                                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                       "type": "string",
-                                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                       "transform": [
                                                         "trim"
                                                       ]
@@ -76433,7 +77257,7 @@
                                                     "title": "Check link (simple)",
                                                     "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                                     "type": "string",
-                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                     "transform": [
                                                       "trim"
                                                     ]
@@ -76449,9 +77273,9 @@
                                                     "properties": {
                                                       "url": {
                                                         "title": "Target URL",
-                                                        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                         "type": "string",
-                                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                         "transform": [
                                                           "trim"
                                                         ]
@@ -90066,9 +90890,9 @@
                                               "anyOf": [
                                                 {
                                                   "title": "Go to URL (simple)",
-                                                  "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                                  "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.",
                                                   "type": "string",
-                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -90311,9 +91135,9 @@
                                                         },
                                                         "url": {
                                                           "title": "Target URL",
-                                                          "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                          "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                           "type": "string",
-                                                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                           "transform": [
                                                             "trim"
                                                           ]
@@ -90716,18 +91540,18 @@
                                                 "schemas": {
                                                   "url": {
                                                     "title": "Target URL",
-                                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                     "type": "string",
-                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                     "transform": [
                                                       "trim"
                                                     ]
                                                   },
                                                   "string": {
                                                     "title": "Go to URL (simple)",
-                                                    "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                                    "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.",
                                                     "type": "string",
-                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                     "transform": [
                                                       "trim"
                                                     ]
@@ -90970,9 +91794,9 @@
                                                           },
                                                           "url": {
                                                             "title": "Target URL",
-                                                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                             "type": "string",
-                                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                             "transform": [
                                                               "trim"
                                                             ]
@@ -92264,7 +93088,7 @@
                                                   "title": "HTTP request (simple)",
                                                   "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                                   "type": "string",
-                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -92288,9 +93112,9 @@
                                                   "properties": {
                                                     "url": {
                                                       "title": "Target URL",
-                                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                       "type": "string",
-                                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                       "transform": [
                                                         "trim"
                                                       ]
@@ -92684,7 +93508,7 @@
                                                     "title": "HTTP request (simple)",
                                                     "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                                     "type": "string",
-                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                     "transform": [
                                                       "trim"
                                                     ]
@@ -92725,9 +93549,9 @@
                                                     "properties": {
                                                       "url": {
                                                         "title": "Target URL",
-                                                        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                                         "type": "string",
-                                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
                                                         "transform": [
                                                           "trim"
                                                         ]
@@ -128439,21 +129263,56 @@
                                             "mockRequest": {
                                               "$schema": "http://json-schema.org/draft-07/schema#",
                                               "title": "mockRequest",
-                                              "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
+                                              "description": "Answer matching browser requests with a fixed response, a sequence of responses, or the responses recorded in a HAR file, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                               "type": "object",
                                               "additionalProperties": false,
-                                              "required": [
-                                                "url"
+                                              "anyOf": [
+                                                {
+                                                  "required": [
+                                                    "url"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "harPath"
+                                                  ]
+                                                }
                                               ],
+                                              "not": {
+                                                "anyOf": [
+                                                  {
+                                                    "required": [
+                                                      "response",
+                                                      "responses"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "response",
+                                                      "harPath"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "responses",
+                                                      "harPath"
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              "errorMessage": {
+                                                "anyOf": "set `url` or `harPath`.",
+                                                "not": "set one of `response`, `responses`, or `harPath`."
+                                              },
                                               "properties": {
                                                 "url": {
                                                   "type": "string",
                                                   "minLength": 1,
-                                                  "description": "Glob for the request URLs to answer. `*` matches any characters. A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`. Any other pattern matches the URL's path, such as `**/api/invoices*`."
+                                                  "description": "Glob for the request URLs to answer. `*` matches any characters. A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`. Any other pattern matches the URL's path, such as `**/api/invoices*`. Required unless `harPath` is set. With `harPath`, keeps only the HAR entries whose URL matches."
                                                 },
                                                 "method": {
                                                   "type": "string",
-                                                  "description": "HTTP method to answer. Omit to answer every method.",
+                                                  "description": "HTTP method to answer. Omit to answer every method. With `harPath`, keeps only the HAR entries with this method.",
                                                   "enum": [
                                                     "GET",
                                                     "POST",
@@ -128465,50 +129324,165 @@
                                                   ]
                                                 },
                                                 "response": {
-                                                  "type": "object",
-                                                  "additionalProperties": false,
-                                                  "description": "The response to send. Omit to send an empty `200` response.",
-                                                  "not": {
-                                                    "required": [
-                                                      "body",
-                                                      "bodyPath"
-                                                    ]
-                                                  },
-                                                  "errorMessage": {
-                                                    "not": "set `body` or `bodyPath`, not both."
-                                                  },
-                                                  "properties": {
-                                                    "statusCode": {
-                                                      "type": "integer",
-                                                      "description": "HTTP status code of the response. Omit to send `200`.",
-                                                      "minimum": 100,
-                                                      "maximum": 599
-                                                    },
-                                                    "headers": {
+                                                  "allOf": [
+                                                    {
                                                       "type": "object",
-                                                      "description": "Response headers, as header names and string values.",
-                                                      "additionalProperties": {
-                                                        "type": "string"
-                                                      }
-                                                    },
-                                                    "body": {
-                                                      "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "string"
+                                                      "additionalProperties": false,
+                                                      "description": "A response to send.",
+                                                      "not": {
+                                                        "required": [
+                                                          "body",
+                                                          "bodyPath"
+                                                        ]
+                                                      },
+                                                      "errorMessage": {
+                                                        "not": "set `body` or `bodyPath`, not both."
+                                                      },
+                                                      "properties": {
+                                                        "statusCode": {
+                                                          "type": "integer",
+                                                          "description": "HTTP status code of the response. Omit to send `200`.",
+                                                          "minimum": 100,
+                                                          "maximum": 599
                                                         },
-                                                        {
-                                                          "type": "object"
+                                                        "headers": {
+                                                          "type": "object",
+                                                          "description": "Response headers, as header names and string values.",
+                                                          "additionalProperties": {
+                                                            "type": "string"
+                                                          }
                                                         },
-                                                        {
-                                                          "type": "array"
+                                                        "body": {
+                                                          "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "string"
+                                                            },
+                                                            {
+                                                              "type": "object"
+                                                            },
+                                                            {
+                                                              "type": "array"
+                                                            }
+                                                          ]
+                                                        },
+                                                        "bodyPath": {
+                                                          "type": "string",
+                                                          "minLength": 1,
+                                                          "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
                                                         }
+                                                      }
+                                                    }
+                                                  ],
+                                                  "description": "The response to send. Omit to send an empty `200` response. Set one of `response`, `responses`, or `harPath`."
+                                                },
+                                                "responses": {
+                                                  "type": "array",
+                                                  "minItems": 1,
+                                                  "description": "Responses to send in order. The first matching request gets the first entry, the next request gets the next entry, and the last entry answers every later request. Set one of `response`, `responses`, or `harPath`.",
+                                                  "items": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "description": "A response to send.",
+                                                    "not": {
+                                                      "required": [
+                                                        "body",
+                                                        "bodyPath"
                                                       ]
                                                     },
-                                                    "bodyPath": {
-                                                      "type": "string",
-                                                      "minLength": 1,
-                                                      "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                    "errorMessage": {
+                                                      "not": "set `body` or `bodyPath`, not both."
+                                                    },
+                                                    "properties": {
+                                                      "statusCode": {
+                                                        "type": "integer",
+                                                        "description": "HTTP status code of the response. Omit to send `200`.",
+                                                        "minimum": 100,
+                                                        "maximum": 599
+                                                      },
+                                                      "headers": {
+                                                        "type": "object",
+                                                        "description": "Response headers, as header names and string values.",
+                                                        "additionalProperties": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "body": {
+                                                        "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string"
+                                                          },
+                                                          {
+                                                            "type": "object"
+                                                          },
+                                                          {
+                                                            "type": "array"
+                                                          }
+                                                        ]
+                                                      },
+                                                      "bodyPath": {
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "harPath": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "HAR 1.2 file whose recorded responses answer matching requests, relative to the spec file. Each recorded URL and method is matched exactly, query string included. Repeated requests are answered in recorded order. Requests that aren't in the file reach the network. Set one of `response`, `responses`, or `harPath`."
+                                                }
+                                              },
+                                              "components": {
+                                                "schemas": {
+                                                  "response": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "description": "A response to send.",
+                                                    "not": {
+                                                      "required": [
+                                                        "body",
+                                                        "bodyPath"
+                                                      ]
+                                                    },
+                                                    "errorMessage": {
+                                                      "not": "set `body` or `bodyPath`, not both."
+                                                    },
+                                                    "properties": {
+                                                      "statusCode": {
+                                                        "type": "integer",
+                                                        "description": "HTTP status code of the response. Omit to send `200`.",
+                                                        "minimum": 100,
+                                                        "maximum": 599
+                                                      },
+                                                      "headers": {
+                                                        "type": "object",
+                                                        "description": "Response headers, as header names and string values.",
+                                                        "additionalProperties": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "body": {
+                                                        "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string"
+                                                          },
+                                                          {
+                                                            "type": "object"
+                                                          },
+                                                          {
+                                                            "type": "array"
+                                                          }
+                                                        ]
+                                                      },
+                                                      "bodyPath": {
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                      }
                                                     }
                                                   }
                                                 }
@@ -128532,6 +129506,25 @@
                                                     },
                                                     "bodyPath": "fixtures/user.json"
                                                   }
+                                                },
+                                                {
+                                                  "url": "**/api/jobs/1",
+                                                  "responses": [
+                                                    {
+                                                      "body": {
+                                                        "status": "running"
+                                                      }
+                                                    },
+                                                    {
+                                                      "body": {
+                                                        "status": "done"
+                                                      }
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "harPath": "fixtures/app.har",
+                                                  "url": "**/api/**"
                                                 }
                                               ]
                                             }
@@ -141109,7 +142102,33 @@
                               },
                               "contextId": {
                                 "type": "string",
-                                "description": "Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one."
+                                "description": "Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one. A `matrix` combination adds `~<key>=<value>` for each key, such as `linux-chrome~locale=de-DE`."
+                              },
+                              "matrix": {
+                                "type": "object",
+                                "description": "The `matrix` values this context ran with, one per key the test references. System-populated.",
+                                "additionalProperties": {
+                                  "anyOf": [
+                                    {
+                                      "type": [
+                                        "string",
+                                        "number",
+                                        "boolean"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": {
+                                        "type": [
+                                          "string",
+                                          "number",
+                                          "boolean"
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                "readOnly": true
                               },
                               "unsafe": {
                                 "type": "boolean",

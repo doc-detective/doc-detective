@@ -468,6 +468,8 @@ describe("debug/envvars", function () {
     expect(fallback.has("dita")).to.equal(true);
     expect(fallback.has("rst")).to.equal(true);
     expect(Array.from(resolveDocExtensions(["rst"]))).to.deep.equal(["rst"]);
+    expect(fallback.has("feature")).to.equal(true);
+    expect(Array.from(resolveDocExtensions(["gherkin"]))).to.deep.equal(["feature"]);
     expect(resolveDocExtensions(["nonexistent-type"]).has("md")).to.equal(true);
   });
 
@@ -1114,6 +1116,8 @@ describe("debug/provenance", function () {
       logLevel: "info",
       allowUnsafe: true,
       dryRun: true,
+      compareTo: "previous",
+      failOn: "new",
       reporters: ["html"],
       test: "a",
       spec: "b",
@@ -1130,6 +1134,8 @@ describe("debug/provenance", function () {
       "logLevel",
       "allow-unsafe",
       "dry-run",
+      "compare-to",
+      "fail-on",
       "reporters",
       "test",
       "spec",

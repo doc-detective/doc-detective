@@ -6021,12 +6021,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -6163,6 +6171,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -6177,6 +6189,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-reducedmotion",
@@ -6265,7 +6281,7 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#colorscheme-dark"
     }
   ],
-  "context.browsers.deviceScaleFactor": [
+  "context.browsers.deviceScaleFactor (number)": [
     {
       "example": "sessions-contexts",
       "page": "/reference/docs-as-tests/sessions-surfaces#check-what-the-page-sees-in-an-emulated-browser"
@@ -6273,6 +6289,12 @@
     {
       "example": "sessions-runon-devicescalefactor",
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
+    }
+  ],
+  "context.browsers.deviceScaleFactor (string)": [
+    {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
     }
   ],
   "context.browsers.headless": [
@@ -6377,12 +6399,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -6421,6 +6451,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -6435,6 +6469,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-reducedmotion",
@@ -6497,6 +6535,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     }
   ],
   "context.browsers.name": [
@@ -6601,12 +6643,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -6645,6 +6695,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -6659,6 +6713,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-reducedmotion",
@@ -6799,12 +6857,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -6845,6 +6911,16 @@
     {
       "example": "sessions-apps",
       "page": "/reference/docs-as-tests/sessions-surfaces#open-a-built-in-app"
+    }
+  ],
+  "context.matrix": [
+    {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     }
   ],
   "context.platforms (array)": [
@@ -6953,12 +7029,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -7009,8 +7093,16 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -8033,12 +8125,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -8589,6 +8689,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -8603,6 +8707,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -10323,6 +10431,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -10337,6 +10449,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -11291,12 +11407,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -11847,6 +11971,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -11861,6 +11989,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -12259,6 +12391,14 @@
     {
       "example": "data-variables-stdio",
       "page": "/reference/docs-as-tests/data-control-flow#stdio"
+    },
+    {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     }
   ],
   "features.html-comment-statement": [
@@ -13075,12 +13215,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -13631,6 +13779,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -13645,6 +13797,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -14747,12 +14903,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -15303,6 +15467,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -15317,6 +15485,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -16345,12 +16517,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -16901,6 +17081,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -16915,6 +17099,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -18023,12 +18211,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -18579,6 +18775,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -18593,6 +18793,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -19821,12 +20025,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -20381,6 +20593,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -20395,6 +20611,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -21775,12 +21995,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -22335,6 +22563,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -22349,6 +22581,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -24507,6 +24743,12 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#overwrite-true"
     }
   ],
+  "mockRequest.harPath": [
+    {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    }
+  ],
   "mockRequest.method": [
     {
       "example": "http-mock-method",
@@ -24607,6 +24849,48 @@
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
     }
   ],
+  "mockRequest.responses": [
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
+    }
+  ],
+  "mockRequest.responses.body (array)": [
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
+    }
+  ],
+  "mockRequest.responses.body (object)": [
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
+    }
+  ],
+  "mockRequest.responses.body (string)": [
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
+    }
+  ],
+  "mockRequest.responses.bodyPath": [
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
+    }
+  ],
+  "mockRequest.responses.headers": [
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
+    }
+  ],
+  "mockRequest.responses.statusCode": [
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
+    }
+  ],
   "mockRequest.url": [
     {
       "example": "http-mock-body-array",
@@ -24627,6 +24911,10 @@
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -25609,12 +25897,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -25653,8 +25949,16 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-reducedmotion",
@@ -25691,12 +25995,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -25735,8 +26047,16 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-reducedmotion",
@@ -29627,12 +29947,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -30187,6 +30515,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -30201,6 +30533,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -31595,6 +31931,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -31609,6 +31949,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -32072,6 +32416,10 @@
     }
   ],
   "step.closeSurface (string)": [
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
     {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
@@ -33425,12 +33773,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -33737,6 +34093,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -33751,6 +34111,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -34377,12 +34741,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -34605,12 +34977,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -34649,8 +35029,16 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-reducedmotion",
@@ -37317,12 +37705,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -37877,6 +38273,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -37891,6 +38291,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -38423,12 +38827,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -38499,6 +38911,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -38513,6 +38929,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -39577,12 +39997,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -40137,6 +40565,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -40151,6 +40583,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",
@@ -41363,12 +41799,20 @@
       "page": "/reference/docs-as-tests/http-code#responsebodypath"
     },
     {
+      "example": "http-mock-harpath",
+      "page": "/reference/docs-as-tests/http-code#harpath"
+    },
+    {
       "example": "http-mock-method",
       "page": "/reference/docs-as-tests/http-code#method"
     },
     {
       "example": "http-mock-request",
       "page": "/reference/docs-as-tests/http-code#stub-api-responses-in-the-browser"
+    },
+    {
+      "example": "http-mock-responses",
+      "page": "/reference/docs-as-tests/http-code#responses"
     },
     {
       "example": "http-mock-url-exact",
@@ -41923,6 +42367,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-2"
     },
     {
+      "example": "sessions-runon-devicescalefactor-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#devicescalefactor-matrixdpr"
+    },
+    {
       "example": "sessions-runon-fallback-auto",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-auto"
     },
@@ -41937,6 +42385,10 @@
     {
       "example": "sessions-runon-locale",
       "page": "/reference/docs-as-tests/sessions-surfaces#locale-de-de"
+    },
+    {
+      "example": "sessions-runon-matrix",
+      "page": "/reference/docs-as-tests/sessions-surfaces#matrix-locale-en-us-de-de"
     },
     {
       "example": "sessions-runon-platforms-array",

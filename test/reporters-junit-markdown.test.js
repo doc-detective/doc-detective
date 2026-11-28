@@ -581,6 +581,66 @@ describe("junit and markdown reporters", function () {
       assert.equal(buildMarkdown(noDir, file).includes("Run artifacts"), false);
     });
 
+    // ADR 01244. Without a comparison, the summary is what it was before.
+    describe("with a comparison", function () {
+      const compared = (comparison) => ({
+        summary: { tests: counts(1, 1, 0, 0) },
+        environment: { platform: "linux", docDetectiveVersion: "5.0.0" },
+        ...(comparison ? { comparison } : {}),
+        specs: [
+          {
+            specId: "s",
+            tests: [
+              {
+                testId: "t",
+                contexts: [
+                  {
+                    contextId: "c",
+                    result: "FAIL",
+                    ...(comparison ? { failureStatus: "new" } : {}),
+                    steps: [{ stepId: "f", result: "FAIL", resultDescription: "Couldn't find it." }],
+                  },
+                ],
+              },
+              {
+                testId: "u",
+                contexts: [{ contextId: "c", result: "PASS", ...(comparison ? { failureStatus: "fixed" } : {}), steps: [] }],
+              },
+            ],
+          },
+        ],
+      });
+
+      it("prints exactly what it did before when there's no comparison", function () {
+        assert.equal(
+          buildMarkdown(compared()),
+          "# Doc Detective results\n\n**Failed** — 1 of 2 tests failed.\n\n| Level | Pass | Fail | Warning | Skipped | Total |\n| --- | ---: | ---: | ---: | ---: | ---: |\n| Specs | 0 | 0 | 0 | 0 | 0 |\n| Tests | 1 | 1 | 0 | 0 | 2 |\n| Contexts | 0 | 0 | 0 | 0 | 0 |\n| Steps | 0 | 0 | 0 | 0 | 0 |\n\nDoc Detective 5.0.0 · linux\n\n## Failures\n\n| Location | Details |\n|---|---|\n| `s › t › c › f` | Couldn't find it. |\n"
+        );
+      });
+
+      it("tags each failure, lists what's fixed, and says what the comparison found", function () {
+        const md = buildMarkdown(compared({ previous: { runId: "r0" }, summary: { new: 1, existing: 0, fixed: 1 } }));
+        const order = [
+          "| Steps | 0 | 0 | 0 | 0 | 0 |",
+          "Compared with run `r0`: 1 new, 0 already failing, 1 fixed.",
+          "Doc Detective 5.0.0 · linux",
+          "## Failures",
+          "| [new] `s › t › c › f` | Couldn't find it. |",
+          "## Fixed",
+          "- `s › u › c`",
+        ];
+        const places = order.map((line) => md.split("\n").indexOf(line));
+        assert.ok(places.every((place) => place >= 0), `${places} in:\n${md}`);
+        assert.deepEqual(places, [...places].sort((x, y) => x - y));
+        const existing = compared({ previous: { runId: "r0" }, summary: { new: 0, existing: 1, fixed: 0 } });
+        existing.specs[0].tests[0].contexts[0].failureStatus = "existing";
+        delete existing.specs[0].tests[1].contexts[0].failureStatus;
+        const md2 = buildMarkdown(existing);
+        assert.ok(md2.includes("| [already failing] `s › t › c › f` |"));
+        assert.ok(!md2.includes("## Fixed"));
+      });
+    });
+
     it("leaves a section out when it has no items", function () {
       const md = buildMarkdown({
         summary: { tests: counts(1, 0, 0, 0) },

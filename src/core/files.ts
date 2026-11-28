@@ -205,6 +205,7 @@ async function resolvePaths({
   const specNoResolve = [
     "request",
     "response",
+    "responses",
     "requestData",
     "responseData",
     "requestHeaders",
@@ -294,7 +295,18 @@ async function resolvePaths({
   }
 
   for (const property of Object.keys(object)) {
+    // A `matrix` key can be named like a path key, such as `path`, but its
+    // values are data, not paths (ADR 01240). Only a `{ file }` source is a
+    // path, resolved against the file that declares it (ADR 01241).
+    if (property === "matrix") {
+      for (const source of Object.values(object.matrix ?? {}) as any[]) {
+        if (typeof source?.file === "string") source.file = resolve(relativePathBase, source.file, filePath);
+      }
+      continue;
+    }
     if (Array.isArray(object[property])) {
+      // A mock's `responses` hold user payloads; their `bodyPath` resolves below.
+      if (objectType === "spec" && specNoResolve.includes(property)) continue;
       for (let i = 0; i < object[property].length; i++) {
         const item = object[property][i];
 
@@ -344,11 +356,16 @@ async function resolvePaths({
         objectType: objectType,
       });
       if (cookiePath !== undefined) object[property].path = cookiePath;
-      // A mock's `bodyPath` sits in `response`, which isn't resolved, so
-      // resolve it here, against the spec (ADR 01225).
-      const mockResponse = isStep && property === "mockRequest" ? object[property].response : undefined;
-      if (typeof mockResponse?.bodyPath === "string") {
-        mockResponse.bodyPath = resolve(relativePathBase, mockResponse.bodyPath, filePath);
+      // A mock's file paths aren't path properties, so resolve them here,
+      // against the spec (ADR 01225, ADR 01242).
+      const mock = isStep && property === "mockRequest" ? object[property] : undefined;
+      for (const mockResponse of [mock?.response, ...(Array.isArray(mock?.responses) ? mock.responses : [])]) {
+        if (typeof mockResponse?.bodyPath === "string") {
+          mockResponse.bodyPath = resolve(relativePathBase, mockResponse.bodyPath, filePath);
+        }
+      }
+      if (typeof mock?.harPath === "string") {
+        mock.harPath = resolve(relativePathBase, mock.harPath, filePath);
       }
     } else if (typeof object[property] === "string") {
       if (

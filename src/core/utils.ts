@@ -169,9 +169,56 @@ export {
   resolveVerifiedId,
   applyVerifiedMarkers,
   applyBadgeAnchoredTests,
+  harToMocks,
 };
 
 export type { BackgroundProcess, ResourceRegistry };
+
+// Headers that describe the recorded wire format, not the decoded HAR body.
+const HAR_WIRE_HEADERS = new Set(["content-length", "content-encoding", "transfer-encoding"]);
+
+/**
+ * Turn a HAR 1.2 log into mocks, one per exact URL and method, each with its
+ * responses in file order (ADR 01242). `url` is a webdriverio-style glob: `**`
+ * collapses to `*`, a pattern starting `http` matches the whole URL, any other
+ * pattern matches the path. Returns `undefined` when `har` isn't HAR JSON.
+ */
+function harToMocks(
+  har: any,
+  { url, method }: { url?: string; method?: string } = {}
+): { url: string; method: string; responses: { statusCode: number; headers: Record<string, string>; body: string | Buffer }[] }[] | undefined {
+  const entries = har?.log?.entries;
+  if (!Array.isArray(entries)) return undefined;
+  let pattern: any;
+  if (url) {
+    const glob = url.replace(/(?<!\\)\*{2,}/g, "*");
+    pattern = glob.startsWith("http") ? new URLPattern(glob) : new URLPattern({ pathname: glob });
+  }
+  const mocks = new Map<string, { url: string; method: string; responses: any[] }>();
+  for (const entry of entries) {
+    const entryUrl = entry?.request?.url;
+    const entryMethod = String(entry?.request?.method ?? "GET").toUpperCase();
+    if (typeof entryUrl !== "string") continue;
+    if (method && entryMethod !== method) continue;
+    if (pattern && !pattern.test(entryUrl)) continue;
+    const content = entry.response?.content ?? {};
+    const text = typeof content.text === "string" ? content.text : "";
+    const headers: Record<string, string> = {};
+    for (const { name, value } of entry.response?.headers ?? []) {
+      // `:status` and other HTTP/2 pseudo-headers aren't real headers.
+      if (!HAR_WIRE_HEADERS.has(String(name).toLowerCase()) && !String(name).startsWith(":")) headers[name] = String(value);
+    }
+    const key = `${entryMethod} ${entryUrl}`;
+    if (!mocks.has(key)) mocks.set(key, { url: entryUrl, method: entryMethod, responses: [] });
+    mocks.get(key)!.responses.push({
+      // `||`, not `??`: browsers record status 0 for a request with no response.
+      statusCode: entry.response?.status || 200,
+      headers,
+      body: content.encoding === "base64" ? Buffer.from(text, "base64") : text,
+    });
+  }
+  return [...mocks.values()];
+}
 
 // A fixed set of Appium server ports shared by concurrent runners. `acquire()`
 // hands out a free port, waiting if every port is checked out; `release()`
@@ -1616,13 +1663,17 @@ function configErrorMessage(source: string, errorObjects: ErrorObject[] | undefi
 
 // The CLI's exit code for a finished run (ADR 01146). `0` passed, `1` a spec
 // failed, `2` nothing was tested, which includes every spec skipping.
-// exitOnFail: false relaxes the last two.
+// exitOnFail: false relaxes the last two. failOn: new exits 1 only for a new
+// failure, when there was a comparison (ADR 01245).
 function runExitCode(results: any, config: any = {}): number {
   if (config.exitOnFail === false) return 0;
   const specs = results?.summary?.specs;
   const tested = specs ? (specs.pass || 0) + (specs.fail || 0) + (specs.warning || 0) : 0;
   if (tested === 0) return 2;
-  return shouldFailRun(results) ? 1 : 0;
+  if (!shouldFailRun(results)) return 0;
+  const compared = results.comparison?.summary;
+  if (config.failOn === "new" && compared) return compared.new > 0 ? 1 : 0;
+  return 1;
 }
 
 function isRelativeUrl(url: string) {

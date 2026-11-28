@@ -142,7 +142,7 @@ describe("Util tests", function () {
       "error: option '-r, --reporters <names>' argument 'html' is invalid. Give it once, as a comma-separated list: json,html."
     );
     expect(() => setArgs(["node", "runTests.js", "-r", "json,bogus"])).to.throw(
-      "Allowed choices are terminal, json, html, runFolder, junit, markdown."
+      "Allowed choices are terminal, json, html, runFolder, junit, markdown, cucumber."
     );
   });
 
@@ -231,6 +231,74 @@ describe("Util tests", function () {
     expect(argsAbsent.dryRun).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
     expect(configAbsent.dryRun).to.equal(false);
+  });
+
+  it("CLI parses --compare-to and --no-compare-to", function () {
+    expect(setArgs(["node", "x", "--compare-to", "previous"]).compareTo).to.equal("previous");
+    expect(setArgs(["node", "x", "--no-compare-to"]).compareTo).to.equal(false);
+    expect(setArgs(["node", "x", "--input", "."]).compareTo).to.equal(undefined);
+    expect(setArgs(["node", "x", "--compare-to", "a", "--no-compare-to"]).compareToConflict).to.equal(true);
+    expect(setArgs(["node", "x", "--compare-to", "a"]).compareToConflict).to.equal(undefined);
+  });
+
+  it("setConfig stores --compare-to on config.compareTo, resolved from the working directory", async function () {
+    this.timeout(5000);
+    const set = (...flags) => setConfig({ configPath: null, args: setArgs(["node", "x", ...flags]) });
+    expect((await set("--compare-to", "previous")).compareTo).to.equal("previous");
+    expect((await set("--compare-to", "old/results.json")).compareTo).to.equal(path.resolve("old/results.json"));
+    expect((await set("--no-compare-to")).compareTo).to.equal(false);
+    expect((await set("--input", ".")).compareTo).to.equal(undefined);
+  });
+
+  it("setConfig refuses a blank --compare-to, both forms, and --dry-run with --compare-to", async function () {
+    this.timeout(5000);
+    for (const [flags, message] of [
+      [["--compare-to", ""], "`--compare-to` needs a path or `previous`."],
+      [["--compare-to", "  "], "`--compare-to` needs a path or `previous`."],
+      [["--compare-to", "a", "--no-compare-to"], "set `--compare-to` or `--no-compare-to`, not both."],
+      [["--no-compare-to", "--compare-to", "a"], "set `--compare-to` or `--no-compare-to`, not both."],
+      [["--dry-run", "--compare-to", "a"], "set `--dry-run` or `--compare-to`, not both."],
+    ]) {
+      let error;
+      try {
+        await setConfig({ configPath: null, args: setArgs(["node", "x", ...flags]) });
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error?.message, flags.join(" ")).to.equal(message);
+    }
+    // A dry run with no comparison flag is fine: the default isn't explicit.
+    expect((await setConfig({ configPath: null, args: setArgs(["node", "x", "--dry-run"]) })).dryRun).to.equal(true);
+  });
+
+  it("CLI parses --fail-on and refuses other values", function () {
+    expect(setArgs(["node", "x", "--fail-on", "new"]).failOn).to.equal("new");
+    expect(setArgs(["node", "x", "--fail-on", "any"]).failOn).to.equal("any");
+    expect(setArgs(["node", "x", "--input", "."]).failOn).to.equal(undefined);
+  });
+
+  it("setConfig stores --fail-on on config.failOn, over config, defaulting to any", async function () {
+    this.timeout(5000);
+    const set = (...flags) => setConfig({ configPath: null, args: setArgs(["node", "x", ...flags]) });
+    expect((await set("--fail-on", "new")).failOn).to.equal("new");
+    expect((await set("--fail-on", "any")).failOn).to.equal("any");
+    expect((await set("--input", ".")).failOn).to.equal("any");
+  });
+
+  it("setConfig refuses failOn new without a comparison", async function () {
+    this.timeout(5000);
+    let error;
+    try {
+      await setConfig({ configPath: null, args: setArgs(["node", "x", "--fail-on", "new", "--no-compare-to"]) });
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error?.message).to.equal(
+      "`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`."
+    );
+    // --fail-on any with no comparison is fine.
+    const config = await setConfig({ configPath: null, args: setArgs(["node", "x", "--fail-on", "any", "--no-compare-to"]) });
+    expect(config.failOn).to.equal("any");
   });
 
   it("isDebugRequested: returns true only for truthy DOC_DETECTIVE_DEBUG values", async function () {
