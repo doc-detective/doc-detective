@@ -175,7 +175,15 @@ The complete spec starts the mock, sends two requests, and stops the mock:
 {/* step {"stepId":"mock-backend-stop","description":"Stop the mock server","closeSurface":"mock-api"} */}
 {/* test end */}
 
-To use json-server instead, change the `process` command and the port. json-server listens on port 3000 by default and serves the records in a JSON file:
+To use json-server instead, give it a JSON file of records, such as this `db.json`:
+
+```json title="db.json"
+{
+  "users": [{ "id": "1", "name": "Ada Lovelace" }]
+}
+```
+
+Then change the `process` command and the port. json-server listens on port 3000 by default:
 
 ```json
 {
@@ -185,6 +193,20 @@ To use json-server instead, change the `process` command and the port. json-serv
     "name": "mock-api",
     "waitUntil": { "port": 3000 },
     "timeout": 120000
+  }
+}
+```
+
+json-server returns every ID as a string, so its body check expects `"1"` rather than the number `1`:
+
+```json
+{
+  "description": "Fetch a user from json-server.",
+  "httpRequest": {
+    "url": "http://127.0.0.1:3000/users/1",
+    "response": {
+      "body": { "id": "1", "name": "Ada Lovelace" }
+    }
   }
 }
 ```
