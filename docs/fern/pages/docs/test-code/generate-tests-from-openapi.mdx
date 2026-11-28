@@ -159,6 +159,8 @@ OpenAPI descriptions often include example requests and responses. Set `useExamp
 - `both` does both.
 - `none` (the default) ignores examples.
 
+When the operation has no example, Doc Detective generates the data from the operation's schema. A field that sets a `default` in the schema gets that value, except a default of `0`, `false`, or `""`, which leaves the field out. Other fields get random values that can change between runs, so check them by type or schema rather than by value.
+
 ```json
 {
   "description": "Create a user from the operation's example request.",
@@ -180,7 +182,7 @@ When an operation defines more than one example, set `exampleKey` to choose whic
 
 By default, Doc Detective validates both the request and the response against the operation's schema (`validateAgainstSchema` defaults to `both`). When the response doesn't match the schema, the step fails and exposes the result as `$$responseSchemaValid`. To narrow or turn off that check, set `validateAgainstSchema` to `request`, `response`, or `none`.
 
-If the endpoint isn't built yet, set `mockResponse` to `true`. Doc Detective skips the network call and returns the operation's example or schema as the response. You can then write and run tests before the API exists:
+If the endpoint isn't built yet, set `mockResponse` to `true`. Doc Detective skips the network call and returns the operation's example as the response. Without an example, it generates the response from the schema, and uses schema defaults the same way. You can then write and run tests before the API exists:
 
 ```json
 {
