@@ -24,7 +24,7 @@ tests:
   - testId: data-echo-text
     publicVariables:
       - ECHOED
-    contexts:
+    runOn:
       - retries: 2
     onWarning:
       - continue: true

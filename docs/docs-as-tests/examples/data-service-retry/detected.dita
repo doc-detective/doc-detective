@@ -24,7 +24,7 @@
     </section>
     <section>
       <title>Echo text</title>
-      <data name="doc-detective" value='test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true}'/>
+      <data name="doc-detective" value='test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true}'/>
       <ol>
         <li>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</li>
         <li>Click <b>Type here:</b>.</li>

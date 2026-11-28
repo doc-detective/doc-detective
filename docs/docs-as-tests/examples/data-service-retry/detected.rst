@@ -37,7 +37,7 @@ If the service still isn't ready, restart it:
 
 .. test end
 
-.. test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true}
+.. test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true}
 
 Echo text
 ---------
