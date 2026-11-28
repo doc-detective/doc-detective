@@ -124,8 +124,9 @@ export function parseGherkin(content: string, filePath = "", warn: (message: str
     let ignoring = false;
     for (const item of [...featureBackground, ...ruleBackground, ...b.items]) {
       if (!isStep(item)) {
-        if (/^test\s+ignore\s+start\b/.test(item.content ?? "")) ignoring = true;
-        else if (/^test\s+ignore\s+end\b/.test(item.content ?? "")) ignoring = false;
+        // Only comments land here, and a comment always has content.
+        if (/^test\s+ignore\s+start\b/.test(item.content!)) ignoring = true;
+        else if (/^test\s+ignore\s+end\b/.test(item.content!)) ignoring = false;
         list.push({ ...item });
         continue;
       }

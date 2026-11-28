@@ -18,6 +18,9 @@
             "path": "output/late.txt",
             "timeout": 15000
           }
+        },
+        {
+          "closeSurface": "late-writer"
         }
       ]
     }

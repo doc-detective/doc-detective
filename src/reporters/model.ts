@@ -5,7 +5,7 @@ import path from "node:path";
 import { log } from "../core/utils.js";
 
 // How a failed item reads against an earlier run (ADR 01244).
-const FAILURE_TAGS: Record<string, string> = { new: "new", existing: "already failing" };
+const FAILURE_TAGS: Readonly<Record<string, string>> = Object.freeze({ new: "new", existing: "already failing" });
 
 export { verdict } from "../cliOutput.js";
 export { present, nonPassItems, existingFile, mediaPath, environmentLine, writeReport, fixedPaths, comparisonLine, FAILURE_TAGS };

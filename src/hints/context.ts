@@ -575,8 +575,9 @@ export function walkResults(results: any): WalkData {
           if (context?.viewportFloored === true) {
             data.viewportFloored = true;
           }
-          // A generated testId is `<specId>~<hash>` (ADR 01244).
-          if (context?.failureStatus === "new" && String(test?.testId ?? "").includes("~")) {
+          // A generated testId is `<specId>~<8 hex>`, plus `-<n>` for a
+          // duplicate (ADR 01244). An authored ID can contain `~` too.
+          if (context?.failureStatus === "new" && /~[0-9a-f]{8}(-\d+)?$/.test(String(test?.testId ?? ""))) {
             data.newFailureWithGeneratedTestId = true;
           }
           // The automatic recording isn't a step (ADR 01179).
