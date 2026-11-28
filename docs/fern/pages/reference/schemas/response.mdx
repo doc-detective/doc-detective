@@ -25,6 +25,16 @@ schema | object | Optional. JSON Schema the response body must match. Checks typ
 
 ```json
 {
-  "required": []
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "id": 42,
+    "name": "Example user"
+  },
+  "required": [
+    "id",
+    "name"
+  ]
 }
 ```
