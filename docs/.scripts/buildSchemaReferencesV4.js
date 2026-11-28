@@ -340,13 +340,15 @@ function generateSchemaMarkdown(schemaId, schema) {
   }
 
   // Putting it all together
-  return heading.concat(fields).concat(examples).join("\n");
+  // No example to show: leave out the heading rather than print an empty section.
+  return heading.concat(fields).concat(examples.length > 2 ? examples : []).join("\n");
 }
 
 // Produce an example value for a single property schema. Returns undefined when
 // no sensible value can be synthesized (so the caller omits the property).
 function exampleValue(propSchema, depth = 0) {
   if (!propSchema || typeof propSchema !== "object" || depth > 5) return undefined;
+  if (Array.isArray(propSchema.examples) && propSchema.examples.length > 0) return propSchema.examples[0];
   if (propSchema.default !== undefined) return propSchema.default;
   if (propSchema.const !== undefined) return propSchema.const;
   if (propSchema.enum) return propSchema.enum[0];
@@ -413,7 +415,11 @@ function buildExampleObject(eff, depth = 0) {
     );
     if (completes) continue;
     const v = exampleValue(propSchema, depth);
-    if (v !== undefined) example[propName] = v;
+    if (v === undefined) continue;
+    // An optional `{}` teaches nothing, and as a check it matches anything. Required ones stay.
+    const emptyObject = v !== null && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0;
+    if (emptyObject && !(eff.required || []).includes(propName)) continue;
+    example[propName] = v;
   }
   return example;
 }
