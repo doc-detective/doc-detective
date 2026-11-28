@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: sessions-runon-matrix
+    runOn:
+      - platforms:
+          - linux
+          - mac
+          - windows
+        browsers:
+          name: chrome
+          headless: true
+          locale: $$matrix.locale
+        matrix:
+          locale:
+            - en-US
+            - de-DE
+    steps:
+      - goTo: http://localhost:8092/multi-tab.html
+      - runBrowserScript:
+          script: return navigator.language;
+          output: $$matrix.locale

@@ -1,0 +1,12 @@
+= Check the page in two languages
+
+// (test {"testId":"sessions-runon-matrix","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"locale":"$$matrix.locale"},"matrix":{"locale":["en-US","de-DE"]}}]})
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
++
+// (step {"goTo":"http://localhost:8092/multi-tab.html"})
+. Check that the page's language is the locale under test, `en-US` or `de-DE`.
++
+// (step {"runBrowserScript":{"script":"return navigator.language;","output":"$$matrix.locale"}})
+
+// (test end)
