@@ -4,7 +4,7 @@
 
 Stub the invoices endpoint so that every `GET` request returns the invoices in `invoices.json`.
 
-{/* step {"mockRequest":{"url":"**/api/invoices*","method":"GET","response":{"statusCode":200,"headers":{"x-mock":"docs"},"bodyPath":"invoices.json"}}} */}
+{/* step {"mockRequest":{"url":"**\/api/invoices*","method":"GET","response":{"statusCode":200,"headers":{"x-mock":"docs"},"bodyPath":"invoices.json"}}} */}
 
 Stub invoice creation too, so that a `POST` request returns a new invoice ID.
 
@@ -12,11 +12,11 @@ Stub invoice creation too, so that a `POST` request returns a new invoice ID.
 
 Stub the notices endpoint with one billing notice.
 
-{/* step {"mockRequest":{"url":"**/api/notices","response":{"body":["Invoices are due on the 3rd of each month."]}}} */}
+{/* step {"mockRequest":{"url":"**\/api/notices","response":{"body":["Invoices are due on the 3rd of each month."]}}} */}
 
 Stub the status endpoint so that it reports `OK`.
 
-{/* step {"mockRequest":{"url":"**/api/status","response":{"body":"OK"}}} */}
+{/* step {"mockRequest":{"url":"**\/api/status","response":{"body":"OK"}}} */}
 
 Open the test site at `http://localhost:8092/`.
 
