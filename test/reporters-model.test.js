@@ -373,6 +373,7 @@ describe("reporters/model", function () {
 
     it("names a failure's tag", function () {
       assert.deepEqual(FAILURE_TAGS, { new: "new", existing: "already failing" });
+      assert.ok(Object.isFrozen(FAILURE_TAGS));
     });
   });
 

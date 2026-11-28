@@ -1993,7 +1993,9 @@ describe("setStableTestIds hint", function () {
 
   it("walkResults flags a new failure only on a generated test ID", function () {
     expect(walkResults(run("s~1a2b3c4d", "new")).newFailureWithGeneratedTestId).to.equal(true);
+    expect(walkResults(run("s~1a2b3c4d-2", "new")).newFailureWithGeneratedTestId).to.equal(true);
     expect(walkResults(run("install", "new")).newFailureWithGeneratedTestId).to.equal(false);
+    expect(walkResults(run("e2e~smoke", "new")).newFailureWithGeneratedTestId).to.equal(false);
     expect(walkResults(run("s~1a2b3c4d", "existing")).newFailureWithGeneratedTestId).to.equal(false);
     expect(walkResults(run("s~1a2b3c4d", undefined)).newFailureWithGeneratedTestId).to.equal(false);
     expect(walkResults({ specs: [{ tests: [{ contexts: [{ failureStatus: "new" }] }] }] }).newFailureWithGeneratedTestId).to.equal(false);
