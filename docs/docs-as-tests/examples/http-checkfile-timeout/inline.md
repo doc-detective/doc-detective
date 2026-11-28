@@ -14,4 +14,6 @@ Wait up to 15 seconds for `output/late.txt`.
 
 <!-- step {"checkFile":{"path":"output/late.txt","timeout":15000}} -->
 
+<!-- step {"closeSurface":"late-writer"} -->
+
 <!-- test end -->
