@@ -6,8 +6,8 @@ const DOCS = "https://docs.doc-detective.com/reference/cli";
 const ISSUES = "https://github.com/doc-detective/doc-detective/issues";
 
 const RUN_EXIT_CODES = `Exit codes:
-  0  No test failed, and at least one passed or warned
-  1  At least one test failed
+  0  No test failed (with --fail-on new, no failure is new), and at least one test ran
+  1  At least one test failed (with --fail-on new, at least one failure is new)
   2  Nothing was tested: bad usage, bad config, no tests, or an internal error
   130, 143  Interrupted by SIGINT or SIGTERM`;
 

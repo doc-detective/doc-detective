@@ -34,6 +34,8 @@ When Doc Detective has a suggestion, the step's `resultHint` gives it. For examp
 
 Note which action failed, such as `find`, `httpRequest`, or `runShell`. The action determines what to check next.
 
+When an earlier run is in the same output folder, each failed context also has a `failureStatus`. `new` means the earlier run passed, so a recent change likely caused it. `existing` means it was already failing, so it predates your change. See [Compare with an earlier run](/docs/ci/reporters-and-artifacts#compare-with-an-earlier-run).
+
 ## Step 2: Fix the most common causes
 
 Find the cause that matches the failing action.

@@ -2,7 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { reportOutputDir } from "../core/utils.js";
-import { environmentLine, mediaPath, nonPassItems, verdict, writeReport } from "./model.js";
+import {
+  FAILURE_TAGS,
+  comparisonLine,
+  environmentLine,
+  fixedPaths,
+  mediaPath,
+  nonPassItems,
+  verdict,
+  writeReport,
+} from "./model.js";
 
 export { markdownReporter, buildMarkdown };
 
@@ -100,6 +109,7 @@ function buildMarkdown(results: any, outputFile?: string): string {
 
   const { status, label, text } = verdict(summary);
   const footer = environmentLine(results);
+  const compared = comparisonLine(results);
   const head = [
     "# Doc Detective results",
     "",
@@ -108,6 +118,7 @@ function buildMarkdown(results: any, outputFile?: string): string {
     "| Level | Pass | Fail | Warning | Skipped | Total |",
     "| --- | ---: | ---: | ---: | ---: | ---: |",
     ...rows,
+    ...(compared ? ["", compared] : []),
     ...(footer ? ["", footer] : []),
   ];
 
@@ -126,7 +137,8 @@ function buildMarkdown(results: any, outputFile?: string): string {
         item.recording && `Recording: ${codeSpan(mediaPath(item.recording, runDir, fromDir))}`,
         item.skippedNote,
       ];
-      const location = `${codeSpan(item.idPath.length > MAX_CELL ? `${item.idPath.slice(0, MAX_CELL)}…` : item.idPath)}${
+      const tag = item.failureStatus ? `[${FAILURE_TAGS[item.failureStatus]}] ` : "";
+      const location = `${tag}${codeSpan(item.idPath.length > MAX_CELL ? `${item.idPath.slice(0, MAX_CELL)}…` : item.idPath)}${
         item.description ? ` ${cell(item.description)}` : ""
       }`;
       lines.push(`| ${location} | ${details.filter(Boolean).join("<br>")} |`);
@@ -141,7 +153,19 @@ function buildMarkdown(results: any, outputFile?: string): string {
     return ["", `<details><summary>${heading} (${count})</summary>`, "", ...lines, "", "</details>"];
   };
   const failed = table("FAIL");
-  const failures = failed.length > 0 ? ["", "## Failures", "", ...failed] : [];
+  // What an earlier run failed and this one passed (ADR 01244). It's cut with the failures.
+  const fixedList = fixedPaths(results);
+  const fixed =
+    fixedList.length > 0
+      ? [
+          "",
+          "## Fixed",
+          "",
+          ...fixedList.slice(0, MAX_ROWS).map((idPath) => `- ${codeSpan(idPath.length > MAX_CELL ? `${idPath.slice(0, MAX_CELL)}…` : idPath)}`),
+          ...(fixedList.length > MAX_ROWS ? ["", `… and ${fixedList.length - MAX_ROWS} more`] : []),
+        ]
+      : [];
+  const failures = [...(failed.length > 0 ? ["", "## Failures", "", ...failed] : []), ...fixed];
   const warnings = details("Warnings", "WARNING");
   const skips = details("Skipped", "SKIPPED");
 

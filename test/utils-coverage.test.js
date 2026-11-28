@@ -364,6 +364,72 @@ describe("utils.ts coverage", function () {
         }
       });
 
+      // ADR 01244: tags, a Fixed list, and the closing sentence, only when compared.
+      const comparedRun = () => {
+        const results = mixed({
+          comparison: { previous: { runId: "r0" }, summary: { new: 0, existing: 1, fixed: 1 } },
+        });
+        results.specs[0].tests[0].contexts[0].failureStatus = "existing";
+        results.specs[0].tests.push({
+          testId: "upgrade",
+          result: "PASS",
+          contexts: [{ contextId: "linux-chrome", result: "PASS", failureStatus: "fixed", steps: [] }],
+        });
+        return results;
+      };
+
+      it("tags each failure, lists what's fixed, and closes with the comparison", async function () {
+        const cap = captureConsole(sandbox);
+        await reporters.terminalReporter({}, "out", comparedRun(), {});
+        const lines = cap.log.split("\n");
+        for (const line of [
+          "1. [already failing] install-guide › install › linux-chrome › click-save — Click Save",
+          "Fixed (1):",
+          "1. install-guide › upgrade › linux-chrome",
+          "Compared with run `r0`: 0 new, 1 already failing, 1 fixed.",
+        ]) {
+          assert.ok(lines.includes(line), `expected the line ${line} in:\n${cap.log}`);
+        }
+        const at = (text) => cap.log.indexOf(text);
+        assert.ok(at("Failed (1):") < at("Fixed (1):") && at("Fixed (1):") < at("Warnings (1):"));
+        assert.ok(at("Skipped (1):") < at("Compared with run"));
+      });
+
+      it("tags a new failure `new`", async function () {
+        const results = comparedRun();
+        results.specs[0].tests[0].contexts[0].failureStatus = "new";
+        const cap = captureConsole(sandbox);
+        await reporters.terminalReporter({}, "out", results, {});
+        assert.ok(cap.log.split("\n").includes("1. [new] install-guide › install › linux-chrome › click-save — Click Save"));
+      });
+
+      it("prints exactly what it did before comparisons existed when there's no comparison", async function () {
+        const cap = captureConsole(sandbox);
+        await reporters.terminalReporter({}, "out", mixed(), {});
+        assert.equal(
+          cap.log,
+          [
+            "===============================",
+            "Specs:    2 total, 0 passed, 1 failed, 1 skipped",
+            "Tests:    4 total, 1 passed, 1 failed, 1 warnings, 1 skipped",
+            "Contexts: 4 total, 1 passed, 1 failed, 1 warnings, 1 skipped",
+            "Steps:    5 total, 1 passed, 1 failed, 1 warnings, 2 skipped",
+            "\nFailed (1):",
+            "1. install-guide › install › linux-chrome › click-save — Click Save",
+            "   Couldn't find element `#save`.",
+            "   Hint: Check the selector.",
+            "   2 more steps skipped after the failure.",
+            "\nWarnings (1):",
+            "1. install-guide › verify › linux-chrome › compare — Compare the page",
+            "   It varied by 3%.",
+            "\nSkipped (1):",
+            "1. mac-guide › setup › default — Set up a Mac",
+            "   Skipped: not on a Mac.",
+            "===============================",
+          ].join("\n")
+        );
+      });
+
       it("lists skips and warnings with no failure", async function () {
         const cap = captureConsole(sandbox);
         const results = mixed();

@@ -6,7 +6,16 @@ import os from "node:os";
 import path from "node:path";
 import sinon from "sinon";
 
-import { environmentLine, mediaPath, nonPassItems, verdict, writeReport } from "../dist/reporters/model.js";
+import {
+  FAILURE_TAGS,
+  comparisonLine,
+  environmentLine,
+  fixedPaths,
+  mediaPath,
+  nonPassItems,
+  verdict,
+  writeReport,
+} from "../dist/reporters/model.js";
 import { reportOutputDir } from "../dist/core/utils.js";
 import { outputResults } from "../dist/utils.js";
 
@@ -303,6 +312,68 @@ describe("reporters/model", function () {
       const [item] = nonPassItems(report([{ stepId: "f", result: "FAIL", autoScreenshotPath: "gone.png" }], { result: "FAIL" }));
       assert.equal(item.idPath, "sp › te › co › f");
       assert.equal(item.reason, "");
+    });
+
+    it("carries the context's failureStatus on its FAIL items only (ADR 01244)", function () {
+      const items = nonPassItems(
+        report(
+          [
+            { stepId: "w", result: "WARNING" },
+            { stepId: "f", result: "FAIL" },
+          ],
+          { result: "FAIL", failureStatus: "existing" }
+        )
+      );
+      assert.deepEqual(
+        items.map((i) => [i.status, i.failureStatus]),
+        [
+          ["FAIL", "existing"],
+          ["WARNING", undefined],
+        ]
+      );
+      assert.ok(!("failureStatus" in nonPassItems(report([{ stepId: "f", result: "FAIL" }], { result: "FAIL" }))[0]));
+    });
+  });
+
+  describe("fixedPaths() and comparisonLine()", function () {
+    const compared = {
+      comparison: { previous: { runId: "r0", path: "/out/r0/testResults.json" }, summary: { new: 1, existing: 2, fixed: 1 } },
+      specs: [
+        null,
+        {
+          specId: "sp",
+          tests: [
+            {
+              testId: "te",
+              contexts: [
+                { contextId: "a", result: "PASS", failureStatus: "fixed" },
+                { contextId: "b", result: "PASS" },
+                null,
+                { result: "PASS", failureStatus: "fixed" },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    it("lists each fixed context by ID path, with fallbacks by position", function () {
+      assert.deepEqual(fixedPaths(compared), ["sp › te › a", "sp › te › context 4"]);
+      assert.deepEqual(fixedPaths({}), []);
+      assert.deepEqual(fixedPaths(undefined), []);
+    });
+
+    it("says what the comparison found, or null without one", function () {
+      assert.equal(comparisonLine(compared), "Compared with run `r0`: 1 new, 2 already failing, 1 fixed.");
+      const noRunId = { comparison: { previous: { path: "/x.json" }, summary: { new: 0, existing: 0, fixed: 0 } } };
+      assert.equal(comparisonLine(noRunId), "Compared with run `/x.json`: 0 new, 0 already failing, 0 fixed.");
+      assert.equal(comparisonLine({}), null);
+      assert.equal(comparisonLine(undefined), null);
+    });
+
+    it("names a failure's tag", function () {
+      assert.deepEqual(FAILURE_TAGS, { new: "new", existing: "already failing" });
+      assert.ok(Object.isFrozen(FAILURE_TAGS));
     });
   });
 

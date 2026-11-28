@@ -127,6 +127,7 @@ export async function buildHintContext(
     ranIosContexts: walkData.ranIosContexts,
     viewportFloored: walkData.viewportFloored,
     ranMobileContexts: walkData.ranMobileContexts,
+    newFailureWithGeneratedTestId: walkData.newFailureWithGeneratedTestId,
     hasManagedWdaProducts: detectManagedWdaProducts(config),
     agentDetections,
     hasPackageJson,
@@ -389,6 +390,7 @@ interface WalkData {
   hasStaleRecordings: boolean;
   viewportFloored: boolean;
   ranMobileContexts: boolean;
+  newFailureWithGeneratedTestId: boolean;
   // True when >= 3 surface-sensitive steps (find/click/type/screenshot/swipe)
   // explicitly referenced the SAME app surface — redundant under the
   // active-surface default (ADR 01081). Powers `omitSurfaceForActiveApp`.
@@ -445,6 +447,7 @@ function emptyWalkData(): WalkData {
     hasStaleRecordings: false,
     viewportFloored: false,
     ranMobileContexts: false,
+    newFailureWithGeneratedTestId: false,
     repeatedAppSurfaceRefs: false,
     appSurfaceRefCounts: new Map(),
   };
@@ -571,6 +574,11 @@ export function walkResults(results: any): WalkData {
           // realized size, so the runner stamps the context when it floors one.
           if (context?.viewportFloored === true) {
             data.viewportFloored = true;
+          }
+          // A generated testId is `<specId>~<8 hex>`, plus `-<n>` for a
+          // duplicate (ADR 01244). An authored ID can contain `~` too.
+          if (context?.failureStatus === "new" && /~[0-9a-f]{8}(-\d+)?$/.test(String(test?.testId ?? ""))) {
+            data.newFailureWithGeneratedTestId = true;
           }
           // The automatic recording isn't a step (ADR 01179).
           if (context?.autoRecording?.recordingPath) {

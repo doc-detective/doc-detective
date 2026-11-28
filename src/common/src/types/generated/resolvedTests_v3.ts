@@ -16915,6 +16915,10 @@ export interface Config {
    */
   outputDir?: string;
   /**
+   * The earlier run's results to compare this run's with, so each failing context reads as new or already failing, and each passing context that failed before reads as fixed. `previous` compares with the newest other run folder under `<outputDir>/.doc-detective/runs/` that holds `testResults.json`. A path names a results JSON file, or a folder that holds `testResults.json`. `false` turns comparison off. Contexts match by spec ID, test ID, and context ID, and only between runs of the same Doc Detective major version. Defaults to `previous`.
+   */
+  compareTo?: false | string;
+  /**
    * Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory), and `cucumber` (Cucumber JSON for test-management tools such as Xray and Allure, written as `cucumber.json` in the output directory). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.
    */
   reporters?: ("terminal" | "json" | "html" | "runFolder" | "junit" | "markdown" | "cucumber")[];
@@ -17028,6 +17032,10 @@ export interface Config {
    * If `true`, the CLI exits `1` when any spec's result is `FAIL`, and `2` when nothing valid was tested. If `false`, those outcomes exit `0`. It also decides what an invalid spec does, in the CLI and in `runTests()`. If `true`, nothing runs. If `false`, the invalid spec is skipped with a warning, and the rest run. Usage errors, invalid config, and crashes always exit `2`. `WARNING` and `SKIPPED` results never fail a run.
    */
   exitOnFail?: boolean;
+  /**
+   * Which failures make the CLI exit `1`. `any`: any failed spec exits `1`. `new`: the run exits `1` only when a failure is new since the run it was compared with (see `compareTo`). With no comparison, every failure counts as new. `exitOnFail: false` still wins. The report lists every failure either way.
+   */
+  failOn?: "any" | "new";
   /**
    * Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.
    */
@@ -27942,6 +27950,10 @@ export interface ResolvedContext {
    * Why this context had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * How this context's result compares with the earlier run named in the report's `comparison`. `new` is a failure the earlier run didn't have, `existing` is a failure the earlier run also had, and `fixed` is a pass that failed in the earlier run. The same spec ID, test ID, and context ID identify a context across runs. Present only in test results that were compared with an earlier run, and only on `FAIL` contexts and on fixed `PASS` contexts. System-populated.
+   */
+  failureStatus?: "new" | "existing" | "fixed";
   /**
    * Wall-clock duration of this context in milliseconds, covering preflight, driver startup, every step, and teardown. When the `retries` policy re-ran the context, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. Present only in test results. System-populated.
    */

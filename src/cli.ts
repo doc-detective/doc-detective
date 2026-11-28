@@ -259,6 +259,18 @@ async function runTestsHandler(args: any) {
   // preserves any non-zero code an earlier stage already set.
   if (!process.exitCode) {
     process.exitCode = runExitCode(results, config);
+    // failOn: new passed a run that has failures; say why (ADR 01245).
+    const existing = results?.comparison?.summary?.existing;
+    if (
+      process.exitCode === 0 &&
+      config.failOn === "new" &&
+      config.exitOnFail !== false &&
+      results?.summary?.specs?.fail > 0 &&
+      logLevelEnabled("info", config)
+    ) {
+      const failures = existing === 1 ? "1 failure was" : `${existing} failures were`;
+      diag(`No new failures: ${failures} already failing, so the run exits 0 (\`failOn: new\`).`);
+    }
     // A bare exit 2 after a clean-looking summary would be a mystery. This is
     // an error, so it survives -q, though not -l silent.
     if (process.exitCode === 2 && results?.summary?.specs?.skipped > 0 && logLevelEnabled("error", config)) {
