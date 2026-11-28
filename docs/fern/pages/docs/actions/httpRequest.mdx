@@ -636,7 +636,7 @@ Use `response.schema` when a value changes every run but must still have the rig
 {/* step {"stepId":"httprequest-response-schema","description":"Check types, formats, and a pattern (the local echo API returns what's sent, so the values are in the request body)","httpRequest":{"url":"http://localhost:8092/api/invoices","method":"post","request":{"body":{"id":"3f2b8c1e-9a4d-4e6f-8b1a-2c3d4e5f6a7b","created":"2026-11-26T10:00:00Z","code":"INV-1042"}},"response":{"schema":{"type":"object","required":["id","created","code"],"properties":{"id":{"type":"string","format":"uuid"},"created":{"type":"string","format":"date-time"},"code":{"type":"string","pattern":"^INV-\\d+$"}}}},"statusCodes":[200]}} */}
 {/* test end */}
 
-Doc Detective enforces every [`ajv-formats`](https://ajv.js.org/packages/ajv-formats.html) format, both in `response.schema` and in OpenAPI response schemas. When a step sets `response.schema` and also validates against an OpenAPI response schema, Doc Detective checks only `response.schema`.
+Doc Detective enforces every [`ajv-formats`](https://ajv.js.org/packages/ajv-formats.html) format, both in `response.schema` and in OpenAPI response schemas. When a step sets `response.schema` and also validates against an OpenAPI response schema, Doc Detective checks only `response.schema`. When Doc Detective validates a response, it doesn't apply schema `default` values, so a default doesn't satisfy `required`.
 
 ### Reject unexpected response fields
 
