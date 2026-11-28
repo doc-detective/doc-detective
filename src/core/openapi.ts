@@ -26,7 +26,9 @@ let jsfPromise: Promise<any> | undefined;
 function getGenerator() {
   if (!jsfPromise) {
     jsfPromise = import("json-schema-faker").then(({ createGenerator }) =>
-      createGenerator({ optionalsProbability: 0 })
+      // useDefaultValue: a schema `default` is the value an example should carry,
+      // so mock responses and request examples use it instead of a random value.
+      createGenerator({ optionalsProbability: 0, useDefaultValue: true })
     );
   }
   return jsfPromise;
@@ -383,7 +385,8 @@ async function getExampleParameters(operation: any = {}, type: string = "", exam
   for (const parameter of operation.parameters) {
     if (parameter.in === type) {
       const value = await getExample(parameter, exampleKey);
-      if (value) {
+      // `!= null`: keep 0, false, and "" (often a schema default); null means no example.
+      if (value != null) {
         params.push({ key: parameter.name, value });
       }
     }
@@ -428,7 +431,7 @@ async function getExample(
     try {
       const generator = await getGenerator();
       example = await generator.generate(definition);
-      if (example) return example;
+      if (example != null) return example;
     } catch (error) {
       diag(`Error generating example: ${error}`);
     }
@@ -507,7 +510,7 @@ async function generateObjectExample(
       exampleKey,
       generateFromSchema
     );
-    if (objectExample) example[property] = objectExample;
+    if (objectExample != null) example[property] = objectExample;
   }
   return example;
 }
@@ -529,7 +532,7 @@ async function generateArrayExample(
 
   const example: any[] = [];
   const itemExample = await getExample(items, exampleKey, generateFromSchema);
-  if (itemExample) example.push(itemExample);
+  if (itemExample != null) example.push(itemExample);
 
   // Debug
   // console.log(example);
