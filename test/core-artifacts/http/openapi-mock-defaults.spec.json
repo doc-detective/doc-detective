@@ -1,0 +1,31 @@
+{
+  "specId": "openapi-mock-response-defaults",
+  "description": "A mock response built from an OpenAPI response schema uses each field's schema `default` instead of a random value.",
+  "tests": [
+    {
+      "testId": "openapi_mock_response_uses_schema_defaults",
+      "description": "openApi.mockResponse returns the schema defaults, checked with an inline response.schema",
+      "steps": [
+        {
+          "httpRequest": {
+            "openApi": {
+              "descriptionPath": "./widgets-defaults.openapi.json",
+              "operationId": "getWidgetDefaults",
+              "mockResponse": true
+            },
+            "response": {
+              "schema": {
+                "type": "object",
+                "required": ["count", "label"],
+                "properties": {
+                  "count": { "const": 7 },
+                  "label": { "const": "widget" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

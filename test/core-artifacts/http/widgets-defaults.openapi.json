@@ -1,0 +1,32 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Widgets API (mock response defaults fixture)",
+    "version": "0.0.1"
+  },
+  "servers": [{ "url": "http://localhost:8093" }],
+  "paths": {
+    "/api/widgets": {
+      "get": {
+        "operationId": "getWidgetDefaults",
+        "responses": {
+          "200": {
+            "description": "A widget. Each field has a schema `default`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["count", "label"],
+                  "properties": {
+                    "count": { "type": "integer", "default": 7 },
+                    "label": { "type": "string", "default": "widget" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

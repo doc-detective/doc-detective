@@ -26,7 +26,9 @@ let jsfPromise: Promise<any> | undefined;
 function getGenerator() {
   if (!jsfPromise) {
     jsfPromise = import("json-schema-faker").then(({ createGenerator }) =>
-      createGenerator({ optionalsProbability: 0 })
+      // useDefaultValue: a schema `default` is the value an example should carry,
+      // so mock responses and request examples use it instead of a random value.
+      createGenerator({ optionalsProbability: 0, useDefaultValue: true })
     );
   }
   return jsfPromise;

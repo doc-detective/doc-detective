@@ -355,6 +355,34 @@ describe("core/openapi coverage", function () {
       assert.equal(typeof body.when, "string");
     });
 
+    it("uses a schema `default` instead of a random value in generated examples", async function () {
+      // Mock responses (openApi.mockResponse) and request examples are built from
+      // these examples, so a field with a `default` should carry it.
+      const definition = defWith({
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { mode: { type: "string", default: "fast" } },
+              },
+            },
+          },
+        },
+        responses: jsonResponse({
+          type: "object",
+          required: ["count", "label"],
+          properties: {
+            count: { type: "integer", default: 7 },
+            label: { type: "string", default: "widget" },
+          },
+        }),
+      });
+      const result = await getOperation(definition, "getWidgets");
+      assert.deepEqual(result.example.response.body, { count: 7, label: "widget" });
+      assert.deepEqual(result.example.request.body, { mode: "fast" });
+    });
+
     it("returns an empty array body for an items-less array schema with no examples", async function () {
       const definition = defWith({
         responses: {
