@@ -1,0 +1,48 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Echo API (response.schema fixtures)",
+    "version": "0.0.1"
+  },
+  "servers": [{ "url": "http://localhost:8093" }],
+  "paths": {
+    "/api/items": {
+      "post": {
+        "operationId": "createItemIntegerId",
+        "responses": {
+          "200": {
+            "description": "Echoed item. The schema says `id` is an integer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": { "id": { "type": "integer" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tokens": {
+      "post": {
+        "operationId": "createTokenUuid",
+        "responses": {
+          "200": {
+            "description": "Echoed token. The schema says `token` is a UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["token"],
+                  "properties": { "token": { "type": "string", "format": "uuid" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1560,6 +1560,203 @@ describe("httpRequest coverage (stubbed axios)", function () {
       assert.match(result.description, /Response data matched the OpenAPI schema/);
     });
 
+    describe("response.schema (inline JSON Schema)", function () {
+      const UUID = "3f2b8c1e-9a4d-4e6f-8b1a-2c3d4e5f6a7b";
+      const inlineSchema = {
+        type: "object",
+        required: ["id", "email", "code"],
+        properties: {
+          id: { type: "string", format: "uuid" },
+          email: { type: "string", format: "email" },
+          code: { type: "string", pattern: "^INV-\\d+$" },
+        },
+      };
+      const plainStep = (schema) => ({
+        httpRequest: {
+          url: "http://api.example.com/",
+          method: "get",
+          statusCodes: [200],
+          response: { schema },
+        },
+      });
+
+      it("PASSes when the body matches the inline schema", async function () {
+        stubResponse({ status: 200, data: { id: UUID, email: "a@b.co", code: "INV-42" } });
+        const result = await httpRequest({ config, step: plainStep(inlineSchema) });
+        assert.equal(result.status, "PASS", result.description);
+        assert.equal(result.outputs.responseSchemaValid, true);
+        assert.match(result.description, /Response data matched the response schema/);
+      });
+
+      it("doesn't add schema defaults to the response (allowAdditionalFields: false)", async function () {
+        stubResponse({ status: 200, data: { id: 1 } });
+        const result = await httpRequest({
+          config,
+          step: {
+            httpRequest: {
+              url: "http://api.example.com/",
+              method: "get",
+              statusCodes: [200],
+              allowAdditionalFields: false,
+              response: {
+                body: { id: 1 },
+                schema: { type: "object", properties: { flag: { type: "boolean", default: false } } },
+              },
+            },
+          },
+        });
+        assert.equal(result.status, "PASS", result.description);
+        assert.deepEqual(result.outputs.response.body, { id: 1 });
+      });
+
+      it("doesn't let a schema default satisfy `required`", async function () {
+        stubResponse({ status: 200, data: {} });
+        const result = await httpRequest({
+          config,
+          step: plainStep({
+            type: "object",
+            required: ["id"],
+            properties: { id: { type: "string", default: "generated" } },
+          }),
+        });
+        assert.equal(result.status, "FAIL");
+        assert.equal(result.outputs.responseSchemaValid, false);
+      });
+
+      it("awaits an async (`$async`) schema instead of treating its promise as valid", async function () {
+        const asyncSchema = { $async: true, type: "object", required: ["id"] };
+        stubResponse({ status: 200, data: {} });
+        const bad = await httpRequest({ config, step: plainStep(asyncSchema) });
+        assert.equal(bad.status, "FAIL");
+        assert.equal(bad.outputs.responseSchemaValid, false);
+        assert.match(bad.description, /didn't match the response schema/);
+        stubResponse({ status: 200, data: { id: "x" } });
+        const good = await httpRequest({ config, step: plainStep(asyncSchema) });
+        assert.equal(good.status, "PASS", good.description);
+      });
+
+      it("PASSes a valid falsy body against an async schema", async function () {
+        stubResponse({ status: 200, data: 0 });
+        const result = await httpRequest({
+          config,
+          step: plainStep({ $async: true, type: "integer" }),
+        });
+        assert.equal(result.status, "PASS", result.description);
+        assert.equal(result.outputs.responseSchemaValid, true);
+      });
+
+      it("FAILs cleanly when the inline schema itself is invalid", async function () {
+        stubResponse({ status: 200, data: { id: UUID } });
+        const result = await httpRequest({
+          config,
+          step: plainStep({ type: "object", properties: { n: { minimum: "x" } } }),
+        });
+        assert.equal(result.status, "FAIL");
+        assert.equal(result.outputs.responseSchemaValid, false);
+        assert.match(result.description, /Couldn't check the response against the response schema/);
+      });
+
+      it("FAILs on a type mismatch and names the response schema", async function () {
+        stubResponse({ status: 200, data: { id: 7, email: "a@b.co", code: "INV-42" } });
+        const result = await httpRequest({ config, step: plainStep(inlineSchema) });
+        assert.equal(result.status, "FAIL");
+        assert.equal(result.outputs.responseSchemaValid, false);
+        assert.match(result.description, /Response data didn't match the response schema/);
+      });
+
+      it("FAILs when a format doesn't hold (uuid, email)", async function () {
+        stubResponse({ status: 200, data: { id: "not-a-uuid", email: "nope", code: "INV-42" } });
+        const result = await httpRequest({ config, step: plainStep(inlineSchema) });
+        assert.equal(result.status, "FAIL");
+        assert.match(result.description, /"format": "uuid"/);
+        assert.match(result.description, /"format": "email"/);
+      });
+
+      it("FAILs when a pattern doesn't match", async function () {
+        stubResponse({ status: 200, data: { id: UUID, email: "a@b.co", code: "42" } });
+        const result = await httpRequest({ config, step: plainStep(inlineSchema) });
+        assert.equal(result.status, "FAIL");
+        assert.match(result.description, /pattern/);
+      });
+
+      it("uses the inline schema instead of the OpenAPI response schema", async function () {
+        // OpenAPI says id is an integer; the inline schema says string. Inline wins.
+        stubResponse({ status: 201, data: { id: "abc" } });
+        const p = writeDefinition(sampleDefinition());
+        const result = await httpRequest({
+          config,
+          step: {
+            httpRequest: {
+              openApi: {
+                descriptionPath: p,
+                operationId: "createUser",
+                validateAgainstSchema: "response",
+                statusCode: 201,
+              },
+              request: { body: { name: "Jo" } },
+              response: { schema: { type: "object", properties: { id: { type: "string" } } } },
+            },
+          },
+        });
+        assert.equal(result.status, "PASS", result.description);
+        assert.equal(result.outputs.responseSchemaValid, true);
+        assert.match(result.description, /matched the response schema/);
+        assert.doesNotMatch(result.description, /OpenAPI schema/);
+      });
+
+      it("enforces formats in the OpenAPI response schema too", async function () {
+        const def = sampleDefinition();
+        def.paths["/users"].post.responses[201].content["application/json"].schema = {
+          type: "object",
+          properties: { id: { type: "string", format: "uuid" } },
+        };
+        stubResponse({ status: 201, data: { id: "not-a-uuid" } });
+        const p = writeDefinition(def);
+        const result = await httpRequest({
+          config,
+          step: {
+            httpRequest: {
+              openApi: {
+                descriptionPath: p,
+                operationId: "createUser",
+                validateAgainstSchema: "response",
+                statusCode: 201,
+              },
+              request: { body: { name: "Jo" } },
+            },
+          },
+        });
+        assert.equal(result.status, "FAIL");
+        assert.match(result.description, /didn't match the OpenAPI schema/);
+      });
+
+      it("enforces formats in the OpenAPI request schema too", async function () {
+        const def = sampleDefinition();
+        def.paths["/users"].post.requestBody.content["application/json"].schema = {
+          type: "object",
+          properties: { email: { type: "string", format: "email" } },
+        };
+        stubResponse({ status: 201, data: { id: 7 } });
+        const p = writeDefinition(def);
+        const result = await httpRequest({
+          config,
+          step: {
+            httpRequest: {
+              openApi: {
+                descriptionPath: p,
+                operationId: "createUser",
+                validateAgainstSchema: "request",
+                statusCode: 201,
+              },
+              request: { body: { email: "not-an-email" } },
+            },
+          },
+        });
+        assert.equal(result.status, "FAIL");
+        assert.match(result.description, /Request body didn't match the OpenAPI schema/);
+      });
+    });
+
     it("merges openApi.headers into request headers", async function () {
       stubResponse({ status: 201, data: { id: 7 } });
       const p = writeDefinition(sampleDefinition());

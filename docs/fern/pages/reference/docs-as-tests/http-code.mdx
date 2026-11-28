@@ -267,6 +267,12 @@ This procedure starts background processes with [`runCode`](/docs/actions/runcod
 
 <Markdown src="examples/http-request-response-required/_variants.mdx" />
 
+### `response.schema`
+
+**Varies:** `httpRequest.response.schema` · **Value:** a JSON Schema with `format: uuid`, `format: date-time`, and a `pattern` · **Effect:** fails unless the response body matches the schema's types, formats, and patterns.
+
+<Markdown src="examples/http-request-response-schema/_variants.mdx" />
+
 ### `overwrite: "true"`
 
 **Varies:** `httpRequest.overwrite` · **Value:** `true` · **Effect:** saves the response to `page-2.json` next to the test file. Replaces `page-2.json` with each new response.

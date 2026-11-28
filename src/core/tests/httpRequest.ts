@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import _Ajv from "ajv";
 const Ajv = _Ajv as unknown as typeof _Ajv.default;
+import _addFormats from "ajv-formats";
+const addFormats = _addFormats as unknown as typeof _addFormats.default;
 import { getOperation, loadDescription } from "../openapi.js";
 import {
   log,
@@ -271,6 +273,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       allowUnionTypes: true,
       coerceTypes: false,
     });
+    addFormats(ajv);
     const validateFn = ajv.compile(operation.schemas.request);
     const valid = validateFn(step.httpRequest.request.body);
     if (valid) {
@@ -378,36 +381,78 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     }
   }
 
-  // (3) Response body matches OpenAPI schema. APPLICABLE only when
-  // validateAgainstSchema is response/both and a response schema exists.
+  // (3) Response body matches a schema. APPLICABLE when `response.schema` is
+  // set, or when validateAgainstSchema is response/both and the OpenAPI
+  // operation has a response schema. The inline schema wins over OpenAPI.
   // Structurally-complex check -> compute the boolean, EXPOSE it as
   // `outputs.responseSchemaValid`, assert a trivial expression over it.
-  if (
-    (step.httpRequest.openApi?.validateAgainstSchema === "response" ||
-      step.httpRequest.openApi?.validateAgainstSchema === "both") &&
-    operation.schemas.response
-  ) {
+  const inlineResponseSchema = step.httpRequest.response?.schema;
+  const openApiResponseSchema =
+    step.httpRequest.openApi?.validateAgainstSchema === "response" ||
+    step.httpRequest.openApi?.validateAgainstSchema === "both"
+      ? operation?.schemas?.response
+      : undefined;
+  const responseSchema = inlineResponseSchema ?? openApiResponseSchema;
+  if (responseSchema) {
+    const schemaName = inlineResponseSchema ? "response" : "OpenAPI";
+    // A check, not a transform: useDefaults would fill a missing field before
+    // `required` runs (a false PASS) and write defaults into the response.
     const ajv = new Ajv({
       strictSchema: false,
       logger: false,
-      useDefaults: true,
+      useDefaults: false,
       allErrors: true,
       allowUnionTypes: true,
       coerceTypes: false,
     });
-    const validateFn = ajv.compile(operation.schemas.response);
-    const valid = validateFn(response.data);
-    result.outputs.responseSchemaValid = !!valid;
+    // Without formats, strictSchema: false silently ignores `format`.
+    addFormats(ajv);
+    // An author-written schema can be invalid (`minimum: "x"`), which makes
+    // compile throw. Report that as a FAIL rather than crashing the step.
+    let validateFn: ReturnType<typeof ajv.compile> | undefined;
+    let compileError = "";
+    try {
+      validateFn = ajv.compile(responseSchema);
+    } catch (error: any) {
+      validateFn = undefined;
+      compileError = ajv.errors
+        ? ajv.errorsText(ajv.errors)
+        : String(error?.message ?? error);
+    }
+    // A `$async` schema returns a promise that rejects with the errors, so
+    // await it rather than reading the promise as a pass.
+    let valid = false;
+    let validationErrors: any = null;
+    if (validateFn) {
+      try {
+        const outcome = await validateFn(response.data);
+        // An async validator resolves with the data itself (maybe `0` or
+        // `false`), so resolving at all means valid.
+        valid = (validateFn as any).$async ? true : !!outcome;
+        validationErrors = validateFn.errors;
+      } catch (error: any) {
+        valid = false;
+        validationErrors = error?.errors ?? String(error?.message ?? error);
+      }
+    }
+    result.outputs.responseSchemaValid = valid;
     specs.push({
       statement: `$$outputs.responseSchemaValid == true`,
       severity: "fail",
     });
-    if (valid) {
-      descriptions.push(`Response data matched the OpenAPI schema.`);
+    if (!validateFn) {
+      const fix = inlineResponseSchema
+        ? "Fix `response.schema`."
+        : "Fix the response schema in the OpenAPI description.";
+      descriptions.push(
+        `Couldn't check the response against the ${schemaName} schema because the schema isn't valid JSON Schema: ${compileError}. ${fix}`
+      );
+    } else if (valid) {
+      descriptions.push(`Response data matched the ${schemaName} schema.`);
     } else {
       descriptions.push(
-        `Response data didn't match the OpenAPI schema. ${JSON.stringify(
-          validateFn.errors,
+        `Response data didn't match the ${schemaName} schema. ${JSON.stringify(
+          validationErrors,
           null,
           2
         )}`
