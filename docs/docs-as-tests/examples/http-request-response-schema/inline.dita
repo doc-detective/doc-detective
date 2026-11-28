@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-response-schema">
+  <title>Match the response to a schema</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-response-schema","detectSteps":false}'/>
+    <p>Send a <codeph>POST</codeph> request to <codeph>http://localhost:8093/api/invoices</codeph> with an invoice. In the response, <codeph>id</codeph> is a UUID, <codeph>created</codeph> is a date-time, <codeph>code</codeph> matches <codeph>^INV-[0-9]+$</codeph>, and <codeph>total</codeph> is a number.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/invoices","method":"post","request":{"body":{"id":"3f2b8c1e-9a4d-4e6f-8b1a-2c3d4e5f6a7b","created":"2026-11-26T10:00:00Z","code":"INV-1042","total":19.99}},"response":{"schema":{"type":"object","required":["id","created","code","total"],"properties":{"id":{"type":"string","format":"uuid"},"created":{"type":"string","format":"date-time"},"code":{"type":"string","pattern":"^INV-[0-9]+$"},"total":{"type":"number"}}}}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

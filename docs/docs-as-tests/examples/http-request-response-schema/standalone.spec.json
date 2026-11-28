@@ -1,0 +1,52 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-request-response-schema",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8093/api/invoices",
+            "method": "post",
+            "request": {
+              "body": {
+                "id": "3f2b8c1e-9a4d-4e6f-8b1a-2c3d4e5f6a7b",
+                "created": "2026-11-26T10:00:00Z",
+                "code": "INV-1042",
+                "total": 19.99
+              }
+            },
+            "response": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "created",
+                  "code",
+                  "total"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "created": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^INV-[0-9]+$"
+                  },
+                  "total": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
