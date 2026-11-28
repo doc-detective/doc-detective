@@ -1,0 +1,5 @@
+= Drag by text and selector strings
+
+. Go to http://localhost:8092/drag-drop-test.html[the drag and drop page].
+. Drag *Table* onto *Drop Zone 1*.
+. Check that *Table (dropped)* appears in the drop zone.

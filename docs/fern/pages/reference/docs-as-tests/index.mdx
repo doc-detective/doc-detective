@@ -21,8 +21,15 @@ For how each mode works, see [Detected tests](/docs/test-docs/detected), [Inline
 
 | To see | Go to |
 |---|---|
+| Every example that uses a given field or form | [Examples by feature](/reference/docs-as-tests/feature-index) |
 | Opening pages, finding elements, clicking, typing, dragging, swiping, waiting, and checking links | [Navigation and interaction](/reference/docs-as-tests/navigation-interaction) |
 | HTTP requests, OpenAPI operations, stubbed requests, shell commands, code blocks, and browser scripts | [HTTP and code](/reference/docs-as-tests/http-code) |
+| Screenshots, crops, annotations, and recordings | [Screenshots and recordings](/reference/docs-as-tests/capture) |
+| Cookies, browser state, tabs, windows, processes, apps, and where a test runs | [Sessions and surfaces](/reference/docs-as-tests/sessions-surfaces) |
+| Variables, expressions, assertions, conditions, retries, and routing | [Data and control flow](/reference/docs-as-tests/data-control-flow) |
+| IDs, several tests in a file, setup, cleanup, ignore blocks, last-verified dates, includes, and DITA maps | [Test structure](/reference/docs-as-tests/structure) |
+| Every statement syntax and default detection rule, by format | [Formats](/reference/docs-as-tests/formats) |
+| Your own detection rules and statement syntax, from `fileTypes` | [Custom detection](/reference/docs-as-tests/custom-detection) |
 
 ## What each mode can express
 
@@ -35,3 +42,5 @@ For how each mode works, see [Detected tests](/docs/test-docs/detected), [Inline
 | Every other action and option, such as `wait`, `record`, `startSurface`, and `dragAndDrop` | A `step` statement | A `step` statement | A step |
 | Test fields, such as `runOn`, `if`, `onFail`, and `publicVariables` | The `test` statement | The `test` statement | The test |
 | Test `before` and `after` | Not available | Not available | The test |
+
+With your own `fileTypes` rules, detection can produce any step from the prose. See [Custom detection](/reference/docs-as-tests/custom-detection).

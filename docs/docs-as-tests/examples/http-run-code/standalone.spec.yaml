@@ -10,7 +10,8 @@ tests:
             - 0
           workingDirectory: .
           timeout: 10000
-          path: output/greeting.txt
+          path: greeting.txt
+          directory: output
           maxVariation: 0
           overwrite: "false"
       - runCode:

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="formats-dita-code-ignore-block">
+  <title>Check the demo pages</title>
+  <body>
+    <ol>
+      <li>Check that <xref href="http://localhost:8092/index.html" scope="external" format="html">the elements demo</xref> loads.</li>
+    </ol>
+    <p>To fetch the page from a terminal instead, run:</p>
+    <codeblock outputclass="language-bash">curl http://localhost:8092/index.html</codeblock>
+  </body>
+</topic>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-workingdirectory">
+  <title>Run a command in a folder</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-shell-workingdirectory","detectSteps":false}'/>
+    <p>From the folder that holds this page, print the folder's name:</p>
+    <codeblock outputclass="language-shell">node -e "console.log(require('path').basename(process.cwd()))"</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(require(&apos;path&apos;).basename(process.cwd()))\"","workingDirectory":".","stdio":"http-shell-workingdirectory"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

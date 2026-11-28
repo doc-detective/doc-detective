@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-code-background",
+      "steps": [
+        {
+          "runCode": {
+            "language": "js",
+            "code": "require('http').createServer((q, r) => r.end('ok')).listen(8251);",
+            "background": {
+              "name": "http-code-server",
+              "waitUntil": {
+                "port": 8251
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": "http-code-server"
+        }
+      ]
+    }
+  ]
+}

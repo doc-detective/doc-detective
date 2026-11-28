@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: capture-visual-checks
+    runOn:
+      - platforms:
+          - windows
+          - mac
+          - linux
+        browsers:
+          name: chrome
+          headless: true
+    steps:
+      - goTo: http://localhost:8092/mask.html
+      - screenshot:
+          path: capture-billing.png
+          directory: .dd-output
+          maxVariation: 0.05
+          threshold: 0.2
+          maxDiffPixels: 500
+          mask:
+            - "#clock"
+            - selector: .stamp
+      - screenshot:
+          path: capture-panel.png
+          directory: .dd-output
+          overwrite: "true"
+          crop: "#panel"
+      - goTo: http://localhost:8092/screenshot-banner.html
+      - screenshot:
+          path: capture-content.png
+          directory: .dd-output
+          overwrite: "true"
+          surface: chrome
+          style: ".cookie-banner { visibility: hidden !important; }"
+          stable: true
+          animations: disabled
+      - screenshot: true
+      - goTo: http://localhost:8092/screenshot-tall.html
+      - screenshot:
+          path: capture-tall.png
+          directory: .dd-output
+          overwrite: "true"
+          fullPage: true
+      - goTo: http://localhost:8092/find-image.html
+      - screenshot:
+          path: http://localhost:8092/find-image-chart.png
+          crop: "#sample-chart"
+          maxVariation: 0.2

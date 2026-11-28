@@ -1,0 +1,56 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "if": [
+    "$$platform oneOf [linux, mac, windows]"
+  ],
+  "tests": [
+    {
+      "testId": "data-node-check",
+      "if": [
+        "$$platform oneOf [linux, mac, windows]"
+      ],
+      "publicVariables": [
+        "NODE_MAJOR"
+      ],
+      "steps": [
+        {
+          "stepId": "node-version",
+          "runShell": "node --version",
+          "assertions": "$$outputs.stdio.stdout matches /^v[0-9]+\\./",
+          "variables": {
+            "NODE_MAJOR": "extract($$stdio.stdout, \"v([0-9]+)\")"
+          }
+        },
+        {
+          "if": [
+            "$$steps.node-version.outputs.exitCode == 0",
+            "$$steps.node-version.outputs.stdio.stdout matches /^v/"
+          ],
+          "runShell": "npm --version",
+          "assertions": [
+            "$$outputs.exitCode == 0",
+            "$NODE_MAJOR >= 18"
+          ]
+        },
+        {
+          "if": "$$platform == windows",
+          "runShell": "where node",
+          "onSkip": [
+            {
+              "continue": true
+            }
+          ]
+        },
+        {
+          "if": "$$platform != windows",
+          "runShell": "command -v node",
+          "onFail": [
+            {
+              "stop": "test"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

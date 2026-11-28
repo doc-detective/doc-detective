@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check a page in another tab or window</title></head>
+<body>
+<!-- test {"testId":"sessions-select-window-tab","detectSteps":false,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]} -->
+<h1>Check a page in another tab or window</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Click the Open child in new tab link. The child page opens in a new tab.
+    <!-- step {"click":"Open child in new tab"} --></li>
+  <li>In the first window, check that the second tab reads "PAGE linked".
+    <!-- step {"find":{"elementText":"PAGE linked","surface":{"browser":"firefox","window":0,"tab":1}}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

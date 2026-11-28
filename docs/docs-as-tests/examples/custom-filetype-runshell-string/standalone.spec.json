@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "custom-filetype-runshell-string",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"process.exit(require('fs').readFileSync(process.argv[1], 'utf8').includes('TODO') ? 1 : 0)\" detected.txt",
+            "workingDirectory": "."
+          }
+        }
+      ]
+    }
+  ]
+}

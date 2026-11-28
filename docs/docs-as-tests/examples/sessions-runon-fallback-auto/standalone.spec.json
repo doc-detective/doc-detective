@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-runon-fallback-auto",
+      "runOn": [
+        {
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          },
+          "browserFallback": "auto"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "find": "MULTI-TAB HOME"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+= Find an element by an attribute value
+
+. Go to http://localhost:8092/enhanced-elements.html[the element test page].
+. Find the *Count: 5* button.

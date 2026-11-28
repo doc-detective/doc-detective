@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-checkfile-timeout">
+  <title>Wait for a slow file</title>
+  <body>
+    <p>Start a job that writes its result to the <codeph>output</codeph> folder after one second:</p>
+    <codeblock outputclass="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});setTimeout(()=&gt;fs.writeFileSync('output/late.txt','done'),1000)"</codeblock>
+    <p>Wait up to 15 seconds for <codeph>output/late.txt</codeph>.</p>
+  </body>
+</topic>

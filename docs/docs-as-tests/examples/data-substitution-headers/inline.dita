@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-substitution-headers">
+  <title>Send a client name in a header</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-substitution-headers","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Load the variables in <codeph>shop.env</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadVariables":"shop.env"}'/></info></step>
+      <step><cmd>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/products</codeph> with the header <codeph>X-Test: $SHOP_CLIENT</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/products","method":"get","request":{"headers":{"X-Test":"$SHOP_CLIENT"}},"response":{"headers":{"x-echo-test":"docs"}}}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

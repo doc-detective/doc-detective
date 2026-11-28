@@ -1,0 +1,143 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "outputDir": ".dd-output",
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "fileTypes": [
+    {
+      "name": "markdown-custom",
+      "extensions": [
+        "md",
+        "mdx"
+      ],
+      "inlineStatements": {
+        "in": [
+          "comment"
+        ]
+      },
+      "markup": [
+        {
+          "name": "checkImage",
+          "image": {},
+          "captures": [
+            "src"
+          ],
+          "actions": [
+            "checkLink"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "asciidoc-custom",
+      "extensions": [
+        "adoc"
+      ],
+      "inlineStatements": {
+        "in": [
+          {
+            "comment": {},
+            "regex": "^\\(\\s*([\\s\\S]*?)\\s*\\)$"
+          }
+        ]
+      },
+      "markup": [
+        {
+          "name": "checkImage",
+          "image": {},
+          "captures": [
+            "src"
+          ],
+          "actions": [
+            "checkLink"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "html-custom",
+      "extensions": [
+        "html"
+      ],
+      "inlineStatements": {
+        "in": [
+          "comment"
+        ]
+      },
+      "markup": [
+        {
+          "name": "checkImage",
+          "image": {},
+          "captures": [
+            "src"
+          ],
+          "actions": [
+            "checkLink"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rst-custom",
+      "extensions": [
+        "rst"
+      ],
+      "inlineStatements": {
+        "in": [
+          "comment"
+        ]
+      },
+      "markup": [
+        {
+          "name": "checkImage",
+          "image": {},
+          "captures": [
+            "src"
+          ],
+          "actions": [
+            "checkLink"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dita-custom",
+      "extensions": [
+        "dita"
+      ],
+      "inlineStatements": {
+        "in": [
+          {
+            "element": {
+              "tag": [
+                "data"
+              ],
+              "attributes": {
+                "name": "^doc-detective$"
+              }
+            },
+            "value": "attributes.value"
+          }
+        ]
+      },
+      "markup": [
+        {
+          "name": "checkImage",
+          "image": {},
+          "captures": [
+            "src"
+          ],
+          "actions": [
+            "checkLink"
+          ]
+        }
+      ]
+    }
+  ]
+}

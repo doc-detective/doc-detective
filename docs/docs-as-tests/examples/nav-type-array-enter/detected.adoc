@@ -1,0 +1,14 @@
+= Type text and press Enter
+
+// (test {"testId":"nav-type-array-enter","detectSteps":true})
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
++
+// (step {"goTo":"http://localhost:8092/type-echo.html"})
+. Click *Type here:*.
+. Type `Hello` and press Enter.
++
+// (step {"type":["Hello","$ENTER$"]})
+. Check that the page shows *Hello* below the field.
+
+// (test end)

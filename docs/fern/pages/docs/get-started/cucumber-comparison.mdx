@@ -1,0 +1,51 @@
+---
+title: Cucumber and Doc Detective
+description: How Cucumber and Doc Detective differ for documentation, screenshot, and recording work, when each fits, and how to use them together.
+---
+
+[Cucumber](https://cucumber.io/) and Doc Detective both turn readable text into tests, but they start from different places. Cucumber runs behavior specs that your team writes in Gherkin, through step definitions you write in code. Doc Detective runs the procedures in your documentation, through actions it already has.
+
+This page helps you choose between them for documentation, screenshot, and recording work, or use them together.
+
+## How they differ
+
+| | Cucumber | Doc Detective |
+|---|---|---|
+| What you test | Behavior specs in `.feature` files | Your docs: Markdown, MDX, AsciiDoc, HTML, DITA, reStructuredText, and Gherkin `.feature` files |
+| Where steps come from | Step definitions you write for each phrase | Built-in actions, detected from your docs' text or written as inline statements |
+| Browser and app control | None built in. Your step definitions call a library such as Playwright or Selenium | Built in, for Chrome, Firefox, and Safari, with experimental support for native apps |
+| Screenshots | Your step definitions take them and attach them to the report | A `screenshot` step, with crops, masks, and visual comparison against the image in your docs |
+| Recording | Your step definitions start and stop it | A `record` step, or `autoRecord` for a whole test |
+| Reports | Cucumber JSON, JUnit, HTML, and others | Terminal, JSON, HTML, JUnit, Markdown, and Cucumber JSON |
+| Languages | Many, including JavaScript, Java, Ruby, and Python | A CLI and a JavaScript API. Tests are JSON or YAML, or live in your docs |
+
+## When Doc Detective fits
+
+Choose Doc Detective when the docs are what you're testing:
+
+- **Your procedures are already written.** Doc Detective tests the steps in your docs as they are, so you don't keep a second copy of them in test code.
+- **Your screenshots need to stay current.** A [`screenshot` step](/docs/test-docs/capture-screenshots-guide) takes a screenshot for your docs and [compares it](/docs/test-docs/screenshot-visual-regression) with the image in your repository. A changed UI then shows up as a failed or updated image.
+- **You want recordings of your procedures.** A [`record` step](/docs/test-docs/record-video-guide) records the procedure as a video you can publish.
+- **Your writers don't write code.** Tests are JSON, YAML, or a few phrases, with no step definitions to maintain.
+
+## When Cucumber fits
+
+Choose Cucumber when the spec is the product, not the docs:
+
+- **The `.feature` files are the shared spec.** Product, QA, and engineering agree on behavior in Gherkin, and the tests prove it.
+- **Your steps need custom code.** Steps that seed a database, call internal services, or check application state fit in step definitions.
+- **Your test suite isn't in JavaScript.** Cucumber runs in Java, Ruby, Python, and other languages.
+
+## Use them together
+
+You don't have to choose one:
+
+- **Run your `.feature` files with Doc Detective.** Doc Detective reads [Gherkin files](/docs/test-docs/input-formats/gherkin) directly. Each scenario becomes a test. Common phrases such as `I go to`, `I click`, and `I take a screenshot` map to actions, with no step definitions to write.
+- **Test your docs from a Cucumber suite.** A [step definition can call Doc Detective](/docs/ci/cucumber) and fail the scenario when a doc test fails. Your docs then pass or fail in the same run as your features.
+- **Send Doc Detective results to your test-management tool.** The [`cucumber` reporter](/docs/ci/reporters-and-artifacts) writes Cucumber JSON, which Xray, Allure, and other tools import.
+
+## Next steps
+
+- [Create your first test](/docs/get-started/create-your-first-test)
+- [Gherkin input format](/docs/test-docs/input-formats/gherkin)
+- [Run Doc Detective from a Cucumber suite](/docs/ci/cucumber)

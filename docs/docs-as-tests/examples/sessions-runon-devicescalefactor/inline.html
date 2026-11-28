@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the page on a 2x display</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-devicescalefactor","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"deviceScaleFactor":2}}]} -->
+<h1>Check the page on a 2x display</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Check that the device pixel ratio is <code>2</code>.
+    <!-- step {"runBrowserScript":{"script":"return String(devicePixelRatio);","output":"2"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

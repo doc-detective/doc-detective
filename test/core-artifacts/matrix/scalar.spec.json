@@ -1,0 +1,28 @@
+{
+  "specId": "matrix-scalar",
+  "description": "A `runOn` `matrix` with one scalar key runs the test once per value, and each context's steps see only their own value (ADR 01240).",
+  "tests": [
+    {
+      "testId": "scalar-in-steps",
+      "description": "Two contexts, `~word=alpha` and `~word=beta`. Each echoes its own value and asserts it.",
+      "runOn": [
+        {
+          "matrix": {
+            "word": [
+              "alpha",
+              "beta"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo $$matrix.word",
+            "stdio": "/$$matrix.word/"
+          }
+        }
+      ]
+    }
+  ]
+}

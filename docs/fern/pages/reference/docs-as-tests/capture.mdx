@@ -1,0 +1,558 @@
+---
+title: Screenshots and recordings, written as tests
+sidebar-title: Screenshots and recordings
+description: Procedures that take, crop, and annotate screenshots, draw annotations on a live page, and record video, shown as plain prose, detected tests, inline tests, and standalone specs in every supported format.
+---
+
+Each example shows one procedure as prose, as detected tests, as inline tests, and as a standalone spec. For what each tab holds, see [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+In a detected variant, a `step` statement holds each step that default detection can't produce, such as a cropped screenshot or a `record` step. Each of those statements also works on its own, because a run with detection off reads only the statements. That's why each detected variant also opens its page with a `goTo` statement.
+
+The examples write their images and videos to a `.dd-output` folder next to the example files, and Git ignores that folder.
+
+## Take screenshots of a sign-in form
+
+This procedure uses [`screenshot`](/docs/actions/screenshot) as a path and as an object with `path`, `directory`, `maxVariation`, `overwrite`, [`crop`](/reference/schemas/crop-by-element-detailed), and [`annotations`](/reference/schemas/annotation). The test sets [`annotationDefaults`](/reference/schemas/annotation-defaults) and `autoScreenshot`.
+
+<Markdown src="examples/capture-screenshots/_variants.mdx" />
+
+### What detection finds
+
+An image with the `screenshot` class becomes a `screenshot` step that saves to the image's path. Each format marks the class its own way:
+
+| Format | Image with the `screenshot` class |
+|---|---|
+| Markdown | `![The sample form](path.png){.screenshot}` |
+| MDX | `<img src="path.png" alt="The sample form" className="screenshot" />` |
+| AsciiDoc | `image:path.png[The sample form,role=screenshot]` |
+| HTML | `<img src="path.png" alt="The sample form" class="screenshot">` |
+| reStructuredText | `.. image:: path.png` with `:class: screenshot` |
+| DITA | `<image href="path.png" outputclass="screenshot">` |
+
+The link also becomes a `checkLink` step, and the bold **Submit by ID** becomes a `find` step. The cropped and annotated screenshots are `step` statements, because detection only produces a screenshot of the whole viewport.
+
+In AsciiDoc, the image inside a list item uses the inline `image:` macro. Detection doesn't read a block `image::` macro that follows a list continuation.
+
+### Screenshot forms in this example
+
+| Step | What it does |
+|---|---|
+| `"screenshot": ".dd-output/capture-form.png"` | Saves the viewport to the path. If a file is already there, compares against it with the default `maxVariation` of `0.05`. |
+| `crop` with `elementText` and per-side `padding` | Saves only the **Submit by ID** button. `maxVariation` of `0.2` with `overwrite` set to `aboveVariation` replaces the reference only when more than 20% of the pixels change. |
+| `crop` with `selector` and a single `padding` | Saves the inputs section, then draws `annotations` on the image. `overwrite` set to `true` replaces the image on every run. |
+
+The annotations cover every annotation type, and each type's target as a selector string:
+
+| Annotation | Target and placement |
+|---|---|
+| `badge` | A selector string, nudged left with a `position` `offset`, and an `elementTestId` object with its own `timeout`. |
+| `callout` | A selector string, placed to the `right` with a named `position`. Its `style` sets `maxWidth`, `fontSize`, `background`, and `padding`. |
+| `outline` | A selector string, and an `elementAttribute` object whose `style` sets `color`, `radius`, and `opacity`. |
+| `blur` | A selector string. Its `style` sets the blur `intensity`. |
+| `arrow` | A selector string with a `position` point (`x` and `y`), and a target that's only a point in the image. |
+| `text` | A selector string with the named `position` `bottom`, and a target that's only a named region. |
+
+`annotationDefaults` on the test sets the color for every annotation type and the badge colors, and an annotation's own `style` wins over it. The example's detected run also sets `annotationDefaults` and `overwriteScreenshots` in its [config](/reference/schemas/config), in `docs/docs-as-tests/examples/capture-screenshots/doc-detective.json`. A test's theme wins over the config's, and `overwriteScreenshots` replaces every step's `overwrite`.
+
+The test sets `autoScreenshot` to `true`, so Doc Detective also saves a screenshot after every step to the run folder. The standalone specs set it on the [spec](/reference/schemas/specification), where it applies to every test in the file. A test's own `autoScreenshot` overrides the spec's.
+
+## Point out the controls on a toolbar
+
+This procedure uses [`annotate`](/docs/actions/annotate) to `add`, `update`, and `clear` annotations that stay on the page across steps, and a [`screenshot`](/docs/actions/screenshot) that shows them.
+
+<Markdown src="examples/capture-annotate/_variants.mdx" />
+
+### Annotations in this example
+
+| Annotation | Fields |
+|---|---|
+| `save-badge` | A `badge` on a selector string. The `update` step moves it to the check icon and changes its `label`. |
+| `check-outline` | An `outline` on an [`elementImage`](/reference/schemas/image-detailed) target, `check-icon.svg` in the example folder, with a `threshold` and a `timeout`. `track` keeps it on the icon if the page moves, and the `draw` transition sets how it appears. |
+| `hint` | A `callout` on an `elementId` with a `position` and `fade` transitions. `clear` with a list of ids removes it. |
+| `banner` | A `text` box in the top-right region that clears itself after a `duration` of 3000 milliseconds. |
+| `redact` | A `blur` with `all`, so it hides every match, and the `none` transition, so the hidden text never shows. |
+
+`clear` set to `true` removes every annotation that's left. The test's `annotationDefaults` sets the font size, a `background`, `opacity`, `radius`, `padding`, `maxWidth`, and blur `intensity` for every type, the `callout` colors, and a default `transition`. The standalone specs set `annotationDefaults` on the spec instead, where it applies to every test in the file. A test's theme wins over the spec's. It sets `autoScreenshot` to `false`, so the run saves only the screenshot the procedure asks for.
+
+`track`, `transition`, and `duration` change how annotations behave in a recording. A screenshot shows each annotation at the moment the screenshot is taken.
+
+### What detection finds
+
+The link becomes a `goTo` step and a `checkLink` step. No default rule produces `annotate` or a screenshot without an image, so those are statements in every detected variant.
+
+## Record a walkthrough
+
+This procedure uses [`record`](/docs/actions/record) as `true`, as a path, and as an object with `path`, `directory`, `name`, `surface`, `engine`, `overwrite`, [`checkpoints`](/reference/schemas/recording-checkpoints-detailed), and [`verify`](/reference/schemas/recording-verify-guards). It stops recordings with [`stopRecord`](/docs/actions/stoprecord) by name, with a `name` object, and with `true`, after a [`wait`](/docs/actions/wait) so each video has something in it.
+
+<Markdown src="examples/capture-recording/_variants.mdx" />
+
+### Where each test runs
+
+Recording the screen needs a display, so each test sets `runOn`:
+
+| Test | Runs on | Elsewhere |
+|---|---|---|
+| Record the browser tab | Headed Chrome on Windows and macOS, and headless Chrome on Linux | `SKIPPED` |
+| Record the screen | Headed Chrome on Windows and macOS | `SKIPPED` |
+
+The `browser` engine records the Chrome tab in a headed or a headless browser. The `ffmpeg` engine records the screen, so it needs a headed browser.
+
+### Recording forms in this example
+
+| Step | What it does |
+|---|---|
+| `record` with `name`, `surface`, `engine` `browser`, `checkpoints`, and `verify` | Records the Chrome tab to `capture-walkthrough.webm`. `checkpoints` saves a screenshot after each step and compares it with the last run's. `verify` fails the stop step if the video is shorter than half a second, longer than two minutes, or black. With `resolution` set to `true`, it also fails if the video isn't the tab's size. |
+| `"stopRecord": { "name": "walkthrough" }` | Stops the recording named `walkthrough`. |
+| `"record": true` | Records to `<stepId>.mp4` in `outputDir`, with the engine Doc Detective picks for the context. |
+| `record` with `name` and an `engine` object, `target` `display` | Records the whole screen to `capture-screen.mp4` with `ffmpeg` at 15 frames a second. |
+| `"stopRecord": "screen"` | Stops the recording named `screen`. |
+| `engine` object with `target` `window` | Records only the active window. |
+| `engine` object with `target` `viewport`, and `"checkpoints": true` | Records only the browser's content area. It compares a screenshot after each step with the last run's, with the default settings. |
+| `"engine": "ffmpeg"` | Records with `ffmpeg` and its default `target`, the whole screen. |
+| `"record": ".dd-output/capture-quick.gif"` | Records a GIF. With no `overwrite`, it skips the recording when the file already exists. |
+| `"stopRecord": true` | Stops the most recent recording. |
+
+Every test sets `autoRecord` to `false`, so the run records only what the procedure asks for. The standalone specs set it once on the spec.
+
+The detected, inline, and standalone variants write the same files. The first run of the GIF step writes `capture-quick.gif`, and later runs skip that step, which doesn't fail the test. `"record": true` also skips when its file exists.
+
+### What detection finds
+
+The link becomes a `goTo` step and a `checkLink` step. **Type here:** after "Click" becomes a `click` step and a `find` step, and the quoted text after "Type" becomes a `type` step. No default rule produces `record`, `wait`, or `stopRecord`, so those are statements in every detected variant.
+
+## Check pages for visual changes
+
+This procedure compares new [`screenshot`](/docs/actions/screenshot) images with reference images. It uses `threshold`, `maxDiffPixels`, and `mask` to ignore what changes on every visit, `crop` as a selector string, `surface`, `style`, `stable`, `animations`, and `fullPage`. It also compares against a reference image at a URL, and takes a screenshot with `true`.
+
+<Markdown src="examples/capture-visual-checks/_variants.mdx" />
+
+### Screenshot options in this example
+
+| Step | What it does |
+|---|---|
+| `mask` with a selector string and a `selector` object | Paints `#clock` and every `.stamp` element the same color in both images before comparing, so the times that change on every visit don't count. `threshold` sets how different a pixel's color must be to count as changed, and `maxDiffPixels` caps the changed pixels alongside `maxVariation`. |
+| `"crop": "#panel"` | Saves only the element that matches the selector or display text. |
+| `surface`, `style`, `stable`, and `animations` | Takes the screenshot in the `chrome` browser surface with the cookie banner hidden by CSS. It waits until two images in a row match, and stops animations while it takes the screenshot. |
+| `"fullPage": true` | Saves the whole page, including the parts you scroll to, not only the viewport. |
+| `path` set to a URL | Compares the chart on the page with `find-image-chart.png` on the test server. Doc Detective never writes to a URL reference, so the new image goes to the run folder. |
+| `"screenshot": true` | Saves the viewport to `<stepId>.png` in `outputDir`. |
+
+The test runs in headless Chrome on Windows, macOS, and Linux. The first run of the masked step has no reference to compare with, so it saves one. Later runs compare with it.
+
+### What detection finds
+
+Each link becomes a `goTo` step and a `checkLink` step. No default rule produces these screenshot options, so the screenshots are statements in every detected variant.
+
+## Permutations
+
+Each example below varies one setting, so you can compare it with its neighbors. For the full procedures that combine them, see the sections above.
+
+## `screenshot` permutations
+
+Each example opens a test-server page and takes one screenshot. The pages whose content keeps changing open with a `goTo` that doesn't wait for the page to stop changing.
+
+### String path
+
+**Varies:** `screenshot` · **Value:** `".dd-output/banner.png"` · **Effect:** saves the viewport to the path, and compares it with the file already there, if any.
+
+<Markdown src="examples/capture-screenshot-form-string/_variants.mdx" />
+
+### Object with `path` and `directory`
+
+**Varies:** `screenshot` · **Value:** `{ "path", "directory" }` · **Effect:** saves the viewport to `banner.png` in the `.dd-output` folder.
+
+<Markdown src="examples/capture-screenshot-form-object/_variants.mdx" />
+
+### `true`
+
+**Varies:** `screenshot` · **Value:** `true` · **Effect:** saves the viewport to `<stepId>.png` in `outputDir`.
+
+<Markdown src="examples/capture-screenshot-form-true/_variants.mdx" />
+
+### `overwrite: "true"`
+
+**Varies:** `screenshot.overwrite` · **Value:** `"true"` · **Effect:** replaces the saved image on every run without comparing.
+
+<Markdown src="examples/capture-screenshot-overwrite-true/_variants.mdx" />
+
+### `overwrite: "false"`
+
+**Varies:** `screenshot.overwrite` · **Value:** `"false"` · **Effect:** keeps the saved image, and skips the step when the file already exists.
+
+<Markdown src="examples/capture-screenshot-overwrite-false/_variants.mdx" />
+
+### `overwrite: "aboveVariation"`
+
+**Varies:** `screenshot.overwrite` · **Value:** `"aboveVariation"` · **Effect:** replaces the saved image only when the new one differs by more than `maxVariation`.
+
+<Markdown src="examples/capture-screenshot-overwrite-abovevariation/_variants.mdx" />
+
+### `maxVariation: 0.01`
+
+**Varies:** `screenshot.maxVariation` · **Value:** `0.01` · **Effect:** warns when more than 1% of the pixels differ from the saved image.
+
+<Markdown src="examples/capture-screenshot-maxvariation-low/_variants.mdx" />
+
+### `maxVariation: 0.5`
+
+**Varies:** `screenshot.maxVariation` · **Value:** `0.5` · **Effect:** warns only when more than half of the pixels differ from the saved image.
+
+<Markdown src="examples/capture-screenshot-maxvariation-high/_variants.mdx" />
+
+### `crop` as a string
+
+**Varies:** `screenshot.crop` · **Value:** `"#submit-button"` · **Effect:** saves only the element that matches the selector or display text.
+
+<Markdown src="examples/capture-screenshot-crop-string/_variants.mdx" />
+
+### `crop.padding` as a number
+
+**Varies:** `screenshot.crop.padding` · **Value:** `10` · **Effect:** adds 10 pixels on every side of the element.
+
+<Markdown src="examples/capture-screenshot-crop-padding-number/_variants.mdx" />
+
+### `crop.padding` as an object
+
+**Varies:** `screenshot.crop.padding` · **Value:** `{ "top": 8, "right": 16, "bottom": 8, "left": 16 }` · **Effect:** adds a different amount of space on each side of the element.
+
+<Markdown src="examples/capture-screenshot-crop-padding-object/_variants.mdx" />
+
+### `fullPage: true`
+
+**Varies:** `screenshot.fullPage` · **Value:** `true` · **Effect:** saves the whole page, including the parts you scroll to.
+
+<Markdown src="examples/capture-screenshot-fullpage-true/_variants.mdx" />
+
+### `fullPage: false`
+
+**Varies:** `screenshot.fullPage` · **Value:** `false` · **Effect:** saves only what fits in the viewport.
+
+<Markdown src="examples/capture-screenshot-fullpage-false/_variants.mdx" />
+
+### `mask` with strings
+
+**Varies:** `screenshot.mask` · **Value:** `["#clock", "#stamps"]` · **Effect:** hides the first match of each selector in both images before comparing, so the times don't count.
+
+<Markdown src="examples/capture-screenshot-mask-string/_variants.mdx" />
+
+### `mask` with an element object
+
+**Varies:** `screenshot.mask` · **Value:** `[{ "selector": ".stamp" }, "#clock"]` · **Effect:** hides every match of the object's selector, and the first match of the string.
+
+<Markdown src="examples/capture-screenshot-mask-object/_variants.mdx" />
+
+### `mask` with `elementClass`
+
+**Varies:** `screenshot.mask` · **Value:** `[{ "elementClass": "stamp" }, "#clock"]` · **Effect:** hides every element with the `stamp` class, and the first match of the string. A mask object takes the same locator fields as `find`.
+
+<Markdown src="examples/capture-screenshot-mask-elementclass/_variants.mdx" />
+
+### `stable: true`
+
+**Varies:** `screenshot.stable` · **Value:** `true` · **Effect:** takes screenshots until two in a row match, so the loading bar has finished.
+
+<Markdown src="examples/capture-screenshot-stable-true/_variants.mdx" />
+
+### `animations: "disabled"`
+
+**Varies:** `screenshot.animations` · **Value:** `"disabled"` · **Effect:** stops the spinner during the screenshot, so every run saves the same image.
+
+<Markdown src="examples/capture-screenshot-animations-disabled/_variants.mdx" />
+
+### `animations: "allow"`
+
+**Varies:** `screenshot.animations` · **Value:** `"allow"` · **Effect:** leaves the spinner running, so the image shows it wherever it happens to be.
+
+<Markdown src="examples/capture-screenshot-animations-allow/_variants.mdx" />
+
+### An image with the `screenshot` class
+
+**Varies:** `detection: image class` · **Value:** `screenshot` · **Effect:** default detection turns the image into a `screenshot` step that saves to the image's path.
+
+<Markdown src="examples/capture-detect-screenshot-image/_variants.mdx" />
+
+## Annotation permutations
+
+Each example draws one annotation on a screenshot of the sample form.
+
+### `outline` on a selector string
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "outline": "#username-input" }` · **Effect:** draws a box around the username field.
+
+<Markdown src="examples/capture-annotation-outline-string/_variants.mdx" />
+
+### `outline` on an element object
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "outline": { "elementTestId": "username-field" } }` · **Effect:** finds the field by its test ID, then draws a box around it.
+
+<Markdown src="examples/capture-annotation-outline-object/_variants.mdx" />
+
+### `arrow` on a selector string
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "arrow": "#username-input" }` · **Effect:** points an arrow at the username field.
+
+<Markdown src="examples/capture-annotation-arrow-string/_variants.mdx" />
+
+### `arrow` at a point
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "arrow": { "position": { "x": 200, "y": 150 } } }` · **Effect:** points an arrow at a spot in the image, with no element.
+
+<Markdown src="examples/capture-annotation-arrow-point/_variants.mdx" />
+
+### `badge` on a selector string
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "badge": "#username-input", "label": "1" }` · **Effect:** marks the field with the number 1.
+
+<Markdown src="examples/capture-annotation-badge-string/_variants.mdx" />
+
+### `badge` on an element object with `timeout`
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "badge": { "elementTestId": "password-field", "timeout": 10000 }, "label": "2" }` · **Effect:** waits up to 10 seconds for the field, then marks it with 2.
+
+<Markdown src="examples/capture-annotation-badge-object/_variants.mdx" />
+
+### `callout` with a named `position`
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "callout": "#username-input", "position": "right" }` · **Effect:** labels the field with a text box to its right.
+
+<Markdown src="examples/capture-annotation-callout-position-region/_variants.mdx" />
+
+### `callout` with a `position` offset
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "position": { "offset": { "x": 0, "y": 20 } } }` · **Effect:** moves the label 20 pixels down from where it would go.
+
+<Markdown src="examples/capture-annotation-callout-position-offset/_variants.mdx" />
+
+### `blur` on a selector string
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "blur": "#contact-email" }` · **Effect:** blurs the first match only.
+
+<Markdown src="examples/capture-annotation-blur-string/_variants.mdx" />
+
+### `blur` with `all`
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "blur": { "selector": ".form-control" }, "all": true }` · **Effect:** blurs every field that matches, not only the first.
+
+<Markdown src="examples/capture-annotation-blur-all/_variants.mdx" />
+
+### `text` in a named region
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "text": { "position": "top-right" } }` · **Effect:** places a text box in the top-right corner of the image.
+
+<Markdown src="examples/capture-annotation-text-region/_variants.mdx" />
+
+### `text` on a selector with a `position` point
+
+**Varies:** `screenshot.annotations[]` · **Value:** `{ "text": "#username-input", "position": { "x": 40, "y": 40 } }` · **Effect:** anchors the text to the field, then places it at a fixed point.
+
+<Markdown src="examples/capture-annotation-text-string-point/_variants.mdx" />
+
+## `annotate` permutations
+
+Each example draws into the page with `annotate`, then takes a screenshot that shows the result.
+
+### `add`
+
+**Varies:** `annotate.add` · **Value:** `[{ "id": "step", "badge": "#username-input" }]` · **Effect:** draws a badge into the page, where it stays until something clears it.
+
+<Markdown src="examples/capture-annotate-add/_variants.mdx" />
+
+### `update`
+
+**Varies:** `annotate.update` · **Value:** `[{ "id": "step", "badge": "#submit-button" }]` · **Effect:** replaces the annotation with the same `id`, so the badge moves to the button.
+
+<Markdown src="examples/capture-annotate-update/_variants.mdx" />
+
+### `clear` with ids
+
+**Varies:** `annotate.clear` · **Value:** `["hint"]` · **Effect:** removes only the annotations with those ids.
+
+<Markdown src="examples/capture-annotate-clear-ids/_variants.mdx" />
+
+### `clear: true`
+
+**Varies:** `annotate.clear` · **Value:** `true` · **Effect:** removes every annotation on the page.
+
+<Markdown src="examples/capture-annotate-clear-true/_variants.mdx" />
+
+## `annotationDefaults` precedence
+
+A test's theme wins over the spec's, which wins over the config's. An annotation's own `style` wins over all of them. The config-level examples keep a `doc-detective.json` in their folder.
+
+### In the config
+
+**Varies:** `config.annotationDefaults` · **Value:** `{ "color": "#E11D48", "strokeWidth": 3 }` · **Effect:** every annotation in the run uses the red theme unless a spec or test sets its own.
+
+<Markdown src="examples/capture-annotationdefaults-config/_variants.mdx" />
+
+### On the spec
+
+**Varies:** `spec.annotationDefaults` · **Value:** `{ "color": "#0EA5E9", "strokeWidth": 4 }` · **Effect:** every test in the spec uses the blue theme. Inline statements can't set spec fields, so the inline and detected variants set it on the test.
+
+<Markdown src="examples/capture-annotationdefaults-spec/_variants.mdx" />
+
+### On the test
+
+**Varies:** `test.annotationDefaults` · **Value:** `{ "color": "#0EA5E9", "strokeWidth": 4 }` · **Effect:** this test's annotations use the blue theme.
+
+<Markdown src="examples/capture-annotationdefaults-test/_variants.mdx" />
+
+### Test over config
+
+**Varies:** `test.annotationDefaults over config.annotationDefaults` · **Value:** `blue over red` · **Effect:** the test's blue theme wins over the config's red one.
+
+<Markdown src="examples/capture-annotationdefaults-test-over-config/_variants.mdx" />
+
+### Annotation `style` over test
+
+**Varies:** `annotation.style over test.annotationDefaults` · **Value:** `{ "color": "#7C3AED" }` · **Effect:** the annotation's own purple `style` wins over the test's blue theme.
+
+<Markdown src="examples/capture-annotationdefaults-style-over-test/_variants.mdx" />
+
+## `autoScreenshot` and `autoRecord` precedence
+
+A test's value wins over the spec's, which wins over the config's. The examples config turns both off. The `autoRecord` examples run in headless Chrome, which records its tab.
+
+### `autoScreenshot` on in config
+
+**Varies:** `config.autoScreenshot` · **Value:** `true` · **Effect:** saves a screenshot after every step to the run folder.
+
+<Markdown src="examples/capture-autoscreenshot-config-true/_variants.mdx" />
+
+### `autoScreenshot: true` on the test
+
+**Varies:** `test.autoScreenshot` · **Value:** `true` · **Effect:** turns it on for this test, though the config turns it off.
+
+<Markdown src="examples/capture-autoscreenshot-test-true/_variants.mdx" />
+
+### `autoScreenshot: false` on the test over config
+
+**Varies:** `test.autoScreenshot` · **Value:** `false` · **Effect:** turns it off for this test, though the config turns it on.
+
+<Markdown src="examples/capture-autoscreenshot-test-false/_variants.mdx" />
+
+### `autoScreenshot: false` on the spec over config
+
+**Varies:** `spec.autoScreenshot` · **Value:** `false` · **Effect:** turns it off for every test in the spec. Inline statements can't set spec fields, so the inline and detected variants set it on the test.
+
+<Markdown src="examples/capture-autoscreenshot-spec-false/_variants.mdx" />
+
+### `autoRecord` on in config
+
+**Varies:** `config.autoRecord` · **Value:** `true` · **Effect:** saves a video of the whole test to the run folder.
+
+<Markdown src="examples/capture-autorecord-config-true/_variants.mdx" />
+
+### `autoRecord: true` on the test
+
+**Varies:** `test.autoRecord` · **Value:** `true` · **Effect:** turns it on for this test, though the config turns it off.
+
+<Markdown src="examples/capture-autorecord-test-true/_variants.mdx" />
+
+### `autoRecord: false` on the test over config
+
+**Varies:** `test.autoRecord` · **Value:** `false` · **Effect:** turns it off for this test, though the config turns it on.
+
+<Markdown src="examples/capture-autorecord-test-false/_variants.mdx" />
+
+### `autoRecord: false` on the spec over config
+
+**Varies:** `spec.autoRecord` · **Value:** `false` · **Effect:** turns it off for every test in the spec. Inline statements can't set spec fields, so the inline and detected variants set it on the test.
+
+<Markdown src="examples/capture-autorecord-spec-false/_variants.mdx" />
+
+## `record` and `stopRecord` permutations
+
+Each example records typing in a field. The `browser` engine runs in headless Chrome on Windows, macOS, and Linux. The `ffmpeg` example needs a display, so it runs only in headed Chrome on Windows and macOS.
+
+### String path
+
+**Varies:** `record` · **Value:** `".dd-output/typing.webm"` · **Effect:** records to the path. With no `overwrite`, it skips when the file exists.
+
+<Markdown src="examples/capture-record-form-string/_variants.mdx" />
+
+### `true`
+
+**Varies:** `record` · **Value:** `true` · **Effect:** records to `<stepId>.mp4` in `outputDir` with the engine Doc Detective picks.
+
+<Markdown src="examples/capture-record-form-true/_variants.mdx" />
+
+### Object with `path`, `directory`, and `overwrite`
+
+**Varies:** `record` · **Value:** `{ "path", "directory", "overwrite": "true" }` · **Effect:** records to `record-object.webm` in `.dd-output`, replacing the last run's file.
+
+<Markdown src="examples/capture-record-form-object/_variants.mdx" />
+
+### `engine: "browser"`
+
+**Varies:** `record.engine` · **Value:** `"browser"` · **Effect:** records the Chrome tab in a headed or a headless browser.
+
+<Markdown src="examples/capture-record-engine-browser/_variants.mdx" />
+
+### `engine: "ffmpeg"`
+
+**Varies:** `record.engine` · **Value:** `"ffmpeg"` · **Effect:** records the screen, so the test runs only in headed Chrome on Windows and macOS.
+
+<Markdown src="examples/capture-record-engine-ffmpeg/_variants.mdx" />
+
+### Named recording
+
+**Varies:** `record.name` · **Value:** `"typing"` · **Effect:** gives the recording a name that `stopRecord` can target.
+
+<Markdown src="examples/capture-record-named/_variants.mdx" />
+
+### `verify` with `minDuration` and `maxDuration`
+
+**Varies:** `record.verify` · **Value:** `{ "minDuration": 0.5, "maxDuration": 120 }` · **Effect:** fails the stop step if the video is shorter than half a second or longer than two minutes.
+
+<Markdown src="examples/capture-record-verify-duration/_variants.mdx" />
+
+### `verify` with `notBlack`
+
+**Varies:** `record.verify.notBlack` · **Value:** `true` · **Effect:** fails the stop step if the video is almost all black.
+
+<Markdown src="examples/capture-record-verify-notblack/_variants.mdx" />
+
+### `verify` with `resolution: true`
+
+**Varies:** `record.verify.resolution` · **Value:** `true` · **Effect:** fails the stop step if the video's size doesn't match what Doc Detective expected to record.
+
+<Markdown src="examples/capture-record-verify-resolution/_variants.mdx" />
+
+### `verify` with `resolution` as an object
+
+**Varies:** `record.verify.resolution` · **Value:** `{ "width": 800, "height": 600 }` · **Effect:** fails the stop step unless the video is exactly 800 by 600 pixels, the size of the test's headless Chrome viewport.
+
+<Markdown src="examples/capture-record-verify-resolution-object/_variants.mdx" />
+
+The test's `runOn` runs it on headless Chrome only, where the video matches the viewport. Headed Chrome on a display smaller than the window can record a shorter video, and the run warns.
+
+### `checkpoints: true`
+
+**Varies:** `record.checkpoints` · **Value:** `true` · **Effect:** saves a screenshot after each step and compares it with the last run's, with the default settings.
+
+<Markdown src="examples/capture-record-checkpoints-true/_variants.mdx" />
+
+### `checkpoints` as an object
+
+**Varies:** `record.checkpoints` · **Value:** `{ "maxVariation": 0.5, "directory": ".dd-output/typing-checkpoints" }` · **Effect:** keeps the comparison images in its own folder and tolerates more change before it warns.
+
+<Markdown src="examples/capture-record-checkpoints-object/_variants.mdx" />
+
+### `stopRecord: true`
+
+**Varies:** `stopRecord` · **Value:** `true` · **Effect:** stops the most recent recording.
+
+<Markdown src="examples/capture-record-stoprecord-true/_variants.mdx" />
+
+### `stopRecord` with a name
+
+**Varies:** `stopRecord` · **Value:** `"typing"` · **Effect:** stops the recording named `typing`.
+
+<Markdown src="examples/capture-record-stoprecord-name/_variants.mdx" />
+
+### `stopRecord` as an object
+
+**Varies:** `stopRecord` · **Value:** `{ "name": "typing" }` · **Effect:** stops the recording named `typing`, written as an object.
+
+<Markdown src="examples/capture-record-stoprecord-object/_variants.mdx" />

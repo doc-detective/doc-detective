@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-goto-waituntil-networkidle">
+  <title>Wait for network requests to finish</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/waitUntil-test-network.html" scope="external" format="html">the network test page</xref>.</cmd></step>
+      <step><cmd>Check that the page shows <b>Content loaded from API</b>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-checklink-origin">
+  <title>Check a link by its path</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-checklink-origin","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Check that <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the element test page</xref> responds.</cmd>
+        <info><data name="doc-detective" value='step {"checkLink":{"url":"/enhanced-elements.html","origin":"http://localhost:8092"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

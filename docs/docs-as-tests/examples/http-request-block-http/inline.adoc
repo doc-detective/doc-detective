@@ -1,0 +1,14 @@
+= Send a raw HTTP request
+
+// (test {"testId":"http-request-block-http","detectSteps":false})
+
+Send this request:
+
+[source,http]
+----
+GET http://localhost:8093/api/users?page=2 HTTP/1.1
+----
+
+// (step {"httpRequest":{"url":"http://localhost:8093/api/users?page=2","method":"get"}})
+
+// (test end)

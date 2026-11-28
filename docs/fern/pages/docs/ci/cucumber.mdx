@@ -1,0 +1,114 @@
+---
+title: Run Doc Detective from a Cucumber suite
+sidebar-title: Cucumber (cucumber-js)
+description: Keep your cucumber-js suite and test your docs from it. Call runTests() from a step definition or a BeforeAll hook, and fail the scenario when a doc test fails.
+---
+
+If your team already runs a [cucumber-js](https://github.com/cucumber/cucumber-js) suite, you don't need a second test command for your docs. Import Doc Detective in a step definition, run your docs' tests with `runTests()`, and fail the scenario when a doc test fails. Your docs then pass or fail in the same run, report, and CI job as the rest of your features.
+
+If you don't have a Cucumber suite, run the [`doc-detective` CLI](/reference/reference/cli) or the [GitHub Action](/docs/ci/github-action) instead.
+
+## Before you begin
+
+- A cucumber-js project. Doc Detective needs Node.js 24.22.1 or a later 24 release, or Node.js 26.12.1 or later.
+- Docs with Doc Detective tests, such as [inline tests](/docs/test-docs/inline) or `*.spec.json` files.
+- Doc Detective installed in that project:
+
+  ```bash
+  npm install --save-dev doc-detective
+  ```
+
+## Define a step that tests your docs
+
+Add a step that runs the tests in a file or folder and asserts that no spec failed:
+
+```javascript title="features/step_definitions/docs.steps.js"
+const assert = require("node:assert");
+const { Then } = require("@cucumber/cucumber");
+const { runTests } = require("doc-detective");
+
+// Doc tests can take minutes. Cucumber's default step timeout is 5 seconds.
+Then("the docs in {string} pass", { timeout: 10 * 60 * 1000 }, async function (path) {
+  const results = await runTests({ input: path });
+  const { specs } = results.summary;
+  assert.ok(specs.pass + specs.fail + specs.warning + specs.skipped > 0, `Couldn't find any doc tests in ${path}.`);
+  assert.strictEqual(specs.fail, 0, `Couldn't pass ${specs.fail} doc specs in ${path}.`);
+});
+```
+
+`runTests()` takes the same options as a [config file](/reference/schemas/config). `input` is a path, relative to the folder you run Cucumber from. It returns the run's results. `results.summary` counts the specs, tests, contexts, and steps by result:
+
+```json title="results.summary" invalid
+{
+  "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+  "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+  "contexts": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+  "steps": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 }
+}
+```
+
+The first assertion fails the step when the path holds no tests, so a typo in a path can't pass silently. A path whose tests all skip, for example because none run on this platform, still passes. If the run itself can't start, for example because of a misspelled option, `runTests()` throws, and Cucumber fails the step.
+
+If your project's `package.json` sets `"type": "module"`, name the file `docs.steps.cjs`, or use `import` in place of `require()`.
+
+## Use the step in a feature
+
+```gherkin title="features/docs.feature"
+Feature: Documentation
+
+  Scenario: The quickstart works
+    Then the docs in "docs/quickstart.md" pass
+```
+
+Run your suite as usual:
+
+```bash
+npx cucumber-js
+```
+
+A failing doc test fails the scenario, and `cucumber-js` exits with a non-zero code, so your CI job fails too.
+
+{/* test {"testId": "cucumber-recipe-passes", "detectSteps": false} */}
+{/* step {"description": "Run the sample Cucumber suite, which tests a doc from a step definition and a BeforeAll hook.", "runShell": {"command": "npx cucumber-js", "workingDirectory": "../../../../../test/core-artifacts/cucumber-recipe", "stdio": "/2 scenarios \\(2 passed\\)/", "timeout": 300000}} */}
+{/* test end */}
+
+## Test every doc once per run
+
+To test all your docs once, before any scenario runs, use a `BeforeAll` hook. Save the results, and assert on them in a step:
+
+```javascript title="features/support/docs-sweep.js"
+const assert = require("node:assert");
+const { BeforeAll, Then } = require("@cucumber/cucumber");
+const { runTests } = require("doc-detective");
+
+let sweep;
+
+// Test every doc once per Cucumber run, before the first scenario.
+BeforeAll({ timeout: 10 * 60 * 1000 }, async function () {
+  sweep = await runTests({ input: "docs" });
+});
+
+Then("every doc passed", function () {
+  const failed = sweep.specs.filter((spec) => spec.result === "FAIL").map((spec) => spec.specId);
+  assert.deepStrictEqual(failed, [], "Couldn't pass every doc spec.");
+});
+```
+
+```gherkin title="features/docs.feature"
+  Scenario: The docs sweep passed
+    Then every doc passed
+```
+
+Each entry in `sweep.specs` has a `specId` and a `result` of `PASS`, `FAIL`, `WARNING`, or `SKIPPED`, so the failure message names the specs that failed. Use the hook when your docs take a while to test. Cucumber runs it once, however many scenarios read the results.
+
+## Get reports for your doc tests
+
+`runTests()` returns results to your code. It doesn't run [reporters](/docs/ci/reporters-and-artifacts), and it ignores the `reporters` setting, so it writes no `junit` or `html` report. Cucumber's own reports list the scenario, not each doc test.
+
+To get a `junit` or `html` report for your docs, run the CLI with `--reporters` in your CI job, next to your Cucumber run:
+
+```bash
+npx doc-detective --input docs --reporters terminal,junit,html
+```
+
+See [Reporters and artifacts](/docs/ci/reporters-and-artifacts) for where each reporter writes its output.

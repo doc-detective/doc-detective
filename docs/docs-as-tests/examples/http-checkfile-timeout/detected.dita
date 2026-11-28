@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-checkfile-timeout">
+  <title>Wait for a slow file</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-checkfile-timeout","detectSteps":true}'/>
+    <p>Start a job that writes its result to the <codeph>output</codeph> folder after one second:</p>
+    <codeblock outputclass="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});setTimeout(()=&gt;fs.writeFileSync('output/late.txt','done'),1000)"</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"const fs=require(&apos;fs&apos;);fs.mkdirSync(&apos;output&apos;,{recursive:true});setTimeout(()=>fs.writeFileSync(&apos;output/late.txt&apos;,&apos;done&apos;),1000)\"","workingDirectory":".","background":{"name":"late-writer"}}}'/>
+    <p>Wait up to 15 seconds for <codeph>output/late.txt</codeph>.</p>
+    <data name="doc-detective" value='step {"checkFile":{"path":"output/late.txt","timeout":15000}}'/>
+    <data name="doc-detective" value='step {"closeSurface":"late-writer"}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

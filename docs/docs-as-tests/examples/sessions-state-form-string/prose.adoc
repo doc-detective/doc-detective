@@ -1,0 +1,8 @@
+= Keep the browser state in a file
+
+. Delete any `sessions-pstate.json` that an earlier run left in the output folder.
+. Sign in at http://localhost:8092/cookies/set/sessions_pstate/signed-in[the sign-in page]. The server sets the `sessions_pstate` cookie.
+. Save the browser state to `sessions-pstate.json`.
+. Sign out at http://localhost:8092/cookies/set/sessions_pstate/signed-out[the sign-out page], which replaces the cookie.
+. Load the browser state from `sessions-pstate.json`.
+. Open http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_pstate=signed-in*.

@@ -1,0 +1,13 @@
+{/* test {"testId":"capture-annotate-update","detectSteps":true} */}
+
+# Move a mark to the next field
+
+1. Go to [the sample form](http://localhost:8092/enhanced-elements.html).
+   {/* step {"goTo":"http://localhost:8092/enhanced-elements.html"} */}
+2. The username field is marked 1.
+   {/* step {"annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"}]}} */}
+3. Then the button is marked 2.
+   {/* step {"annotate":{"update":[{"id":"step","badge":"#submit-button","label":"2"}]}} */}
+   {/* step {"screenshot":{"path":"annotate-update.png","directory":".dd-output","overwrite":"true"}} */}
+
+{/* test end */}

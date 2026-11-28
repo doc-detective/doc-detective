@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-type-inputdelay">
+  <title>Type slowly</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd></step>
+      <step><cmd>Click <b>Type here:</b>.</cmd></step>
+      <step><cmd>Type <codeph>Hello</codeph>, one key at a time.</cmd></step>
+      <step><cmd>Check that the page shows <b>Hello</b> below the field.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

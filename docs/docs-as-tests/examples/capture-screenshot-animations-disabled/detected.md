@@ -1,0 +1,10 @@
+<!-- test {"testId":"capture-screenshot-animations-disabled","detectSteps":true} -->
+
+# Save a screenshot of an animated page with animations disabled
+
+1. Open the page at `http://localhost:8092/screenshot-loop.html`.
+   <!-- step {"goTo":{"url":"http://localhost:8092/screenshot-loop.html","waitUntil":{"networkIdleTime":0,"domIdleTime":0}}} -->
+2. A spinner turns in the middle of the page.
+   <!-- step {"screenshot":{"path":"animations-disabled.png","directory":".dd-output","overwrite":"true","animations":"disabled"}} -->
+
+<!-- test end -->

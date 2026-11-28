@@ -1,0 +1,12 @@
+= Check the session cookie
+
+// (test {"testId":"structure-before-after","description":"Check the session cookie while signed in.","detectSteps":false,"before":"sign-in.spec.json","after":"sign-out.spec.json"})
+
+. Start at http://localhost:8092/cookies[the cookies page].
++
+// (step {"goTo":"http://localhost:8092/cookies"})
+. Check that the page lists `structure-session=signed-in`.
++
+// (step {"find":"structure-session=signed-in"})
+
+// (test end)

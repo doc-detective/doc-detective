@@ -1,6 +1,6 @@
 {
   "specId": "reporters",
-  "description": "End-to-end coverage of the `junit` and `markdown` reporters through the real CLI. A reporter only runs after every spec in its own run finishes, so a spec can never observe its own reporter output — each test seeds a tiny inner spec, spawns a nested `doc-detective` run with both reporters selected, and asserts on the files it wrote. Everything is `node -e` shell work, so no browser or device is needed and every permutation runs on Windows, macOS and Linux. Scratch output goes to `.tmp/` at the repo root, never inside `test/core-artifacts/`: a stray `.doc-detective/` breaks the fixture-bundle coverage test, and `.xml`/`.md` leftovers would be detected as documentation on later runs.",
+  "description": "End-to-end coverage of the `junit`, `markdown`, and `cucumber` reporters through the real CLI. A reporter only runs after every spec in its own run finishes, so a spec can never observe its own reporter output — each test seeds a tiny inner spec, spawns a nested `doc-detective` run with both reporters selected, and asserts on the files it wrote. Everything is `node -e` shell work, so no browser or device is needed and every permutation runs on Windows, macOS and Linux. Scratch output goes to `.tmp/` at the repo root, never inside `test/core-artifacts/`: a stray `.doc-detective/` breaks the fixture-bundle coverage test, and `.xml`/`.md` leftovers would be detected as documentation on later runs.",
   "tests": [
     {
       "testId": "reporters-passing-run",
@@ -84,6 +84,66 @@
         {
           "runShell": {
             "command": "node -e \"const fs=require('fs'),{XMLParser}=require('fast-xml-parser');const b='.tmp/fixture-reporters/fail/out/';const x=fs.readFileSync(b+'junit.xml','utf8');const d=new XMLParser({ignoreAttributes:false,attributeNamePrefix:'@_'}).parse(x);if(Number(d.testsuites['@_failures'])<1){console.error('expected a failure count in junit.xml');process.exit(1)}if(x.indexOf('<failure')<0){console.error('expected a failure element');process.exit(1)}const m=fs.readFileSync(b+'doc-detective-summary.md','utf8');if(m.indexOf('## Failures')<0){console.error('expected a failures section');process.exit(1)}console.log('failing-run ok')\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "reporters-cucumber",
+      "description": "The `cucumber` reporter writes `cucumber.json` in the output folder: one feature per spec, a scenario per test and context, and Cucumber statuses, with a failing step `failed` and the step after it `skipped`. A FAILed inner test exits 1, which this outer step expects.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/cucumber';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-cucumber',tests:[{testId:'inner-test',steps:[{runShell:'node -e 0'},{runShell:'exit 3'},{runShell:'node -e 0'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js run --input .tmp/fixture-reporters/cucumber/inner.spec.json --output-dir .tmp/fixture-reporters/cucumber/out --reporters cucumber",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              1
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const f=JSON.parse(require('fs').readFileSync('.tmp/fixture-reporters/cucumber/out/cucumber.json','utf8'));const e=f[0]&&f[0].elements[0];if(!Array.isArray(f)||f[0].id!=='inner-cucumber'||f[0].keyword!=='Feature'||!e||e.type!=='scenario'){console.error('unexpected feature shape');process.exit(1)}const s=e.steps.map(x=>x.result.status).join(',');if(s!=='passed,failed,skipped'){console.error('unexpected statuses: '+s);process.exit(1)}if(!e.steps[1].result.error_message){console.error('missing error_message');process.exit(1)}console.log('cucumber ok: '+s)\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "reporters-cucumber-file-valued-output",
+      "description": "With `--output` naming a results file, the `cucumber` reporter writes `cucumber.json` beside it.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/cucumber-file';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-pass',tests:[{testId:'inner-test',steps:[{runShell:'node -e 0'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js run --input .tmp/fixture-reporters/cucumber-file/inner.spec.json --output .tmp/fixture-reporters/cucumber-file/results.json --output-dir .tmp/fixture-reporters/cucumber-file/results.json --reporters json,cucumber",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),b='.tmp/fixture-reporters/cucumber-file/';if(!fs.statSync(b+'results.json').isFile()){console.error('results.json is not a file');process.exit(1)}const f=JSON.parse(fs.readFileSync(b+'cucumber.json','utf8'));if(f[0].elements[0].steps[0].result.status!=='passed'){console.error('expected a passed step');process.exit(1)}console.log('cucumber file-output ok')\"",
             "workingDirectory": "../../..",
             "exitCodes": [
               0

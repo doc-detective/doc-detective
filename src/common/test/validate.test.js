@@ -1429,6 +1429,40 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.include("set `body` or `bodyPath`, not both.");
       });
+
+      // ADR 01242: answer in sequence, or replay a HAR file.
+      it("accepts a responses sequence", function () {
+        const result = check({ url: "**/jobs/1", responses: [{ body: { status: "running" } }, { statusCode: 404, bodyPath: "done.json" }] });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a harPath with or without a url filter and a method", function () {
+        expect(check({ harPath: "app.har" }).valid).to.be.true;
+        expect(check({ harPath: "app.har", url: "**/api/**", method: "GET" }).valid).to.be.true;
+      });
+
+      it("rejects an empty responses list and a bad entry", function () {
+        expect(check({ url: "**/x", responses: [] }).valid).to.be.false;
+        expect(check({ url: "**/x", responses: [{ body: "a", bodyPath: "a.json" }] }).valid).to.be.false;
+      });
+
+      it("rejects more than one of response, responses, and harPath", function () {
+        for (const mock of [
+          { url: "**/x", response: {}, responses: [{}] },
+          { url: "**/x", response: {}, harPath: "a.har" },
+          { url: "**/x", responses: [{}], harPath: "a.har" },
+        ]) {
+          const result = check(mock);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("set one of `response`, `responses`, or `harPath`.");
+        }
+      });
+
+      it("rejects a step with neither url nor harPath", function () {
+        const result = check({ responses: [{ body: "x" }] });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("set `url` or `harPath`.");
+      });
     });
 
     // ADR 01231: checkFile waits for a finished file or download.
@@ -1461,6 +1495,76 @@ import { schemas } from "../dist/index.js";
         expect(check({ download: "" }).valid).to.be.false;
         expect(check({ path: "a", timeout: 0 }).valid).to.be.false;
         expect(check({ path: "a", bogus: true }).valid).to.be.false;
+      });
+    });
+
+    describe("runOn matrix (ADR 01240)", function () {
+      const check = (context) => validate({ schemaKey: "context_v3", object: context });
+
+      it("accepts scalar and object values, and references in emulation fields", function () {
+        const result = check({
+          browsers: {
+            name: "chrome",
+            colorScheme: "$$matrix.variant.theme",
+            deviceScaleFactor: "$$matrix.variant.dpr",
+            locale: "$$matrix.locale",
+            timezone: "$$matrix.tz",
+            reducedMotion: "$$matrix.motion",
+            clock: "$$matrix.clock",
+          },
+          matrix: {
+            locale: ["en-US", "de-DE"],
+            n: [1, 2],
+            flag: [true, false],
+            variant: [{ theme: "light", dpr: 1 }, { theme: "dark", dpr: 2 }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      for (const [name, matrix] of [
+        ["an empty array", { a: [] }],
+        ["duplicate items", { a: ["x", "x"] }],
+        ["mixed scalars and objects", { a: ["x", { b: 1 }] }],
+        ["a nested array", { a: [["x"]] }],
+        ["an object with a non-scalar leaf", { a: [{ b: [1] }] }],
+        ["a key with a dot", { "a.b": ["x"] }],
+      ]) {
+        it(`rejects ${name}`, function () {
+          expect(check({ matrix }).valid).to.be.false;
+        });
+      }
+
+      it("accepts values from a file (ADR 01241)", function () {
+        expect(check({ matrix: { page: { file: "pages.json" }, url: { file: "sitemap.xml" } } }).valid).to.be.true;
+      });
+
+      it("rejects a file object with another key, or an empty path (ADR 01241)", function () {
+        expect(check({ matrix: { page: { file: "pages.json", url: "x" } } }).valid).to.be.false;
+        expect(check({ matrix: { page: { file: "" } } }).valid).to.be.false;
+      });
+
+      it("accepts a goTo URL that starts with a matrix reference (ADR 01241)", function () {
+        for (const goTo of ["$$matrix.url", { url: "$$matrix.url" }]) {
+          const result = validate({ schemaKey: "step_v3", object: { goTo } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+        expect(validate({ schemaKey: "step_v3", object: { goTo: "$$matrix" } }).valid).to.be.false;
+      });
+
+      it("still rejects a bad emulation value that isn't a reference", function () {
+        expect(check({ browsers: { name: "chrome", colorScheme: "$$matrix" } }).valid).to.be.false;
+      });
+
+      it("accepts a resolved context's combination in a test", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            steps: [{ goTo: "https://example.com" }],
+            contexts: [{ contextId: "default~a=1", matrix: { a: 1, v: { t: "x" } }, steps: [] }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
       });
     });
 
@@ -1760,7 +1864,7 @@ import { schemas } from "../dist/index.js";
           for (const object of [{ goTo: url }, { checkLink: { url } }, { httpRequest: url }, { httpRequest: { url } }]) {
             const result = step(object);
             expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
-            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)"');
+            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)"');
           }
         }
       });
@@ -2459,12 +2563,12 @@ import { schemas } from "../dist/index.js";
       });
     });
 
-    // ADR 01166: config `reporters` takes the six public names, exactly.
+    // ADR 01166: config `reporters` takes the seven public names, exactly.
     describe("config reporters", function () {
       const reporters = (list) => validate({ schemaKey: "config_v3", object: { reporters: list } }).valid;
 
       it("accepts each public reporter name", function () {
-        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown"])).to.be.true;
+        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown", "cucumber"])).to.be.true;
       });
 
       it("rejects other spellings and internal reporters", function () {
@@ -4112,11 +4216,26 @@ import { schemas } from "../dist/index.js";
           expect(result.valid, result.errors).to.be.true;
         }
         const defaults = validate({ schemaKey: "config_v3", object: {} });
-        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst"]);
+        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst", "gherkin"]);
       });
 
       it("rejects restructuredtext as a predefined fileType or extends base", function () {
         for (const fileTypes of [["restructuredtext"], [{ extends: "restructuredtext", extensions: ["txt"] }]]) {
+          expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
+        }
+      });
+    });
+
+    describe("config_v3 gherkin fileType", function () {
+      it("accepts gherkin as a predefined fileType and as an extends base", function () {
+        for (const fileTypes of [["gherkin"], [{ extends: "gherkin", extensions: ["story"] }]]) {
+          const result = validate({ schemaKey: "config_v3", object: { fileTypes } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+      });
+
+      it("rejects cucumber as a predefined fileType or extends base", function () {
+        for (const fileTypes of [["cucumber"], [{ extends: "cucumber", extensions: ["story"] }]]) {
           expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
         }
       });

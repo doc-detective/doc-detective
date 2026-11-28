@@ -1,0 +1,7 @@
+Type text and press Enter
+=========================
+
+#. Go to `the type echo page <http://localhost:8092/type-echo.html>`_.
+#. Click **Type here:**.
+#. Type ``Hello`` and press Enter.
+#. Check that the page shows **Hello** below the field.

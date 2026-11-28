@@ -1,0 +1,10 @@
+{/* test {"testId":"sessions-runon-clock","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"clock":"2026-12-03T09:00:00Z"}}]} */}
+
+# Check the page at a fixed time
+
+1. Start at [the multi-tab page](http://localhost:8092/multi-tab.html).
+   {/* step {"goTo":"http://localhost:8092/multi-tab.html"} */}
+2. Check that the page's clock reads 3 December 2026, 09:00 UTC.
+   {/* step {"runBrowserScript":{"script":"return new Date().toISOString();","output":"/^2026-12-03T09:00/"}} */}
+
+{/* test end */}

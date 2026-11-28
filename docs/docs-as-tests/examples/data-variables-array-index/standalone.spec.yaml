@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: data-variables-array-index
+    steps:
+      - httpRequest:
+          url: http://localhost:8092/api/carts
+          method: post
+          request:
+            body:
+              items:
+                - sku: A1
+                  qty: 2
+                - sku: B2
+                  qty: 1
+        variables:
+          FIRST_SKU: $$response.body.items[0].sku
+      - httpRequest:
+          url: http://localhost:8092/api/products?sku=$FIRST_SKU
+          method: get
+          response:
+            body:
+              sku: A1

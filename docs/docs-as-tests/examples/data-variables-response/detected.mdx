@@ -1,0 +1,14 @@
+{/* test {"testId":"data-variables-response","detectSteps":true} */}
+
+# Create an order and look it up
+
+1. Create an order. Send a `POST` request to `http://localhost:8092/api/orders` with this body:
+
+   ```json
+   {"id":"ord-1001"}
+   ```
+   {/* step {"httpRequest":{"url":"http://localhost:8092/api/orders","method":"post","request":{"body":{"id":"ord-1001"}}},"variables":{"ORDER_ID":"$$response.body.id"}} */}
+2. Look up the order. Send a `GET` request to `http://localhost:8092/api/orders?id=<id>`.
+   {/* step {"httpRequest":{"url":"http://localhost:8092/api/orders?id=$ORDER_ID","method":"get","response":{"body":{"id":"ord-1001"}}}} */}
+
+{/* test end */}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Compare pages in tabs, windows, and sessions</title></head>
+<body>
+<!-- test {"testId":"sessions-tabs","detectSteps":false,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]} -->
+<h1>Compare pages in tabs, windows, and sessions</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Click the Open child in new tab link. The child page opens in a new tab.
+    <!-- step {"click":"Open child in new tab"} --></li>
+  <li>In the newest tab, check that the page reads "PAGE linked".
+    <!-- step {"find":{"elementText":"PAGE linked","surface":{"browser":"firefox","tab":{"index":-1}}}} --></li>
+  <li>In a new tab named <code>report</code>, load <a href="http://localhost:8092/multi-tab-child.html?page=report">the report page</a>. Then load <a href="http://localhost:8092/multi-tab-child.html?page=scratch">the scratch page</a> in another new tab.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=report","newTab":{"name":"report"}}} -->
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=scratch","newTab":true}} --></li>
+  <li>Check that the <code>report</code> tab reads "PAGE report", and that the tab showing the scratch page reads "PAGE scratch".
+    <!-- step {"find":{"elementText":"PAGE report","surface":{"browser":"firefox","tab":"report"}}} -->
+    <!-- step {"find":{"elementText":"PAGE scratch","surface":{"browser":"firefox","tab":{"url":"http://localhost:8092/multi-tab-child.html?page=scratch"}}}} --></li>
+  <li>In a new window named <code>settings</code>, with its first tab named <code>general</code>, load <a href="http://localhost:8092/multi-tab-child.html?page=settings">the settings page</a>. Then load <a href="http://localhost:8092/multi-tab-child.html?page=help">the help page</a> in another new window.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=settings","newWindow":{"name":"settings","tab":"general"}}} -->
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=help","newWindow":true}} --></li>
+  <li>Check that the <code>settings</code> window and its <code>general</code> tab read "PAGE settings", and that the newest window, titled "Child help", reads "PAGE help".
+    <!-- step {"find":{"elementText":"PAGE settings","surface":{"browser":"firefox","window":"settings"}}} -->
+    <!-- step {"find":{"elementText":"PAGE settings","surface":{"browser":"firefox","window":{"name":"settings"},"tab":{"name":"general"}}}} -->
+    <!-- step {"find":{"elementText":"PAGE help","surface":{"browser":"firefox","window":-1}}} -->
+    <!-- step {"find":{"elementText":"PAGE help","surface":{"browser":"firefox","window":{"title":"Child help"}}}} -->
+    <!-- step {"find":{"elementText":"PAGE help","surface":{"browser":"firefox","window":{"url":"http://localhost:8092/multi-tab-child.html?page=help"}}}} --></li>
+  <li>In the first window, check that the tab titled "Multi-tab home" still reads "MULTI-TAB HOME".
+    <!-- step {"find":{"elementText":"MULTI-TAB HOME","surface":{"browser":"firefox","window":{"index":0},"tab":{"title":"Multi-tab home"}}}} --></li>
+  <li>Type <code>hello</code> in the echo box of the help window, which is also the newest window, and of the child tab, the second tab opened.
+    <!-- step {"type":{"keys":"hello","selector":"#echo-input","surface":{"browser":"firefox","window":{"url":"http://localhost:8092/multi-tab-child.html?page=help"}}}} -->
+    <!-- step {"type":{"keys":"hello","selector":"#echo-input","surface":{"browser":"firefox","window":-1}}} -->
+    <!-- step {"type":{"keys":" again","selector":"#echo-input","surface":{"browser":"firefox","window":{"index":-1}}}} -->
+    <!-- step {"type":{"keys":"hello","selector":"#echo-input","surface":{"browser":"firefox","tab":1}}} --></li>
+  <li>Load <a href="http://localhost:8092/multi-tab-child.html?page=notes">the notes page</a> in a new tab named <code>notes</code>, and <a href="http://localhost:8092/multi-tab-child.html?page=about">the about page</a> in a new window named <code>about</code>. Check that each one reads its page name.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=notes","newTab":"notes"}} -->
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=about","newWindow":"about"}} -->
+    <!-- step {"find":{"elementText":"PAGE notes","surface":{"browser":"firefox","tab":"notes"}}} -->
+    <!-- step {"find":{"elementText":"PAGE about","surface":{"browser":"firefox","window":"about"}}} --></li>
+  <li>Start two more Firefox sessions: <code>reviewer</code>, with an 800 by 600 viewport, and <code>editor</code>, with a 1024 by 768 window. Load <a href="http://localhost:8092/multi-tab-child.html?page=review">the review page</a> in <code>reviewer</code>.
+    <!-- step {"startSurface":[{"browser":"firefox","name":"reviewer","headless":true,"viewport":{"width":800,"height":600}},{"browser":"firefox","name":"editor","headless":true,"size":{"width":1024,"height":768}}]} -->
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=review","surface":{"browser":"firefox","name":"reviewer"}}} --></li>
+  <li>In the first session, go back to <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>, and check that it reads "MULTI-TAB HOME".
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab.html","surface":"firefox"}} -->
+    <!-- step {"find":{"elementText":"MULTI-TAB HOME","surface":"firefox"}} --></li>
+  <li>Close the <code>report</code> and <code>notes</code> tabs, the scratch tab, the child tab, the help, <code>settings</code>, and <code>about</code> windows, and the <code>reviewer</code> and <code>editor</code> sessions.
+    <!-- step {"closeSurface":[{"browser":"firefox","tab":{"name":"report"}},{"browser":"firefox","tab":{"url":"http://localhost:8092/multi-tab-child.html?page=scratch"}},{"browser":"firefox","tab":{"index":1}},{"browser":"firefox","window":{"title":"Child help"}},{"browser":"firefox","window":{"name":"settings"}},{"browser":"firefox","tab":"notes"},{"browser":"firefox","window":"about"},{"browser":"firefox","name":"reviewer"},"editor"]} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

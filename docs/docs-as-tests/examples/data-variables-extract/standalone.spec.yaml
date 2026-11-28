@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: data-variables-extract
+    steps:
+      - runShell: node --version
+        variables:
+          NODE_MAJOR: extract($$stdio.stdout, "v([0-9]+)")
+      - runShell: 'node -e "process.exit(/^[0-9]+$/.test(process.env.NODE_MAJOR) ? 0 : 1)"'

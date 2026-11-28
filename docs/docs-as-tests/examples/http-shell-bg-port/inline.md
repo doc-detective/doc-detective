@@ -1,0 +1,17 @@
+<!-- test {"testId":"http-shell-bg-port","detectSteps":false} -->
+
+# Start a background process
+
+Start a server on port 8241:
+
+```shell
+node -e "require('http').createServer((q, r) => r.end('ok')).listen(8241)"
+```
+
+<!-- step {"runShell":{"command":"node -e \"require('http').createServer((q, r) => r.end('ok')).listen(8241)\"","background":{"name":"http-shell-bg-port","waitUntil":{"port":8241}},"timeout":15000}} -->
+
+Stop it when you're done.
+
+<!-- step {"closeSurface":"http-shell-bg-port"} -->
+
+<!-- test end -->

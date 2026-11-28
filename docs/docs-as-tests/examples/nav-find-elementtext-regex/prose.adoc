@@ -1,0 +1,4 @@
+= Find an element by a text pattern
+
+. Go to http://localhost:8092/enhanced-elements.html[the element test page].
+. Find the *Submit Primary* button.

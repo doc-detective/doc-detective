@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-response-string">
+  <title>Expect a text response</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-response-string","detectSteps":true}'/>
+    <p>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/cookies/set/theme/dark</codeph>. The response is the text <codeph>Cookie set.</codeph></p>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/cookies/set/theme/dark","response":{"body":"Cookie set."}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

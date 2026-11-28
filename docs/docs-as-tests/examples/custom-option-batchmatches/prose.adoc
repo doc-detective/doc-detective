@@ -1,0 +1,15 @@
+= Print a greeting with Node.js
+
+Define the name to greet:
+
+[source,javascript]
+----
+const name = "Doc Detective";
+----
+
+Print the greeting:
+
+[source,javascript]
+----
+console.log(`Hello, ${name}!`);
+----

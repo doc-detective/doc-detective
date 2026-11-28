@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-click-button-middle
+    steps:
+      - goTo: http://localhost:8092/find-click.html
+      - click:
+          selector: "#counter"
+          button: middle
+      - find:
+          selector: "#counter"
+          elementAttribute:
+            data-middle: "1"

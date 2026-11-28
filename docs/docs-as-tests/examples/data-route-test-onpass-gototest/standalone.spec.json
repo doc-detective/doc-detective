@@ -1,0 +1,43 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-route-test-onpass-gototest-api",
+      "onPass": [
+        {
+          "goToTest": "data-route-test-onpass-gototest-products"
+        }
+      ],
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/health",
+            "method": "get"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "data-route-test-onpass-gototest-cart",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/carts",
+            "method": "get"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "data-route-test-onpass-gototest-products",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/products",
+            "method": "get"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-origin",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac"
+          ],
+          "browsers": "chrome",
+          "requires": {
+            "env": [
+              "SESSIONS_ORIGIN"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "/cookies/set/sessions_origin/visited"
+        },
+        {
+          "goTo": "/cookies"
+        },
+        {
+          "find": "sessions_origin=visited"
+        },
+        {
+          "goTo": "/api/echo"
+        },
+        {
+          "find": "/\"from\":\"docs\"/"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="manage-users">
+  <title>Manage users</title>
+  <taskbody>
+    <steps>
+      <step><cmd>To create a user, send a <codeph>POST</codeph> request to <codeph>/api/users</codeph>:</cmd>
+        <info><data name="doc-detective" value='test {"testId":"structure-users-create","description":"Create a user.","detectSteps":false}'/>
+          <codeblock outputclass="language-http">POST http://localhost:8092/api/users
+Content-Type: application/json
+
+{"name": "Ada"}</codeblock>
+          <data name="doc-detective" value='step {"stepId":"create-user","description":"Create the user Ada.","httpRequest":{"url":"http://localhost:8092/api/users","method":"post","request":{"headers":{"Content-Type":"application/json"},"body":{"name":"Ada"}},"response":{"body":{"name":"Ada"}},"statusCodes":[200]}}'/>
+          <data name="doc-detective" value="test end"/></info></step>
+      <step><cmd>To look up a user by name, send a <codeph>GET</codeph> request with a <codeph>name</codeph> parameter:</cmd>
+        <info><data name="doc-detective" value='test {"description":"Look up a user by name.","detectSteps":false}'/>
+          <codeblock outputclass="language-http">GET http://localhost:8092/api/users?name=Ada</codeblock>
+          <data name="doc-detective" value='step {"stepId":"find-user","description":"Look up Ada by name.","httpRequest":{"url":"http://localhost:8092/api/users","method":"get","request":{"parameters":{"name":"Ada"}},"response":{"body":{"name":"Ada"}}}}'/>
+          <data name="doc-detective" value="test end"/></info></step>
+      <step><cmd>To delete a user, send a <codeph>DELETE</codeph> request:</cmd>
+        <info><data name="doc-detective" value="test ignore start"/>
+          <codeblock outputclass="language-http">DELETE http://localhost:8092/api/users/ada</codeblock>
+          <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/users/ada","method":"delete"}}'/>
+          <data name="doc-detective" value="test ignore end"/></info></step>
+    </steps>
+  </taskbody>
+</task>

@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-request-block-untagged
+    steps:
+      - httpRequest:
+          url: http://localhost:8093/api/users?page=2
+          method: get
+          request:
+            headers:
+              X-Test: docs

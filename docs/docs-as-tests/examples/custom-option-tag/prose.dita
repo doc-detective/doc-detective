@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="custom-option-tag">
+  <title>Check the field label</title>
+  <body>
+    <p>Open the type echo page.</p>
+    <p>The page shows <systemoutput>Type here:</systemoutput> next to the field.</p>
+  </body>
+</topic>

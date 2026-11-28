@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-route-onfail-retry-delay",
+      "steps": [
+        {
+          "runShell": "node -e \"const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'dd-data-route-onfail-retry-delay');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}\"",
+          "onFail": [
+            {
+              "retry": {
+                "limit": 2,
+                "delay": 500
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

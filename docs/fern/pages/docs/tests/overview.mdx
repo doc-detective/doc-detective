@@ -6,7 +6,7 @@ description: Tests tell Doc Detective what actions to perform, how, and where.
 Tests tell Doc Detective what actions to perform, how, and where. Tests are made of three sets of components:
 
 - **Test specification**: The highest-level component, test specifications (or specs) are collection of tests that should run together. [Contexts](/docs/test-docs/platforms-and-browsers) defined in the spec apply to all tests in the spec. Test specifications are equivalent to test suites in other testing frameworks.
-- **Test**: A test to run within a spec. Each test has a name, and a set of steps to perform. If you omit `testId`, Doc Detective generates one. An ID you set must be unique within its spec, or the spec is invalid and the run [exits `2`](/reference/reference/cli#exit-codes). Tests are equivalent to test cases in other testing frameworks.
+- **Test**: A test to run within a spec. Each test has a name, and a set of steps to perform. If you omit `testId`, Doc Detective generates one. An ID you set must be unique within its spec, or the spec is invalid and the run [exits `2`](/reference/reference/cli#exit-codes). Tests are equivalent to test cases in other testing frameworks. To run one test once per value, such as each locale or theme, use a [`matrix`](/docs/test-docs/platforms-and-browsers#run-once-per-value-with-matrix).
 - **Steps**: A step is a single action to perform within a test. A step with two actions makes the spec invalid, so split it into two steps. Each individual step acts as an assertion that the step completes as expected. Steps are roughly equivalent to assertions in other testing frameworks.
 
   Each step can perform an action, which is a command that tells Doc Detective what to do. Actions can have additional properties that further define the action. A key that isn't part of the step or action schema makes the spec invalid, so check spelling against each action's reference.
@@ -660,6 +660,12 @@ Doc Detective uses only the `steps` from the first test in the referenced spec. 
 }
 ```
 
+An [inline test](/docs/test-docs/inline) takes `before` and `after` in its `test` statement, and they work the same way. A relative path starts from the document that holds the statement, unless [`relativePathBase`](/reference/schemas/config) is `cwd`:
+
+```markdown
+<!-- test {"testId": "checkout", "before": "setup.spec.json", "after": "cleanup.spec.json"} -->
+```
+
 ### Set up and tear down the whole run
 
 Set `beforeAll` and `afterAll` in your config to run setup and cleanup specs around the entire run:
@@ -878,6 +884,7 @@ Doc Detective supports multiple output reporters. By default, it uses `terminal`
 - **html**: Generates a self-contained HTML report with an interactive dashboard.
 - **junit**: Writes a `junit.xml` report for CI test summary views.
 - **markdown**: Writes a `doc-detective-summary.md` run summary for a CI job summary or a merge request comment.
+- **cucumber**: Writes a `cucumber.json` report in Cucumber JSON for test-management tools such as Xray and Allure.
 
 To see where each reporter writes its file, see [Find each report](/docs/ci/reporters-and-artifacts#find-each-report).
 

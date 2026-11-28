@@ -1,0 +1,14 @@
+Check Node.js and npm, if both are installed
+============================================
+
+.. test {"testId":"sessions-runon-requires-array","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]}
+
+#. Run ``node --version``.
+
+   .. step {"runShell":"node --version"}
+
+#. Run ``npm --version``.
+
+   .. step {"runShell":"npm --version"}
+
+.. test end

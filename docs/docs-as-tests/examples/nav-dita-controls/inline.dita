@@ -9,10 +9,8 @@
         <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
       <step><cmd>Check that the page title reads <wintitle>Type Echo Test Page</wintitle>.</cmd>
         <info><data name="doc-detective" value='step {"find":"Type Echo Test Page"}'/></info></step>
-      <step><cmd>Click the <uicontrol>Type here:</uicontrol> label.</cmd>
-        <info><data name="doc-detective" value='step {"click":"Type here:"}'/></info></step>
-      <step><cmd>Type "Hello, DITA".</cmd>
-        <info><data name="doc-detective" value='step {"type":"Hello, DITA"}'/></info></step>
+      <step><cmd>Type <userinput>Hello, DITA</userinput> into the <uicontrol>Type here:</uicontrol> field.</cmd>
+        <info><data name="doc-detective" value='step {"type":{"keys":"Hello, DITA","elementAria":"Type here:"}}'/></info></step>
       <step><cmd>Check that the page shows <b>Hello, DITA</b> below the field.</cmd>
         <info><data name="doc-detective" value='step {"find":"Hello, DITA"}'/></info></step>
     </steps>

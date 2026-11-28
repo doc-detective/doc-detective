@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="data-route-test-onskip-if">
+  <title>Find Node.js, then check the API</title>
+  <body>
+    <section>
+      <title>Find Node.js on Windows</title>
+      <data name="doc-detective" value='test {"testId":"data-route-test-onskip-if-windows","if":"$$platform == windows","onSkip":[{"if":"$$platform != windows","goToTest":"data-route-test-onskip-if-products"}],"detectSteps":true}'/>
+      <ol>
+        <li>Find the Node.js executable:
+          <codeblock outputclass="language-shell">where node</codeblock>
+          <data name="doc-detective" value='step {"runShell":"where node"}'/></li>
+      </ol>
+      <data name="doc-detective" value="test end"/>
+    </section>
+    <section>
+      <title>Check the cart</title>
+      <data name="doc-detective" value='test {"testId":"data-route-test-onskip-if-cart","detectSteps":true}'/>
+      <ol>
+        <li>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/carts</codeph>.
+          <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/carts","method":"get"}}'/></li>
+      </ol>
+      <data name="doc-detective" value="test end"/>
+    </section>
+    <section>
+      <title>Check the products</title>
+      <data name="doc-detective" value='test {"testId":"data-route-test-onskip-if-products","detectSteps":true}'/>
+      <ol>
+        <li>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/products</codeph>.
+          <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/products","method":"get"}}'/></li>
+      </ol>
+      <data name="doc-detective" value="test end"/>
+    </section>
+  </body>
+</topic>

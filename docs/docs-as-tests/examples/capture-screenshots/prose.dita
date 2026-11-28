@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshots">
+  <title>Take screenshots of a sign-in form</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the sample form</xref>.</cmd></step>
+      <step><cmd>The form opens.</cmd>
+        <info><image href=".dd-output/capture-form.png" outputclass="screenshot"><alt>The sample form</alt></image></info></step>
+      <step><cmd>Find the <b>Submit by ID</b> button at the top of the form.</cmd></step>
+      <step><cmd>Fill in the sign-in fields in the order the numbers show.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

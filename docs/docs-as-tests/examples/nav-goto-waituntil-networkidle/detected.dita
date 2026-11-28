@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-goto-waituntil-networkidle">
+  <title>Wait for network requests to finish</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-goto-waituntil-networkidle","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/waitUntil-test-network.html" scope="external" format="html">the network test page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/waitUntil-test-network.html","waitUntil":{"networkIdleTime":500}}}'/></info></step>
+      <step><cmd>Check that the page shows <b>Content loaded from API</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

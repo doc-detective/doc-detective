@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Open a page in a new tab</title></head>
+<body>
+<!-- test {"testId":"nav-goto-newtab","detectSteps":false} -->
+<h1>Open a page in a new tab</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Open <a href="http://localhost:8092/multi-tab-child.html?page=docs">the child page</a> in a new tab.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=docs","newTab":true}} --></li>
+  <li>Check that the new tab shows <strong>PAGE docs</strong>.
+    <!-- step {"find":"PAGE docs"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-surface-array">
+  <title>Compare two Node.js REPLs</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start two <codeph>node -i</codeph> processes, <codeph>sessions-pleft</codeph> and <codeph>sessions-pright</codeph>, and wait for both prompts.</cmd></step>
+      <step><cmd>In <codeph>sessions-pleft</codeph>, enter <codeph>40 + 2</codeph> and press Enter. Wait for the REPL to print <codeph>42</codeph>.</cmd></step>
+      <step><cmd>In <codeph>sessions-pright</codeph>, enter <codeph>6 * 7</codeph> and press Enter. Wait for the REPL to print <codeph>42</codeph>.</cmd></step>
+      <step><cmd>Close both REPLs.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

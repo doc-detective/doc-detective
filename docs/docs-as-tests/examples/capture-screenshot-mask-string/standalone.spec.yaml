@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: capture-screenshot-mask-string
+    steps:
+      - goTo: http://localhost:8092/mask.html
+      - screenshot:
+          path: mask-string.png
+          directory: .dd-output
+          maxVariation: 0.001
+          overwrite: aboveVariation
+          mask:
+            - "#clock"
+            - "#stamps"

@@ -107,6 +107,27 @@ describe("findElementByCriteria — all option", function () {
     );
   });
 
+  // Annotation, mask, and crop targets reach findElementByCriteria without the
+  // `find` step normalizer, so a string `elementClass` arrives unlisted.
+  it("treats a string elementClass as a list of one class", async function () {
+    const driver = fakeDriver([
+      makeElement({ id: "a", classes: "stamp big" }),
+      makeElement({ id: "b", classes: "other" }),
+      makeElement({ id: "c", classes: "stamp" }),
+    ]);
+    const result = await findElementByCriteria({
+      elementClass: "stamp",
+      driver,
+      timeout: 300,
+      all: true,
+    });
+    assert.equal(result.error, null);
+    assert.deepEqual(
+      result.elements.map((e) => e.elementId),
+      ["a", "c"]
+    );
+  });
+
   it("errors when nothing matches, even with all set", async function () {
     const driver = fakeDriver([]);
     const result = await findElementByCriteria({

@@ -1,0 +1,5 @@
+= Click a button described by an object
+
+. Go to http://localhost:8092/find-click.html[the click counter page].
+. Click *Count clicks*.
+. Check that the button counted the click.

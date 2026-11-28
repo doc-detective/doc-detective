@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the page at a fixed time</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-clock","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"clock":"2026-12-03T09:00:00Z"}}]} -->
+<h1>Check the page at a fixed time</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Check that the page's clock reads 3 December 2026, 09:00 UTC.
+    <!-- step {"runBrowserScript":{"script":"return new Date().toISOString();","output":"/^2026-12-03T09:00/"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

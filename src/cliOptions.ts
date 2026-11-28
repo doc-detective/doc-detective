@@ -55,7 +55,7 @@ function parseConcurrentRunners(value: string): string {
   throw new InvalidArgumentError("Expected a positive whole number, or auto.");
 }
 
-export const REPORTER_NAMES = ["terminal", "json", "html", "runFolder", "junit", "markdown"];
+export const REPORTER_NAMES = ["terminal", "json", "html", "runFolder", "junit", "markdown", "cucumber"];
 
 // A list option takes one comma-separated value, given once (ADR 01166). A
 // repeat would otherwise silently keep only the last. Returns the raw value:
@@ -151,7 +151,7 @@ export function addRunOptions(command: Command): Command {
       grouped(
         RUN_GROUP,
         "-r, --reporters <names>",
-        "Use these, comma-separated: terminal, json, html, runFolder, junit, markdown [terminal,runFolder]"
+        "Use these, comma-separated: terminal, json, html, runFolder, junit, markdown, cucumber [terminal,runFolder]"
       ).argParser(commaList(REPORTER_NAMES))
     )
     .addOption(

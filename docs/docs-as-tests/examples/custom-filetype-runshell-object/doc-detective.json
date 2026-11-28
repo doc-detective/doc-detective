@@ -1,0 +1,23 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "fileTypes": [
+    {
+      "name": "release-notes",
+      "extensions": [
+        "txt"
+      ],
+      "runShell": {
+        "command": "node -e \"process.exit(require('fs').readFileSync(process.argv[1], 'utf8').includes('TODO') ? 1 : 0)\" '$1'",
+        "timeout": 10000
+      }
+    }
+  ]
+}

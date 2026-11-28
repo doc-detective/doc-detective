@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-route-onskip-gotostep">
+  <title>Jump past the help steps</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-route-onskip-gotostep","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock>
+          <data name="doc-detective" value='step {"runShell":"node --version","stepId":"version"}'/></info></step>
+      <step><cmd>If that failed, print the help for <codeph>node</codeph>:</cmd>
+        <info><codeblock outputclass="language-shell">node --help</codeblock>
+          <data name="doc-detective" value='step {"if":"$$steps.version.outputs.exitCode != 0","runShell":"node --help","onSkip":[{"goToStep":"path"}]}'/></info></step>
+      <step><cmd>Print the npm version:</cmd>
+        <info><codeblock outputclass="language-shell">npm --version</codeblock>
+          <data name="doc-detective" value='step {"stepId":"npm","runShell":"npm --version"}'/></info></step>
+      <step><cmd>Find the Node.js executable:</cmd>
+        <info><codeblock outputclass="language-shell">command -v node</codeblock>
+          <data name="doc-detective" value='step {"stepId":"path","runShell":"command -v node"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

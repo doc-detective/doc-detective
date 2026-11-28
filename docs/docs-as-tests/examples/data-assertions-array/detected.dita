@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-assertions-array">
+  <title>Create an account and check the response</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-assertions-array","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Create an account. Send a <codeph>POST</codeph> request to <codeph>http://localhost:8092/api/accounts</codeph> with this body:</cmd>
+        <info><codeblock outputclass="language-json">{"name":"Wren","plan":"team"}</codeblock>
+          <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/accounts","method":"post","request":{"body":{"name":"Wren","plan":"team"}}},"assertions":["$$outputs.response.statusCode == 200","$$outputs.response.body.plan == \"team\""]}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

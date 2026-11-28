@@ -1,0 +1,30 @@
+= Retry a skipped step
+
+// (test {"testId":"data-route-onskip-retry","detectSteps":true})
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
++
+// (step {"runShell":"node --version","stepId":"version"})
+. If that failed, print the help for `+node+`:
++
+[source,shell]
+----
+node --help
+----
++
+// (step {"if":"$$steps.version.outputs.exitCode != 0","runShell":"node --help","onSkip":[{"retry":{"limit":1}}]})
+. Print the npm version:
++
+[source,shell]
+----
+npm --version
+----
++
+// (step {"stepId":"npm","runShell":"npm --version"})
+
+// (test end)

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check pages for visual changes</title></head>
+<body>
+<!-- test {"testId":"capture-visual-checks","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true}}]} -->
+<h1>Check pages for visual changes</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/mask.html">the billing page</a>.
+    <!-- step {"goTo":"http://localhost:8092/mask.html"} --></li>
+  <li>The page shows the next invoice date and when the account last synced. Those times change on every visit.
+    <!-- step {"screenshot":{"path":"capture-billing.png","directory":".dd-output","maxVariation":0.05,"threshold":0.2,"maxDiffPixels":500,"mask":["#clock",{"selector":".stamp"}]}} --></li>
+  <li>The billing panel sits at the top of the page.
+    <!-- step {"screenshot":{"path":"capture-panel.png","directory":".dd-output","overwrite":"true","crop":"#panel"}} --></li>
+  <li>Go to <a href="http://localhost:8092/screenshot-banner.html">the banner page</a>.
+    <!-- step {"goTo":"http://localhost:8092/screenshot-banner.html"} --></li>
+  <li>With the cookie banner hidden, the page shows only its content.
+    <!-- step {"screenshot":{"path":"capture-content.png","directory":".dd-output","overwrite":"true","surface":"chrome","style":".cookie-banner { visibility: hidden !important; }","stable":true,"animations":"disabled"}} --></li>
+  <li>With the banner showing, it covers the bottom of the page.
+    <!-- step {"screenshot":true} --></li>
+  <li>Go to <a href="http://localhost:8092/screenshot-tall.html">the long page</a>.
+    <!-- step {"goTo":"http://localhost:8092/screenshot-tall.html"} --></li>
+  <li>Scroll to the red box at the bottom of the page.
+    <!-- step {"screenshot":{"path":"capture-tall.png","directory":".dd-output","overwrite":"true","fullPage":true}} --></li>
+  <li>Go to <a href="http://localhost:8092/find-image.html">the toolbar page</a>.
+    <!-- step {"goTo":"http://localhost:8092/find-image.html"} --></li>
+  <li>Compare the sample chart with the published chart image.
+    <!-- step {"screenshot":{"path":"http://localhost:8092/find-image-chart.png","crop":"#sample-chart","maxVariation":0.2}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

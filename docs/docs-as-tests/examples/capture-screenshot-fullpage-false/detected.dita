@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-fullpage-false">
+  <title>Save a screenshot of a long page with fullPage false</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-screenshot-fullpage-false","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Open the page at <codeph>http://localhost:8092/screenshot-tall.html</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/screenshot-tall.html","waitUntil":{"networkIdleTime":0,"domIdleTime":0}}}'/></info></step>
+      <step><cmd>The page ends with a red box at the bottom.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"fullpage-false.png","directory":".dd-output","overwrite":"true","fullPage":false}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

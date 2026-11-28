@@ -1,0 +1,3 @@
+# Limit the wait for a response
+
+Send a `GET` request to `http://localhost:8093/api/users?page=2`. The API answers within 5 seconds.

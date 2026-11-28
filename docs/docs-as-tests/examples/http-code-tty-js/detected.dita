@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-tty-js">
+  <title>Check the terminal size from code</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-code-tty-js","detectSteps":true}'/>
+    <p>Print the size of the terminal the code runs in:</p>
+    <data name="doc-detective" value="test ignore start"/>
+    <codeblock outputclass="language-js">console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);</codeblock>
+    <data name="doc-detective" value="test ignore end"/>
+    <data name="doc-detective" value='step {"runCode":{"language":"js","code":"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-code-tty-js","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}'/>
+    <p>Stop it when you're done.</p>
+    <data name="doc-detective" value='step {"closeSurface":"http-code-tty-js"}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

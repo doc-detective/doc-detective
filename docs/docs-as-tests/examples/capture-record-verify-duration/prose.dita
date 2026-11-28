@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-record-verify-duration">
+  <title>Record typing in a field</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd></step>
+      <step><cmd>Start recording.</cmd></step>
+      <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
+      <step><cmd>Type "Hello".</cmd></step>
+      <step><cmd>Wait a moment, then stop the recording.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

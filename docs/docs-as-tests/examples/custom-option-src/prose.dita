@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="custom-option-src">
+  <title>Check a hosted icon</title>
+  <body>
+    <p>The page uses this icon and chart:</p>
+    <image href="http://localhost:8092/find-image-target.svg"><alt>Target icon</alt></image>
+    <image href="http://localhost:8092/find-image-chart.png"><alt>Chart</alt></image>
+  </body>
+</topic>

@@ -1,0 +1,6 @@
+List products and show the URL in reports
+=========================================
+
+#. Load the variables in ``shop.env``.
+
+#. List the products. Send a ``GET`` request to ``$SHOP_URL/products``.

@@ -1,0 +1,15 @@
+= Open a page in a new window
+
+// (test {"testId":"nav-goto-newwindow","detectSteps":false})
+
+. Go to http://localhost:8092/multi-tab.html[the multi-tab page].
++
+// (step {"goTo":"http://localhost:8092/multi-tab.html"})
+. Open http://localhost:8092/multi-tab-child.html?page=w1[the child page] in a new window.
++
+// (step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=w1","newWindow":true}})
+. Check that the new window shows *PAGE w1*.
++
+// (step {"find":"PAGE w1"})
+
+// (test end)

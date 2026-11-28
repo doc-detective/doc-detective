@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-visual-checks">
+  <title>Check pages for visual changes</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-visual-checks","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true}}]}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/mask.html" scope="external" format="html">the billing page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/mask.html"}'/></info></step>
+      <step><cmd>The page shows the next invoice date and when the account last synced. Those times change on every visit.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-billing.png","directory":".dd-output","maxVariation":0.05,"threshold":0.2,"maxDiffPixels":500,"mask":["#clock",{"selector":".stamp"}]}}'/></info></step>
+      <step><cmd>The billing panel sits at the top of the page.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-panel.png","directory":".dd-output","overwrite":"true","crop":"#panel"}}'/></info></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/screenshot-banner.html" scope="external" format="html">the banner page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/screenshot-banner.html"}'/></info></step>
+      <step><cmd>With the cookie banner hidden, the page shows only its content.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-content.png","directory":".dd-output","overwrite":"true","surface":"chrome","style":".cookie-banner { visibility: hidden !important; }","stable":true,"animations":"disabled"}}'/></info></step>
+      <step><cmd>With the banner showing, it covers the bottom of the page.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":true}'/></info></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/screenshot-tall.html" scope="external" format="html">the long page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/screenshot-tall.html"}'/></info></step>
+      <step><cmd>Scroll to the red box at the bottom of the page.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"capture-tall.png","directory":".dd-output","overwrite":"true","fullPage":true}}'/></info></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/find-image.html" scope="external" format="html">the toolbar page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/find-image.html"}'/></info></step>
+      <step><cmd>Compare the sample chart with the published chart image.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"http://localhost:8092/find-image-chart.png","crop":"#sample-chart","maxVariation":0.2}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

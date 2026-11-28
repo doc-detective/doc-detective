@@ -1,0 +1,12 @@
+<!-- test {"testId":"nav-find-click","detectSteps":false} -->
+
+# Find an element and click it
+
+1. Go to [the click counter page](http://localhost:8092/find-click.html).
+   <!-- step {"goTo":"http://localhost:8092/find-click.html"} -->
+2. Find **Count clicks** and click it.
+   <!-- step {"find":{"selector":"#counter","click":true}} -->
+3. Check that the button counted one left click.
+   <!-- step {"find":{"selector":"#counter","elementAttribute":{"data-left":"1"}}} -->
+
+<!-- test end -->

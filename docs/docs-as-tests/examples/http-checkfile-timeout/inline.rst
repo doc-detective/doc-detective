@@ -1,0 +1,20 @@
+Wait for a slow file
+====================
+
+.. test {"testId":"http-checkfile-timeout","detectSteps":false}
+
+Start a job that writes its result to the ``output`` folder after one second:
+
+.. code-block:: shell
+
+   node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});setTimeout(()=>fs.writeFileSync('output/late.txt','done'),1000)"
+
+.. step {"runShell":{"command":"node -e \"const fs=require('fs');fs.mkdirSync('output',{recursive:true});setTimeout(()=>fs.writeFileSync('output/late.txt','done'),1000)\"","workingDirectory":".","background":{"name":"late-writer"}}}
+
+Wait up to 15 seconds for ``output/late.txt``.
+
+.. step {"checkFile":{"path":"output/late.txt","timeout":15000}}
+
+.. step {"closeSurface":"late-writer"}
+
+.. test end

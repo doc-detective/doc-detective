@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Compare two Node.js REPLs</title></head>
+<body>
+<!-- test {"testId":"sessions-surface-array","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]} -->
+<h1>Compare two Node.js REPLs</h1>
+<ol>
+  <li>Start two <code>node -i</code> processes, <code>sessions-pleft</code> and <code>sessions-pright</code>, and wait for both prompts.
+    <!-- step {"startSurface":[{"process":"node","args":["-i"],"name":"sessions-pleft","waitUntil":{"stdio":"/>/"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-pright","waitUntil":{"stdio":"/>/"},"timeout":30000}]} --></li>
+  <li>In <code>sessions-pleft</code>, enter <code>40 + 2</code> and press Enter. Wait for the REPL to print <code>42</code>.
+    <!-- step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-pleft","waitUntil":{"stdio":"/42/"},"timeout":10000}} --></li>
+  <li>In <code>sessions-pright</code>, enter <code>6 * 7</code> and press Enter. Wait for the REPL to print <code>42</code>.
+    <!-- step {"type":{"keys":["6 * 7","$ENTER$"],"surface":"sessions-pright","waitUntil":{"stdio":"/42/"},"timeout":10000}} --></li>
+  <li>Close both REPLs.
+    <!-- step {"closeSurface":["sessions-pleft",{"process":"sessions-pright"}]} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!-- test {"testId":"sessions-surface-process","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]} -->
+
+# Evaluate an expression in the Node.js REPL
+
+1. Start `node -i` as a process named `sessions-prepl`, and wait for the `>` prompt.
+   <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-prepl","waitUntil":{"stdio":"/>/"},"timeout":30000}} -->
+2. In `sessions-prepl`, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
+   <!-- step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-prepl","waitUntil":{"stdio":"/42/"},"timeout":10000}} -->
+3. Close `sessions-prepl`.
+   <!-- step {"closeSurface":"sessions-prepl"} -->
+
+<!-- test end -->

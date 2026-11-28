@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-publicvariables-test-exact">
+  <title>List products and show the URL in reports</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Load the variables in <codeph>shop.env</codeph>.</cmd></step>
+      <step><cmd>List the products. Send a <codeph>GET</codeph> request to <codeph>$SHOP_URL/products</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

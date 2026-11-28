@@ -1,0 +1,10 @@
+= Check the demo pages
+
+== Pages
+
+. Check that http://localhost:8092/index.html[the elements demo] loads.
+. Check that http://localhost:8092/type-echo.html[the type echo page] loads.
+
+== API
+
+. Check that http://localhost:8092/status/200[the status endpoint] answers.
