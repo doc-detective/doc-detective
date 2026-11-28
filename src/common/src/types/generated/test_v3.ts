@@ -23487,6 +23487,10 @@ export interface ResolvedContext {
    */
   resultDescription?: string;
   /**
+   * How this context's result compares with the earlier run named in the report's `comparison`. `new` is a failure the earlier run didn't have, `existing` is a failure the earlier run also had, and `fixed` is a pass that failed in the earlier run. The same spec ID, test ID, and context ID identify a context across runs. Present only in test results that were compared with an earlier run, and only on `FAIL` contexts and on fixed `PASS` contexts. System-populated.
+   */
+  failureStatus?: "new" | "existing" | "fixed";
+  /**
    * Wall-clock duration of this context in milliseconds, covering preflight, driver startup, every step, and teardown. When the `retries` policy re-ran the context, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. Present only in test results. System-populated.
    */
   durationMs?: number;

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the page at two pixel densities</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-devicescalefactor-matrix","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"deviceScaleFactor":"$$matrix.dpr"},"matrix":{"dpr":[1,2]}}]} -->
+<h1>Check the page at two pixel densities</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Check that the device pixel ratio is the density under test, <code>1</code> or <code>2</code>.
+    <!-- step {"runBrowserScript":{"script":"return String(devicePixelRatio);","output":"/^$$matrix.dpr$/"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

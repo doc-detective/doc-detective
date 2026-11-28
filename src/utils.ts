@@ -15,7 +15,7 @@ import {
 } from "./core/utils.js";
 import { checkEnvAliases, envFlag, isDebugRequested, setEnvWarningSink, warnOnce } from "./envFlag.js";
 import { REPORTER_NAMES, splitList } from "./cliOptions.js";
-import { environmentLine, nonPassItems, writeReport } from "./reporters/model.js";
+import { FAILURE_TAGS, comparisonLine, environmentLine, fixedPaths, nonPassItems, writeReport } from "./reporters/model.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -233,15 +233,17 @@ async function readLegacyEnvConfig() {
 
 // A relative path resolves against the source that set it: a config file's
 // folder, or the working directory for the environment and flags (ADR 01165,
-// ADR 01192). `output` and `cacheDir` resolve here, with `path.join`, so `-`
+// ADR 01192). `output`, `cacheDir`, and `compareTo` resolve here, with `path.join`, so `-`
 // stays stdout and `output: "x/"` still reads as a folder. resolvePaths does
 // the rest, nested keys such as a credential file included. Returns a copy;
 // the input is left as it was.
 async function anchorPaths(config: any, base: string) {
   const anchored = structuredClone(config);
-  for (const key of ["output", "cacheDir"]) {
+  for (const key of ["output", "cacheDir", "compareTo"]) {
     const value = anchored[key];
-    if (typeof value === "string" && value !== "-" && !path.isAbsolute(value) && !/^https?:\/\//.test(value)) {
+    // `-` is stdout for `output`; `previous` is a keyword for `compareTo`.
+    const keyword = key === "compareTo" ? value === "previous" : value === "-";
+    if (typeof value === "string" && !keyword && !path.isAbsolute(value) && !/^https?:\/\//.test(value)) {
       anchored[key] = path.join(base, value);
     }
   }
@@ -561,6 +563,22 @@ async function setConfig({
     const other = modes.find(([on]) => on)?.[1];
     if (other) throw new Error(`set \`${other}\` or \`--plain\`, not both.`);
   }
+  // Comparison with an earlier run (ADR 01244). The flag resolves against the
+  // working directory; `previous` stays a keyword.
+  if (args.compareToConflict) throw new Error("set `--compare-to` or `--no-compare-to`, not both.");
+  if (typeof args.compareTo === "string") {
+    const target = args.compareTo.trim();
+    if (!target) throw new Error("`--compare-to` needs a path or `previous`.");
+    if (config.dryRun) throw new Error("set `--dry-run` or `--compare-to`, not both.");
+    config.compareTo = target === "previous" ? target : path.resolve(target);
+  } else if (args.compareTo === false) {
+    config.compareTo = false;
+  }
+  // ADR 01245.
+  if (typeof args.failOn === "string") config.failOn = args.failOn;
+  if (config.failOn === "new" && config.compareTo === false) {
+    throw new Error("`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`.");
+  }
   // The CLI's list flags are one comma-separated value each (ADR 01166).
   for (const [flag, key] of [
     ["reporters", "reporters"],
@@ -866,16 +884,20 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
 
       // The same items, in the same order, as every other reporter (ADR 01180).
       const items = nonPassItems(results);
-      for (const [status, heading, color] of [
-        ["FAIL", "Failed", colors.red],
-        ["WARNING", "Warnings", colors.yellow],
-        ["SKIPPED", "Skipped", colors.yellow],
-      ]) {
-        const listed = items.filter((item) => item.status === status);
+      const withStatus = (status: string) => items.filter((item) => item.status === status);
+      // What an earlier run failed and this one passed (ADR 01244).
+      const fixed = fixedPaths(results).map((idPath) => ({ idPath }));
+      for (const [listed, heading, color] of [
+        [withStatus("FAIL"), "Failed", colors.red],
+        [fixed, "Fixed", colors.green],
+        [withStatus("WARNING"), "Warnings", colors.yellow],
+        [withStatus("SKIPPED"), "Skipped", colors.yellow],
+      ] as [any[], string, string][]) {
         if (listed.length === 0) continue;
         console.log(`\n${colors.bold}${color}${heading} (${listed.length}):${colors.reset}`);
         listed.forEach((item, index) => {
-          console.log(`${color}${index + 1}. ${item.idPath}${item.description ? ` — ${item.description}` : ""}${colors.reset}`);
+          const tag = item.failureStatus ? `[${FAILURE_TAGS[item.failureStatus]}] ` : "";
+          console.log(`${color}${index + 1}. ${tag}${item.idPath}${item.description ? ` — ${item.description}` : ""}${colors.reset}`);
           const details = [
             item.reason,
             item.hint && `Hint: ${item.hint}`,
@@ -887,6 +909,8 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
         });
       }
 
+      const compared = comparisonLine(results);
+      if (compared) console.log(`\n${compared}`);
       const footer = environmentLine(results);
       if (footer) console.log(`\n${footer}`);
     } else {

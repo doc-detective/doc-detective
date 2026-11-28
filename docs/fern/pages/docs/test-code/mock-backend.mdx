@@ -1,0 +1,257 @@
+---
+title: Run a mock backend for API tests
+sidebar-title: Mock backend
+description: Start a mock API server as part of a test, point HTTP requests at it, and stop it when the test ends.
+---
+
+Your docs walk a reader through API calls, but the real backend is slow, rate limited, or not deployed where your tests run. Run a mock server instead. Doc Detective starts it as a background process and waits until it's ready. It then sends your documented requests to the mock and stops it when the test ends.
+
+This recipe uses [Prism](https://github.com/stoplightio/prism), which serves responses from the examples in an OpenAPI description. Any mock server that runs from the command line works the same way, such as [json-server](https://github.com/typicode/json-server). For the basics of `httpRequest`, see [Test HTTP and APIs](/docs/test-docs/http-and-api).
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- An OpenAPI description of your API, saved as `openapi.yaml` next to your spec file. Prism answers each request with the response example the description defines.
+- Node.js, so `npx` can run Prism without a global install.
+
+## Step 1: Start the mock server
+
+Add a [`startSurface`](/docs/actions/startsurface) step with a `process` descriptor. The `process` field is the shell command that starts the server, and `name` is the handle later steps use to stop it.
+
+```json
+{
+  "description": "Start the Prism mock server on port 4010.",
+  "startSurface": {
+    "process": "npx @stoplight/prism-cli mock openapi.yaml --port 4010",
+    "name": "mock-api",
+    "waitUntil": { "port": 4010 },
+    "timeout": 120000
+  }
+}
+```
+
+The step doesn't finish until the server is ready, so the next request can't arrive too early. `waitUntil` sets what "ready" means:
+
+- `port`: the TCP port accepts connections on `127.0.0.1`.
+- `httpGet`: a `GET` request to a URL returns a `2xx` status. Use it when the port opens before the server can answer.
+- `stdio`: the server's output contains a string or matches a `/regex/`, such as a "listening" log line.
+- `delayMs`: at least this many milliseconds pass.
+
+Set more than one, and the step waits for all of them. `timeout` caps the wait, 60000 milliseconds by default. The example raises it because the first `npx` run downloads Prism.
+
+## Step 2: Point requests at the mock
+
+Send each [`httpRequest`](/docs/actions/httprequest) step to the mock server's address. Assert on the response the same way you would against the real API. `response.body` checks only the fields you list, so extra fields in the response, such as a `role` field, don't fail the step.
+
+```json
+{
+  "description": "Fetch a user from the mock API.",
+  "httpRequest": {
+    "url": "http://127.0.0.1:4010/users/1",
+    "response": {
+      "body": { "id": 1, "name": "Ada Lovelace" }
+    }
+  }
+}
+```
+
+A mock server also lets you reach error states on demand, so the docs for your error responses stay tested too. Prism doesn't look up IDs: any valid request to `/users/{id}` gets the operation's lowest `2xx` example, so `/users/999` returns `200`. To get an error response, declare it in the description, and ask for it with a `Prefer: code=<status>` request header. This `openapi.yaml` declares a `404` with an example next to the `200`:
+
+```yaml title="openapi.yaml"
+openapi: 3.0.3
+info:
+  title: Users API
+  version: 1.0.0
+paths:
+  /users/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: The user.
+          content:
+            application/json:
+              example:
+                id: 1
+                name: Ada Lovelace
+                role: admin
+        "404":
+          description: No user has this ID.
+          content:
+            application/json:
+              example:
+                error: User not found.
+```
+
+Then send the header and expect the error code:
+
+```json
+{
+  "description": "Confirm the mock API returns 404 for an unknown user.",
+  "httpRequest": {
+    "url": "http://127.0.0.1:4010/users/999",
+    "request": {
+      "headers": { "Prefer": "code=404" }
+    },
+    "statusCodes": [404]
+  }
+}
+```
+
+Use `127.0.0.1` rather than `localhost` when the mock server listens only on IPv4, as Prism does by default. On some systems `localhost` resolves to the IPv6 address first.
+
+## Step 3: Stop the mock server
+
+Add a [`closeSurface`](/docs/actions/closesurface) step that names the process. Stopping it frees the port for the next test.
+
+```json
+{
+  "description": "Stop the mock server.",
+  "closeSurface": "mock-api"
+}
+```
+
+If a test fails before it reaches this step, Doc Detective still stops the process when the run finishes.
+
+## Put it together
+
+The complete spec starts the mock, sends two requests, and stops the mock:
+
+{/* test {"testId":"mock-backend-full","detectSteps":false} */}
+
+```json title="mock-api.spec.json"
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start the Prism mock server on port 4010.",
+          "startSurface": {
+            "process": "npx @stoplight/prism-cli mock openapi.yaml --port 4010",
+            "name": "mock-api",
+            "waitUntil": { "port": 4010 },
+            "timeout": 120000
+          }
+        },
+        {
+          "description": "Fetch a user from the mock API.",
+          "httpRequest": {
+            "url": "http://127.0.0.1:4010/users/1",
+            "response": {
+              "body": { "id": 1, "name": "Ada Lovelace" }
+            }
+          }
+        },
+        {
+          "description": "Confirm the mock API returns 404 for an unknown user.",
+          "httpRequest": {
+            "url": "http://127.0.0.1:4010/users/999",
+            "request": {
+              "headers": { "Prefer": "code=404" }
+            },
+            "statusCodes": [404]
+          }
+        },
+        {
+          "description": "Stop the mock server.",
+          "closeSurface": "mock-api"
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"mock-backend-start","description":"Start a stand-in mock server on port 4010. It's a small Node script next to this page (mock-api-server.cjs) that answers like Prism would, so the docs suite needs no new dependency. A script file rather than node -e, because the process field runs through a shell and cmd.exe mangles inline JavaScript on Windows","startSurface":{"process":"node mock-api-server.cjs","name":"mock-api","workingDirectory":".","waitUntil":{"port":4010},"timeout":30000}} */}
+{/* step {"stepId":"mock-backend-get-user","description":"Fetch a user from the mock API","httpRequest":{"url":"http://127.0.0.1:4010/users/1","response":{"body":{"id":1,"name":"Ada Lovelace"}}}} */}
+{/* step {"stepId":"mock-backend-not-found","description":"Confirm the mock API returns 404 for an unknown user","httpRequest":{"url":"http://127.0.0.1:4010/users/999","request":{"headers":{"Prefer":"code=404"}},"statusCodes":[404]}} */}
+{/* step {"stepId":"mock-backend-stop","description":"Stop the mock server","closeSurface":"mock-api"} */}
+{/* test end */}
+
+To use json-server instead, give it a JSON file of records, such as this `db.json`:
+
+```json title="db.json"
+{
+  "users": [{ "id": "1", "name": "Ada Lovelace" }]
+}
+```
+
+Then change the `process` command and the port. json-server listens on port 3000 by default:
+
+```json
+{
+  "description": "Start json-server on port 3000.",
+  "startSurface": {
+    "process": "npx json-server db.json",
+    "name": "mock-api",
+    "waitUntil": { "port": 3000 },
+    "timeout": 120000
+  }
+}
+```
+
+json-server returns every ID as a string, so its body check expects `"1"` rather than the number `1`:
+
+```json
+{
+  "description": "Fetch a user from json-server.",
+  "httpRequest": {
+    "url": "http://127.0.0.1:3000/users/1",
+    "response": {
+      "body": { "id": "1", "name": "Ada Lovelace" }
+    }
+  }
+}
+```
+
+json-server looks up records by ID, so a request for an ID that isn't in `db.json` returns `404` on its own. It ignores the `Prefer` header, so leave that header off.
+
+## Step 4: Run the test
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+  ```bash
+  npx doc-detective --input mock-api.spec.json
+  ```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+  ```bash
+  docker run -v .:/app docdetective/docdetective:linux --input /app/mock-api.spec.json
+  ```
+
+  </Tab>
+</Tabs>
+
+## Verify it works
+
+Each step reports `PASS`. The `startSurface` step passes once the port opens, and each `httpRequest` step passes when the response from the mock matches its expectations. To see where results land, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Troubleshooting
+
+### The `startSurface` step times out
+
+**Cause:** The server didn't meet every `waitUntil` condition before `timeout`. Maybe the first `npx` run was still downloading. Maybe the server listens on a different port than the one you wait for, or it exited on startup.
+
+**Solution:** Raise `timeout`, and confirm the port in `waitUntil` matches the port the server prints. Run the `process` command by hand to see any startup error.
+
+### The step fails because the port is already in use
+
+**Cause:** Another process, often a mock server left over from an earlier manual run, holds the port.
+
+**Solution:** Stop the other process, or start the mock on a free port and update `waitUntil.port` and the request URLs to match.
+
+## What's next
+
+- [Test HTTP and APIs](/docs/test-docs/http-and-api) for response assertions and chaining calls with values saved from earlier responses.
+- [Generate requests from an OpenAPI description](/docs/test-docs/generate-tests-from-openapi) to test every operation in the same description your mock serves.
+- [`startSurface` process descriptors](/docs/actions/startsurface#process-descriptors) for every field, including `args`, `workingDirectory`, and `tty`.

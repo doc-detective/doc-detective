@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-matrix">
+  <title>Check the page in two languages</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-runon-matrix","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"locale":"$$matrix.locale"},"matrix":{"locale":["en-US","de-DE"]}}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Check that the page's language is the locale under test, <codeph>en-US</codeph> or <codeph>de-DE</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"runBrowserScript":{"script":"return navigator.language;","output":"$$matrix.locale"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

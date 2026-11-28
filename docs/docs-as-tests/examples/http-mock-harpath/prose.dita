@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-mock-harpath">
+  <title>Replay recorded API responses</title>
+  <body>
+    <p>Answer requests with the responses recorded in <codeph>plans.har</codeph>.</p>
+    <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
+    <p>Fetch <codeph>/api/plans</codeph>. The response is the recorded list, <codeph>pro</codeph> and <codeph>team</codeph>.</p>
+  </body>
+</topic>

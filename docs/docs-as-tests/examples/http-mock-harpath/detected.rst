@@ -1,0 +1,18 @@
+Replay recorded API responses
+=============================
+
+.. test {"testId":"http-mock-harpath","detectSteps":true,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}
+
+Answer requests with the responses recorded in ``plans.har``.
+
+.. step {"mockRequest":{"harPath":"plans.har"}}
+
+Open the test site at ``http://localhost:8092/``.
+
+.. step {"goTo":"http://localhost:8092/"}
+
+Fetch ``/api/plans``. The response is the recorded list, ``pro`` and ``team``.
+
+.. step {"runBrowserScript":{"script":"return fetch('/api/plans').then((r) => r.json());","output":"team"}}
+
+.. test end

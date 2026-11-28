@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-mock-responses">
+  <title>Stub a job that changes state</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-mock-responses","detectSteps":true,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}'/>
+    <p>Stub the job endpoint with four responses, sent in order. The first is <codeph>queued</codeph>, with status <codeph>202</codeph> and a <codeph>retry-after</codeph> header. The others are the list of finished stages, the <codeph>running</codeph> status, and the <codeph>done</codeph> status in <codeph>job.json</codeph>.</p>
+    <data name="doc-detective" value='step {"mockRequest":{"url":"**/api/jobs/1","responses":[{"statusCode":202,"headers":{"retry-after":"1"},"body":"queued"},{"statusCode":202,"body":["build"]},{"body":{"status":"running"}},{"bodyPath":"job.json"}]}}'/>
+    <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
+    <data name="doc-detective" value='step {"goTo":"http://localhost:8092/"}'/>
+    <p>Fetch <codeph>/api/jobs/1</codeph> five times. Each request gets the next response. The fifth request gets <codeph>job.json</codeph> again, because the last response answers every later request.</p>
+    <data name="doc-detective" value='step {"runBrowserScript":{"script":"return (async () => { const out = []; for (const _ of [1, 2, 3, 4, 5]) { const r = await fetch(&apos;/api/jobs/1&apos;); out.push(r.status + &apos; &apos; + (r.headers.get(&apos;retry-after&apos;) || &apos;-&apos;) + &apos; &apos; + (await r.text()).trim()); } return out.join(&apos;, &apos;); })();","output":"202 1 queued, 202 - [\"build\"], 200 - {\"status\":\"running\"}, 200 - {\"status\":\"done\"}, 200 - {\"status\":\"done\"}"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

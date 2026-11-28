@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-mock-responses",
+      "runOn": [
+        {
+          "platforms": [
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/jobs/1",
+            "responses": [
+              {
+                "statusCode": 202,
+                "headers": {
+                  "retry-after": "1"
+                },
+                "body": "queued"
+              },
+              {
+                "statusCode": 202,
+                "body": [
+                  "build"
+                ]
+              },
+              {
+                "body": {
+                  "status": "running"
+                }
+              },
+              {
+                "bodyPath": "job.json"
+              }
+            ]
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return (async () => { const out = []; for (const _ of [1, 2, 3, 4, 5]) { const r = await fetch('/api/jobs/1'); out.push(r.status + ' ' + (r.headers.get('retry-after') || '-') + ' ' + (await r.text()).trim()); } return out.join(', '); })();",
+            "output": "202 1 queued, 202 - [\"build\"], 200 - {\"status\":\"running\"}, 200 - {\"status\":\"done\"}, 200 - {\"status\":\"done\"}"
+          }
+        }
+      ]
+    }
+  ]
+}

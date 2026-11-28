@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Stub a job that changes state</title></head>
+<body>
+<h1>Stub a job that changes state</h1>
+<p>Stub the job endpoint with four responses, sent in order. The first is <code>queued</code>, with status <code>202</code> and a <code>retry-after</code> header. The others are the list of finished stages, the <code>running</code> status, and the <code>done</code> status in <code>job.json</code>.</p>
+<p>Open the test site at <code>http://localhost:8092/</code>.</p>
+<p>Fetch <code>/api/jobs/1</code> five times. Each request gets the next response. The fifth request gets <code>job.json</code> again, because the last response answers every later request.</p>
+</body>
+</html>
