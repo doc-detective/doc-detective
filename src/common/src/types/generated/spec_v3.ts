@@ -19150,7 +19150,7 @@ export interface ResponseBodyObject {
   [k: string]: unknown;
 }
 /**
- * JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.
+ * JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. If omitted, the response is checked against the OpenAPI response schema when `openApi.validateAgainstSchema` is `response` or `both`, and isn't schema-checked otherwise.
  */
 export interface ResponseSchema {
   [k: string]: unknown;
@@ -28186,7 +28186,7 @@ export interface ResponseBodyObject1 {
   [k: string]: unknown;
 }
 /**
- * JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.
+ * JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. If omitted, the response is checked against the OpenAPI response schema when `openApi.validateAgainstSchema` is `response` or `both`, and isn't schema-checked otherwise.
  */
 export interface ResponseSchema1 {
   [k: string]: unknown;

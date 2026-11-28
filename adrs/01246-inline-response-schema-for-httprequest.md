@@ -53,7 +53,7 @@ Chosen option 1.
 
 | Key | Type | Default | Effect |
 |---|---|---|---|
-| `response.schema` | object (a JSON Schema) | none | The response body must match it. Omit it to skip the check. |
+| `response.schema` | object (a JSON Schema) | none | The response body must match it. Omitted, the OpenAPI response schema applies when `validateAgainstSchema` is `response` or `both`. |
 
 ### Behavior
 
