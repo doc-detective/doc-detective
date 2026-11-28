@@ -331,6 +331,20 @@ In DITA, `<uicontrol>` marks the control to click, as in [Navigation and interac
 
 <Markdown src="examples/sessions-runon-clock/_variants.mdx" />
 
+## `runOn` `matrix` permutations
+
+### `"matrix": { "locale": ["en-US", "de-DE"] }`
+
+**Varies:** `runOn[].matrix` · **Value:** `{ "locale": ["en-US", "de-DE"] }` · **Effect:** runs the test once per locale. `$$matrix.locale` in the browser's `locale` and in the step's `output` becomes the value under test.
+
+<Markdown src="examples/sessions-runon-matrix/_variants.mdx" />
+
+### `"deviceScaleFactor": "$$matrix.dpr"`
+
+**Varies:** `runOn[].browsers.deviceScaleFactor` · **Value:** `"$$matrix.dpr"`, with `"matrix": { "dpr": [1, 2] }` · **Effect:** runs the test once per value, and `devicePixelRatio` is `1`, then `2`.
+
+<Markdown src="examples/sessions-runon-devicescalefactor-matrix/_variants.mdx" />
+
 ## `runOn` `requires` permutations
 
 ### `"requires": "node"`

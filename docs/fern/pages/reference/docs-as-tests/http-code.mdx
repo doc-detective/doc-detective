@@ -431,6 +431,18 @@ These examples load `users.openapi.json` from the [OpenAPI example](#call-operat
 
 <Markdown src="examples/http-mock-method/_variants.mdx" />
 
+### `responses`
+
+**Varies:** `mockRequest.responses` · **Value:** four responses that set `statusCode`, `headers`, `body` as a string, an array, and an object, and `bodyPath` · **Effect:** answers each request with the next response, and the last response answers every later request.
+
+<Markdown src="examples/http-mock-responses/_variants.mdx" />
+
+### `harPath`
+
+**Varies:** `mockRequest.harPath` · **Value:** `"plans.har"` · **Effect:** answers requests with the responses recorded in the HAR file next to the test file. Requests that aren't in the file reach the network.
+
+<Markdown src="examples/http-mock-harpath/_variants.mdx" />
+
 ## `runShell` permutations
 
 ### `runShell` as a string
