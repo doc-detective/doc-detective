@@ -24,6 +24,29 @@ describe("schema reference examples", function () {
     assert.equal(exampleValue({ type: "array", minItems: 1 }), undefined);
   });
 
+  it("uses a property's own first example over its default", function () {
+    assert.equal(exampleValue({ type: "string", default: "b", examples: ["a", "c"] }), "a");
+  });
+
+  it("leaves out an optional object that would only be `{}`", function () {
+    // response's `headers` (default `{}`) and `body` (free-form object) printed as `{}`,
+    // which reads like a check but matches anything.
+    const schema = {
+      type: "object",
+      properties: {
+        headers: { type: "object", default: {} },
+        body: { anyOf: [{ type: "object", additionalProperties: true }, { type: "string" }] },
+        required: { type: "array", items: { type: "string" }, default: [] },
+      },
+    };
+    assert.deepEqual(generateExampleFromSchema(schema), { required: [] });
+  });
+
+  it("keeps a required object even when it's `{}`", function () {
+    const schema = { type: "object", required: ["env"], properties: { env: { type: "object" } } };
+    assert.deepEqual(generateExampleFromSchema(schema), { env: {} });
+  });
+
   it("leaves out a field that a `not: { required }` guard forbids with the ones before it", function () {
     // screenshot's `crop` and `fullPage: true` are exclusive.
     const schema = {

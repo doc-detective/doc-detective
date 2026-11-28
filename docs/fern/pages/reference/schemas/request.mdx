@@ -24,8 +24,16 @@ body | one of:<br/>- object([Request body (object)](/reference/schemas/request-b
 
 ```json
 {
-  "headers": {},
-  "parameters": {},
-  "body": {}
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer $TOKEN"
+  },
+  "parameters": {
+    "page": 2
+  },
+  "body": {
+    "name": "Example user",
+    "role": "admin"
+  }
 }
 ```

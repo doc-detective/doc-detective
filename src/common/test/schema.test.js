@@ -82,6 +82,34 @@ describe("anyOf/oneOf branch order under coerceTypes", function () {
   });
 });
 
+// The schema reference pages show these nested examples, so each must work in a real step.
+describe("httpRequest_v3 request and response examples", function () {
+  const props = schemas.httpRequest_v3.anyOf[1].properties;
+  const cases = [];
+  for (const field of ["request", "response"]) {
+    const add = (examples, wrap) => (examples ?? []).forEach((ex) => cases.push([field, wrap(ex)]));
+    add(props[field].examples, (ex) => ex);
+    for (const [name, sub] of Object.entries(props[field].properties)) {
+      add(sub.examples, (ex) => ({ [name]: ex }));
+      for (const branch of sub.anyOf ?? []) add(branch.examples, (ex) => ({ [name]: ex }));
+    }
+  }
+
+  it("has examples for request, response, and their fields", function () {
+    assert.ok(cases.length >= 8, `Found only ${cases.length} examples.`);
+  });
+
+  cases.forEach(([field, value]) => {
+    it(`${field} example ${JSON.stringify(value)} passes validation`, function () {
+      const result = validate({
+        schemaKey: "httpRequest_v3",
+        object: { url: "https://api.example.com/users", [field]: value },
+      });
+      assert.ok(result.valid, result.errors);
+    });
+  });
+});
+
 // Loop through JSON schemas
 for (const [key, value] of Object.entries(schemas)) {
   describe(`${key} schema`, function () {

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-response-schema">
+  <title>Match the response to a schema</title>
+  <body>
+    <p>Send a <codeph>POST</codeph> request to <codeph>http://localhost:8093/api/invoices</codeph> with an invoice. In the response, <codeph>id</codeph> is a UUID, <codeph>created</codeph> is a date-time, <codeph>code</codeph> matches <codeph>^INV-[0-9]+$</codeph>, and <codeph>total</codeph> is a number.</p>
+  </body>
+</topic>

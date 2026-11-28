@@ -31,7 +31,6 @@ headers | one of:<br/>- object<br/>- string | Optional. Additional HTTP headers 
 {
   "url": "example",
   "origin": "example",
-  "params": {},
   "statusCodes": [
     200,
     301,
@@ -40,6 +39,9 @@ headers | one of:<br/>- object<br/>- string | Optional. Additional HTTP headers 
     308
   ],
   "timeout": 10000,
-  "headers": {}
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer $TOKEN"
+  }
 }
 ```

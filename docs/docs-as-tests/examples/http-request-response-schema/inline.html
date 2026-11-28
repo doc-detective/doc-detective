@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Match the response to a schema</title></head>
+<body>
+<!-- test {"testId":"http-request-response-schema","detectSteps":false} -->
+<h1>Match the response to a schema</h1>
+<p>Send a <code>POST</code> request to <code>http://localhost:8093/api/invoices</code> with an invoice. In the response, <code>id</code> is a UUID, <code>created</code> is a date-time, <code>code</code> matches <code>^INV-[0-9]+$</code>, and <code>total</code> is a number.</p>
+<!-- step {"httpRequest":{"url":"http://localhost:8093/api/invoices","method":"post","request":{"body":{"id":"3f2b8c1e-9a4d-4e6f-8b1a-2c3d4e5f6a7b","created":"2026-11-26T10:00:00Z","code":"INV-1042","total":19.99}},"response":{"schema":{"type":"object","required":["id","created","code","total"],"properties":{"id":{"type":"string","format":"uuid"},"created":{"type":"string","format":"date-time"},"code":{"type":"string","pattern":"^INV-[0-9]+$"},"total":{"type":"number"}}}}}} -->
+<!-- test end -->
+</body>
+</html>
