@@ -147,10 +147,8 @@ describe("core/openapi coverage", function () {
       const requestSchema = {
         type: "object",
         required: ["name"],
-        // Constraints force json-schema-faker to generate NON-falsy values:
-        // openapi.ts drops falsy generated values (`if (objectExample)`), so an
-        // unconstrained integer→0 / boolean→false / string→"" would be omitted
-        // and make these presence assertions flaky.
+        // Constraints keep the generated values non-falsy. Falsy values are kept
+        // now (ADR 01247), but non-falsy ones keep these assertions simple.
         properties: {
           name: { type: "string", minLength: 1 },
           age: { type: "integer", minimum: 1 },
@@ -276,8 +274,7 @@ describe("core/openapi coverage", function () {
               get: {
                 operationId: "getWidgets",
                 parameters: [
-                  // minimum:1 so the faked value is non-falsy (a 0 would be
-                  // dropped by getExampleParameters' `if (value)` guard).
+                  // minimum:1 keeps the faked value non-falsy.
                   { name: "limit", in: "query", schema: { type: "integer", minimum: 1 } },
                 ],
                 responses: jsonResponse({ type: "string", example: "ok" }),
@@ -306,8 +303,7 @@ describe("core/openapi coverage", function () {
                   items: {
                     type: "object",
                     required: ["id", "qty"],
-                    // Non-falsy constraints (see requestBody test): a 0/"" would
-                    // be dropped from the generated item object.
+                    // Non-falsy constraints, as in the requestBody test.
                     properties: {
                       id: { type: "string", minLength: 1 },
                       qty: { type: "integer", minimum: 1 },
@@ -381,6 +377,31 @@ describe("core/openapi coverage", function () {
       const result = await getOperation(definition, "getWidgets");
       assert.deepEqual(result.example.response.body, { count: 7, label: "widget" });
       assert.deepEqual(result.example.request.body, { mode: "fast" });
+    });
+
+    it("keeps falsy defaults (0, false, \"\") in bodies, array items, and parameters", async function () {
+      // `null` stays the "no example" signal and is still dropped.
+      const definition = defWith({
+        parameters: [
+          { name: "offset", in: "query", required: true, schema: { type: "integer", default: 0 } },
+        ],
+        responses: jsonResponse({
+          type: "object",
+          required: ["count", "active", "note", "flags"],
+          properties: {
+            count: { type: "integer", default: 0 },
+            active: { type: "boolean", default: false },
+            note: { type: "string", default: "" },
+            flags: { type: "array", items: { type: "boolean", default: false } },
+          },
+        }),
+      });
+      const result = await getOperation(definition, "getWidgets");
+      const { flags, ...rest } = result.example.response.body;
+      assert.deepEqual(rest, { count: 0, active: false, note: "" });
+      // json-schema-faker sizes the array; each item carries the default.
+      assert.ok(flags.length >= 1 && flags.every((f) => f === false));
+      assert.equal(result.example.request.parameters.offset, 0);
     });
 
     it("returns an empty array body for an items-less array schema with no examples", async function () {

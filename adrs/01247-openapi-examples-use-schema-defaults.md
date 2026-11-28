@@ -43,8 +43,14 @@ Chosen option: turn on `useDefaultValue` in the shared json-schema-faker generat
 * An `example` or `examples` entry is still used first. Generation, and so the default, applies only
   when the operation has none.
 * Response validation is unchanged: defaults still aren't applied when a response is checked.
-* Unchanged limits: `optionalsProbability: 0` still leaves optional fields out of a generated value,
-  and a falsy value (`0`, `false`, `""`) is still dropped from a generated object.
+* Optional fields: Doc Detective walks every property of an object schema, required or not, and
+  generates each one, so an optional field with a `default` appears with that default. It already
+  appeared before, with a random value. `optionalsProbability: 0` only affects a value that
+  json-schema-faker generates whole, such as an object nested in an array: that value still leaves
+  out its optional fields.
+* Falsy values: a generated `0`, `false`, or `""` is kept in objects, array items, and parameters.
+  These are common defaults, and before this change the example code dropped them. `null` (and
+  `undefined`) still mean "no example" and are left out.
 
 ### Consequences
 
