@@ -32069,6 +32069,10 @@
   ],
   "step.closeSurface (string)": [
     {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
+    {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
     },
