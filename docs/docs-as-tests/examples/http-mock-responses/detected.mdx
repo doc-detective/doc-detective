@@ -4,7 +4,7 @@
 
 Stub the job endpoint with four responses, sent in order. The first is `queued`, with status `202` and a `retry-after` header. The others are the list of finished stages, the `running` status, and the `done` status in `job.json`.
 
-{/* step {"mockRequest":{"url":"**/api/jobs/1","responses":[{"statusCode":202,"headers":{"retry-after":"1"},"body":"queued"},{"statusCode":202,"body":["build"]},{"body":{"status":"running"}},{"bodyPath":"job.json"}]}} */}
+{/* step {"mockRequest":{"url":"**\/api/jobs/1","responses":[{"statusCode":202,"headers":{"retry-after":"1"},"body":"queued"},{"statusCode":202,"body":["build"]},{"body":{"status":"running"}},{"bodyPath":"job.json"}]}} */}
 
 Open the test site at `http://localhost:8092/`.
 

@@ -433,7 +433,7 @@ These examples load `users.openapi.json` from the [OpenAPI example](#call-operat
 
 ### `responses`
 
-**Varies:** `mockRequest.responses` · **Value:** four responses that set `statusCode`, `headers`, `body` as a string, an array, and an object, and `bodyPath` · **Effect:** answers each request with the next response, and the last response answers every later request.
+**Varies:** `mockRequest.responses` · **Value:** four responses · **Effect:** answers each request with the next response. The last response answers every later request. The responses set `statusCode`, `headers`, `bodyPath`, and `body` as a string, an array, and an object.
 
 <Markdown src="examples/http-mock-responses/_variants.mdx" />
 
